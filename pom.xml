@@ -46,6 +46,7 @@
     <maven-jxr-plugin.version>3.6.0</maven-jxr-plugin.version>
     <maven-surefire-report-plugin.version>3.5.6</maven-surefire-report-plugin.version>
     <jackson-databind-nullable.version>0.2.6</jackson-databind-nullable.version>
+    <dependency-check-maven.version>12.1.0</dependency-check-maven.version>
 
     <instancio.version>5.6.0</instancio.version>
     <archunit.version>1.4.2</archunit.version>
@@ -364,6 +365,35 @@
                   <timeZone>UTC</timeZone>
                   <removeIssueFromMessage>true</removeIssueFromMessage>
                 </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>security</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.owasp</groupId>
+            <artifactId>dependency-check-maven</artifactId>
+            <version>${dependency-check-maven.version}</version>
+            <configuration>
+              <failBuildOnCVSS>7</failBuildOnCVSS>
+              <formats>
+                <format>HTML</format>
+                <format>JSON</format>
+              </formats>
+              <suppressionFiles>
+                <suppressionFile>${session.executionRootDirectory}/src/main/resources/owasp-suppressions.xml</suppressionFile>
+              </suppressionFiles>
+            </configuration>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>check</goal>
+                </goals>
               </execution>
             </executions>
           </plugin>
