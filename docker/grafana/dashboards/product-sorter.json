@@ -1,0 +1,57 @@
+{
+  "title": "Product Sorter",
+  "tags": ["product-sorter", "java"],
+  "schemaVersion": 38,
+  "panels": [
+    {
+      "title": "JVM Memory",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "jvm_memory_used_bytes{application='product-sorter'}",
+          "legendFormat": "{{area}}"
+        }
+      ]
+    },
+    {
+      "title": "HTTP Requests",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(http_server_requests_seconds_count{application='product-sorter'}[1m])",
+          "legendFormat": "{{method}} {{uri}}"
+        }
+      ]
+    },
+    {
+      "title": "Cache Hit Ratio",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(cache_hits_total{application='product-sorter'}[1m]) / (rate(cache_hits_total{application='product-sorter'}[1m]) + rate(cache_misses_total{application='product-sorter'}[1m]))",
+          "legendFormat": "L2 Redis"
+        }
+      ]
+    },
+    {
+      "title": "Traces (Tempo)",
+      "type": "tempo",
+      "datasource": "Tempo",
+      "query": "{service.name=\"product-sorter\"}"
+    },
+    {
+      "title": "Application Logs",
+      "type": "logs",
+      "datasource": "Loki",
+      "targets": [
+        {
+          "expr": "{container=\"product-sorter\"}",
+          "legendFormat": ""
+        }
+      ]
+    }
+  ]
+}

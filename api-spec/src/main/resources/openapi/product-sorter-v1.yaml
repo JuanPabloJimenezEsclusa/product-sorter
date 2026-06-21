@@ -1,0 +1,78 @@
+openapi: 3.1.0
+info:
+  title: Product Sorter API
+  description: REST service that sorts a product catalog by weighted scoring criteria
+  version: 1.0.0
+servers:
+  - url: /api/v1
+paths:
+  /products/sort:
+    post:
+      operationId: sortProducts
+      tags:
+        - products
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SortRequest'
+      responses:
+        '200':
+          description: Products sorted by weighted criteria
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SortResponse'
+        '400':
+          description: Invalid weights
+        '401':
+          description: Unauthorized
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    SortRequest:
+      type: object
+      required:
+        - weights
+      properties:
+        weights:
+          type: object
+          description: Weight for each sorting criterion (e.g. salesUnits, stockRatio)
+          additionalProperties:
+            type: number
+            format: double
+            minimum: 0
+            maximum: 1
+      example:
+        weights:
+          salesUnits: 0.7
+          stockRatio: 0.3
+    SortResponse:
+      type: object
+      properties:
+        sortedProducts:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScoredProduct'
+    ScoredProduct:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        score:
+          type: number
+          format: double
+      example:
+        id: 5
+        name: CONTRASTING LACE T-SHIRT
+        score: 0.87

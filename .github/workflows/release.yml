@@ -1,0 +1,42 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MAVEN_CLI_OPTS: "-B -ntp -e"
+
+jobs:
+  release:
+    permissions: { contents: write, packages: write }
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with: { fetch-depth: 0 }
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: graalvm
+          java-version: 25
+          cache: maven
+
+      - name: Build & Test
+        run: mvn ${MAVEN_CLI_OPTS} clean verify
+
+      - name: Generate Changelog
+        uses: mikepenz/release-changelog-builder-action@v5
+        with: { commitMode: true }
+        env: { GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} }
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body: ${{ steps.changelog.outputs.changelog }}
+          files: |
+            bootstrap/target/*.jar
