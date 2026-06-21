@@ -25,6 +25,7 @@
     <module>domain</module>
     <module>application</module>
     <module>infrastructure</module>
+    <module>infrastructure-observability</module>
     <module>adapter-rest</module>
     <module>bootstrap</module>
     <module>testdata</module>
@@ -94,6 +95,11 @@
       <dependency>
         <groupId>com.acidtango</groupId>
         <artifactId>infrastructure</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.acidtango</groupId>
+        <artifactId>infrastructure-observability</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

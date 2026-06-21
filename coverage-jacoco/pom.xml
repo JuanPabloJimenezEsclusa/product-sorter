@@ -44,6 +44,11 @@
     </dependency>
     <dependency>
       <groupId>com.acidtango</groupId>
+      <artifactId>infrastructure-observability</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.acidtango</groupId>
       <artifactId>bootstrap</artifactId>
       <version>${project.version}</version>
     </dependency>

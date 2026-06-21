@@ -14,7 +14,8 @@ class HexagonalArchitectureTest {
   private static final String APPLICATION = "com.acidtango.productsorter.application..";
   private static final String API_SPEC = "com.acidtango.productsorter.api..";
   private static final String ADAPTER_REST = "com.acidtango.productsorter.adapter.rest..";
-  private static final String INFRASTRUCTURE = "com.acidtango.productsorter.infrastructure..";
+  private static final String INFRASTRUCTURE = "com.acidtango.productsorter.infrastructure.(persistence|cache|config)..";
+  private static final String OBSERVABILITY = "com.acidtango.productsorter.infrastructure.observability..";
 
   private static final String[] COMMON = {
     "java..",
@@ -118,6 +119,19 @@ class HexagonalArchitectureTest {
       "org.openapitools.."))
     .as("API Spec dependencies must be whitelisted")
     .because("api-spec is a generated OpenAPI contract with framework annotations only");
+
+  @ArchTest
+  static final ArchRule observabilityDependencies = classes()
+    .that().resideInAPackage(OBSERVABILITY)
+    .should().onlyDependOnClassesThat().resideInAnyPackage(concat(
+      DOMAIN, OBSERVABILITY,
+      "org.springframework..",
+      "org.springframework.boot..",
+      "io.micrometer..",
+      "jakarta..",
+      "org.slf4j.."))
+    .as("Observability dependencies must be whitelisted")
+    .because("observability configures Micrometer, OpenTelemetry, and MDC logging");
 
   @ArchTest
   static final ArchRule infrastructureDependencies = classes()

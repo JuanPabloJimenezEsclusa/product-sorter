@@ -4,6 +4,8 @@ import com.acidtango.productsorter.application.service.SortProductsUseCaseImpl;
 import com.acidtango.productsorter.domain.port.ProductRepository;
 import com.acidtango.productsorter.domain.port.SortProductsUseCase;
 import com.acidtango.productsorter.domain.service.SortingEngine;
+import com.acidtango.productsorter.infrastructure.observability.MetricsSortProductsUseCase;
+import com.acidtango.productsorter.infrastructure.observability.SortingMetrics;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -16,7 +18,10 @@ public class ApplicationConfig {
   }
 
   @Bean
-  public SortProductsUseCase sortProductsUseCase(final ProductRepository repository, final SortingEngine engine) {
-    return new SortProductsUseCaseImpl(repository, engine);
+  public SortProductsUseCase sortProductsUseCase(final ProductRepository repository,
+                                                  final SortingEngine engine,
+                                                  final SortingMetrics metrics) {
+    final var impl = new SortProductsUseCaseImpl(repository, engine);
+    return new MetricsSortProductsUseCase(impl, metrics);
   }
 }
