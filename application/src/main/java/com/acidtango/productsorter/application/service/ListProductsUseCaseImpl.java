@@ -1,7 +1,7 @@
 package com.acidtango.productsorter.application.service;
 
 import com.acidtango.productsorter.domain.port.ListProductsUseCase;
-import com.acidtango.productsorter.domain.port.ProductPage;
+import com.acidtango.productsorter.domain.model.ProductPage;
 import com.acidtango.productsorter.domain.port.ProductRepository;
 
 public class ListProductsUseCaseImpl implements ListProductsUseCase {

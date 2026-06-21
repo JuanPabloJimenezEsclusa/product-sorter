@@ -1,4 +1,4 @@
-package com.acidtango.productsorter.application.service;
+package com.acidtango.productsorter.domain.port;
 
 import java.util.Map;
 

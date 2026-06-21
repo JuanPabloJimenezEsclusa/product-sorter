@@ -9,7 +9,7 @@ import static org.mockito.Mockito.when;
 import com.acidtango.productsorter.api.v1.dto.SortRequest;
 import com.acidtango.productsorter.domain.model.Product;
 import com.acidtango.productsorter.domain.port.ListProductsUseCase;
-import com.acidtango.productsorter.domain.port.ScoredProductPage;
+import com.acidtango.productsorter.domain.service.ScoredProductPage;
 import com.acidtango.productsorter.domain.port.SortProductsUseCase;
 
 
@@ -26,7 +26,8 @@ class ProductControllerTest {
 
   private final SortProductsUseCase sortUseCase = mock(SortProductsUseCase.class);
   private final ListProductsUseCase listUseCase = mock(ListProductsUseCase.class);
-  private final ProductController controller = new ProductController(sortUseCase, listUseCase);
+  private final ProductControllerMapper mapper = new ProductControllerMapper();
+  private final ProductController controller = new ProductController(sortUseCase, listUseCase, mapper);
 
   @ParameterizedTest
   @CsvSource({
@@ -74,7 +75,7 @@ class ProductControllerTest {
         Stock.of(List.of(StockBySize.of(Size.S, 1), StockBySize.of(Size.M, 1), StockBySize.of(Size.L, 1)))),
       new Product(ProductId.of(2L), ProductName.of("P2"), SalesUnits.of(50),
         Stock.of(List.of(StockBySize.of(Size.S, 0), StockBySize.of(Size.M, 0), StockBySize.of(Size.L, 0)))));
-    when(listUseCase.execute(1, 10)).thenReturn(com.acidtango.productsorter.domain.port.ProductPage.of(products, 1, 10, 2));
+    when(listUseCase.execute(1, 10)).thenReturn(com.acidtango.productsorter.domain.model.ProductPage.of(products, 1, 10, 2));
 
     final var response = controller.getProducts(1, 10);
     assertThat(response.getStatusCode().value()).as("Should return HTTP 200").isEqualTo(200);
@@ -85,7 +86,7 @@ class ProductControllerTest {
 
   @Test
   void shouldReturnEmptyPageWhenNoProducts() {
-    when(listUseCase.execute(1, 20)).thenReturn(com.acidtango.productsorter.domain.port.ProductPage.of(List.of(), 1, 20, 0));
+    when(listUseCase.execute(1, 20)).thenReturn(com.acidtango.productsorter.domain.model.ProductPage.of(List.of(), 1, 20, 0));
 
     final var response = controller.getProducts(null, null);
     assertThat(response.getStatusCode().value()).as("Should return HTTP 200").isEqualTo(200);

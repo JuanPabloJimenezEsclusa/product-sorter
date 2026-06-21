@@ -13,7 +13,8 @@ import java.util.stream.Stream;
 
 import com.acidtango.productsorter.domain.model.Product;
 import com.acidtango.productsorter.domain.port.ProductRepository;
-import com.acidtango.productsorter.domain.port.ScoredProductPage;
+import com.acidtango.productsorter.domain.port.SortProductsRequest;
+import com.acidtango.productsorter.domain.service.ScoredProductPage;
 import com.acidtango.productsorter.domain.service.SortingEngine;
 import com.acidtango.productsorter.domain.vo.ProductId;
 import com.acidtango.productsorter.domain.vo.ProductName;

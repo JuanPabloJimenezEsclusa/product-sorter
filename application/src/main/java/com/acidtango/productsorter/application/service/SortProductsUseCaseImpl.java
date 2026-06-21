@@ -1,11 +1,11 @@
 package com.acidtango.productsorter.application.service;
 
-import com.acidtango.productsorter.domain.port.ProductRepository;
-import com.acidtango.productsorter.domain.port.ScoredProductPage;
-import com.acidtango.productsorter.domain.port.SortProductsUseCase;
-import com.acidtango.productsorter.domain.service.SortingEngine;
-
 import java.util.Map;
+
+import com.acidtango.productsorter.domain.port.ProductRepository;
+import com.acidtango.productsorter.domain.port.SortProductsUseCase;
+import com.acidtango.productsorter.domain.service.ScoredProductPage;
+import com.acidtango.productsorter.domain.service.SortingEngine;
 
 public class SortProductsUseCaseImpl implements SortProductsUseCase {
 

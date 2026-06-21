@@ -1,6 +1,4 @@
-package com.acidtango.productsorter.domain.port;
-
-import com.acidtango.productsorter.domain.service.ScoredProduct;
+package com.acidtango.productsorter.domain.service;
 
 import java.util.List;
 

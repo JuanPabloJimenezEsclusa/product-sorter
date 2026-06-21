@@ -1,6 +1,6 @@
 package com.acidtango.productsorter.infrastructure.observability;
 
-import com.acidtango.productsorter.domain.port.ScoredProductPage;
+import com.acidtango.productsorter.domain.service.ScoredProductPage;
 import com.acidtango.productsorter.domain.port.SortProductsUseCase;
 
 import java.time.Duration;

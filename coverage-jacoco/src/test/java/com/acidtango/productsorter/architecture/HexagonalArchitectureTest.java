@@ -90,10 +90,11 @@ class HexagonalArchitectureTest {
   static final ArchRule adapterRestDependencies = classes()
     .that().resideInAPackage(ADAPTER_REST)
     .should().onlyDependOnClassesThat().resideInAnyPackage(concat(
-      DOMAIN, APPLICATION, ADAPTER_REST,
+      DOMAIN, ADAPTER_REST,
       "org.springframework.context..",
       "org.springframework.http..",
       "org.springframework.security..",
+      "org.springframework.stereotype..",
       "org.springframework.web..",
       "org.springdoc..",
       "io.swagger..",
