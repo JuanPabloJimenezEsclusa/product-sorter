@@ -1,10 +1,13 @@
 openapi: 3.1.0
+
 info:
   title: Product Sorter API
   description: REST service that sorts a product catalog by weighted scoring criteria
   version: 1.0.0
+
 servers:
   - url: /api/v1
+
 paths:
   /products/sort:
     post:
@@ -44,6 +47,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
 components:
   securitySchemes:
     bearerAuth:

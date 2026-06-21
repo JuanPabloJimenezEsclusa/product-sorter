@@ -23,17 +23,10 @@ class ProductScorerTest {
 
   private final ProductScorer scorer = new ProductScorer();
 
-  private static Stream<Arguments> scoringScenarios() {
-    return Stream.of(
-      arguments(named("standard weights", 0.7), 0.3, 0.8, 0.5, 0.71),
-      arguments(named("only sales", 1.0), 0.0, 0.8, 0.5, 0.80),
-      arguments(named("only stock", 0.0), 1.0, 0.8, 0.5, 0.50));
-  }
-
   @ParameterizedTest(name = "{0}")
   @MethodSource("scoringScenarios")
   void shouldComputeWeightedScore(final double wSales, final double wStock, final double sSales,
-                                  final double sStock, final double expected) {
+                                   final double sStock, final double expected) {
     final var product = Instancio.of(Product.class)
       .set(field(Product::salesUnits), SalesUnits.of(100))
       .set(field(Product::productId), ProductId.of(1L))
@@ -49,5 +42,12 @@ class ProductScorerTest {
     assertThat(score)
       .as("Weighted score should match expected")
       .isEqualTo(expected, offset(0.001));
+  }
+
+  private static Stream<Arguments> scoringScenarios() {
+    return Stream.of(
+      arguments(named("standard weights", 0.7), 0.3, 0.8, 0.5, 0.71),
+      arguments(named("only sales", 1.0), 0.0, 0.8, 0.5, 0.80),
+      arguments(named("only stock", 0.0), 1.0, 0.8, 0.5, 0.50));
   }
 }

@@ -1,7 +1,14 @@
+x-resources: &default-resources
+  deploy:
+    resources:
+      limits: { cpus: "1", memory: "512M" }
+      reservations: { cpus: "0.25", memory: "256M" }
+
 services:
   mongodb:
     image: mongo:8
     ports: ["27017:27017"]
+    networks: [product-sorter]
     volumes:
       - mongodb_data:/data/db
       - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
@@ -9,18 +16,28 @@ services:
       test: echo 'db.runCommand("ping").ok' | mongosh --quiet
       interval: 5s
       retries: 12
+    deploy:
+      resources:
+        limits: { cpus: "2", memory: "2048M" }
+        reservations: { cpus: "1", memory: "1024M" }
 
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     ports: ["6379:6379"]
+    networks: [product-sorter]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       retries: 12
+    deploy:
+      resources:
+        limits: { cpus: "2", memory: "2048M" }
+        reservations: { cpus: "1", memory: "1024M" }
 
   keycloak:
     image: quay.io/keycloak/keycloak:26
     ports: ["8081:8080"]
+    networks: [product-sorter]
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
@@ -37,43 +54,54 @@ services:
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     ports: ["4317:4317", "4318:4318", "8889:8889"]
+    networks: [product-sorter]
     volumes:
       - ./docker/otel-collector-config.yml:/etc/otelcol-contrib/config.yml:ro
     depends_on: [tempo]
+    <<: *default-resources
 
   prometheus:
     image: prom/prometheus:latest
     ports: ["9090:9090"]
+    networks: [product-sorter]
     volumes:
       - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     depends_on: [otel-collector]
+    <<: *default-resources
 
   tempo:
     image: grafana/tempo:latest
     ports: ["3200:3200", "4317:4317", "4318:4318"]
+    networks: [product-sorter]
     volumes:
       - ./docker/tempo.yml:/etc/tempo/tempo.yml:ro
       - tempo_data:/tmp/tempo
+    <<: *default-resources
 
   loki:
     image: grafana/loki:latest
     ports: ["3100:3100"]
+    networks: [product-sorter]
     volumes:
       - ./docker/loki-config.yml:/etc/loki/local-config.yml:ro
       - loki_data:/loki
+    <<: *default-resources
 
   promtail:
     image: grafana/promtail:latest
+    networks: [product-sorter]
     volumes:
       - ./docker/promtail-config.yml:/etc/promtail/config.yml:ro
       - /var/log:/var/log:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
     depends_on: [loki]
+    <<: *default-resources
 
   grafana:
     image: grafana/grafana:latest
     ports: ["3000:3000"]
+    networks: [product-sorter]
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
@@ -82,6 +110,7 @@ services:
       - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
       - grafana_data:/var/lib/grafana
     depends_on: [prometheus, tempo, loki]
+    <<: *default-resources
 
 volumes:
   mongodb_data:
@@ -89,3 +118,12 @@ volumes:
   tempo_data:
   loki_data:
   grafana_data:
+
+networks:
+  product-sorter:
+    name: product-sorter-net
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1

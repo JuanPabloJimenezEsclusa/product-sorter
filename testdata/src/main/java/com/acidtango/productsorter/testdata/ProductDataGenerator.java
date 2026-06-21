@@ -22,23 +22,6 @@ public class ProductDataGenerator {
     this.mapper = new ObjectMapper();
   }
 
-  static void main(final String[] args) throws Exception {
-    if (args.length < 2) {
-      System.err.println("Usage: ProductDataGenerator <count> <output.json> [--seed <n>]");
-      System.exit(1);
-    }
-
-    final var count = Integer.parseInt(args[0]);
-    final var output = new File(args[1]);
-    final var seed = args.length >= 4 && "--seed".equals(args[2])
-      ? Long.parseLong(args[3]) : 0L;
-
-    output.getParentFile().mkdirs();
-    final var generator = new ProductDataGenerator();
-    generator.generate(count, output);
-    System.out.println("Generated " + count + " products to " + output.getAbsolutePath());
-  }
-
   public void generate(final int count, final File output) throws Exception {
     try (final var writer = new PrintWriter(output, StandardCharsets.UTF_8)) {
       for (int i = 1; i <= count; i++) {
@@ -60,5 +43,22 @@ public class ProductDataGenerator {
         writer.println(mapper.writeValueAsString(product));
       }
     }
+  }
+
+  static void main(final String[] args) throws Exception {
+    if (args.length < 2) {
+      System.err.println("Usage: ProductDataGenerator <count> <output.json> [--seed <n>]");
+      System.exit(1);
+    }
+
+    final var count = Integer.parseInt(args[0]);
+    final var output = new File(args[1]);
+    final var seed = args.length >= 4 && "--seed".equals(args[2])
+      ? Long.parseLong(args[3]) : 0L;
+
+    output.getParentFile().mkdirs();
+    final var generator = new ProductDataGenerator();
+    generator.generate(count, output);
+    System.out.println("Generated " + count + " products to " + output.getAbsolutePath());
   }
 }

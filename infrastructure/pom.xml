@@ -12,16 +12,12 @@
 
   <artifactId>infrastructure</artifactId>
   <name>Infrastructure</name>
-  <description>Outbound adapters: persistence, caching, and configuration</description>
+  <description>Outbound adapters: persistence and caching</description>
 
   <dependencies>
     <dependency>
       <groupId>com.acidtango</groupId>
       <artifactId>domain</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.acidtango</groupId>
-      <artifactId>application</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -50,11 +46,6 @@
     <dependency>
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-registry-otlp</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-test</artifactId>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.testcontainers</groupId>

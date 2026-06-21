@@ -1,5 +1,7 @@
 package com.acidtango.productsorter.adapter.rest.exception;
 
+import java.time.OffsetDateTime;
+
 import com.acidtango.productsorter.api.v1.dto.ErrorResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -7,17 +9,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.OffsetDateTime;
-
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
   private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
-
-  @ExceptionHandler(ProductSorterException.class)
-  public ResponseEntity<ErrorResponse> handleProductSorter(final ProductSorterException ex) {
-    return ResponseEntity.status(ex.getStatus()).body(build(ex.getStatus(), ex.getCode(), ex.getMessage()));
-  }
 
   @ExceptionHandler(IllegalArgumentException.class)
   public ResponseEntity<ErrorResponse> handleIllegalArgument(final IllegalArgumentException ex) {

@@ -1,4 +1,4 @@
-package com.acidtango.productsorter.infrastructure.config;
+package com.acidtango.productsorter.config;
 
 import com.acidtango.productsorter.application.service.SortProductsUseCaseImpl;
 import com.acidtango.productsorter.domain.port.ProductRepository;

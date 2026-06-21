@@ -23,40 +23,6 @@ class SortingEngineTest {
 
   private final SortingEngine engine = new SortingEngine();
 
-  private static Stream<Arguments> existingProductScenarios() {
-    final var existingProducts = List.of(
-      product(1L, 100, StockMother.from("S:4,M:9,L:0")),
-      product(2L, 50, StockMother.from("S:35,M:9,L:9")),
-      product(3L, 80, StockMother.from("S:20,M:2,L:20")),
-      product(4L, 3, StockMother.from("S:25,M:30,L:10")),
-      product(5L, 650, StockMother.from("S:0,M:1,L:0")),
-      product(6L, 20, StockMother.from("S:9,M:2,L:5")));
-    return Stream.of(
-      arguments(named("sales desc", existingProducts), Map.of("salesUnits", 1.0, "stockRatio", 0.0), 5L, 4L),
-      arguments(named("stock desc", existingProducts), Map.of("salesUnits", 0.0, "stockRatio", 1.0), 2L, 5L),
-      arguments(named("mixed", existingProducts), Map.of("salesUnits", 0.7, "stockRatio", 0.3), 5L, 4L));
-  }
-
-  private static Stream<Arguments> sortingScenarios() {
-    return Stream.of(
-      arguments(named("sales only", Map.of("salesUnits", 1.0, "stockRatio", 0.0))),
-      arguments(named("stock only", Map.of("salesUnits", 0.0, "stockRatio", 1.0))),
-      arguments(named("balanced", Map.of("salesUnits", 0.5, "stockRatio", 0.5))));
-  }
-
-  private static Stream<Arguments> edgeCases() {
-    return Stream.of(
-      arguments(named("empty products", List.of()), Map.of("salesUnits", 1.0, "stockRatio", 0.0), 0));
-  }
-
-  private static Product product(final long id, final int salesUnits, final Stock stock) {
-    return new Product(
-      ProductId.of(id),
-      ProductName.of("Product " + id),
-      SalesUnits.of(salesUnits),
-      stock);
-  }
-
   @ParameterizedTest(name = "{0}")
   @MethodSource("sortingScenarios")
   void shouldSortProductsByDescendingWeightedScore(final Map<String, Double> weights) {
@@ -102,5 +68,39 @@ class SortingEngineTest {
     assertThat(ids.getLast())
       .as("Last product should match expected")
       .isEqualTo(lastProductId);
+  }
+
+  private static Stream<Arguments> sortingScenarios() {
+    return Stream.of(
+      arguments(named("sales only", Map.of("salesUnits", 1.0, "stockRatio", 0.0))),
+      arguments(named("stock only", Map.of("salesUnits", 0.0, "stockRatio", 1.0))),
+      arguments(named("balanced", Map.of("salesUnits", 0.5, "stockRatio", 0.5))));
+  }
+
+  private static Stream<Arguments> edgeCases() {
+    return Stream.of(
+      arguments(named("empty products", List.of()), Map.of("salesUnits", 1.0, "stockRatio", 0.0), 0));
+  }
+
+  private static Stream<Arguments> existingProductScenarios() {
+    final var existingProducts = List.of(
+      product(1L, 100, StockMother.from("S:4,M:9,L:0")),
+      product(2L, 50, StockMother.from("S:35,M:9,L:9")),
+      product(3L, 80, StockMother.from("S:20,M:2,L:20")),
+      product(4L, 3, StockMother.from("S:25,M:30,L:10")),
+      product(5L, 650, StockMother.from("S:0,M:1,L:0")),
+      product(6L, 20, StockMother.from("S:9,M:2,L:5")));
+    return Stream.of(
+      arguments(named("sales desc", existingProducts), Map.of("salesUnits", 1.0, "stockRatio", 0.0), 5L, 4L),
+      arguments(named("stock desc", existingProducts), Map.of("salesUnits", 0.0, "stockRatio", 1.0), 2L, 5L),
+      arguments(named("mixed", existingProducts), Map.of("salesUnits", 0.7, "stockRatio", 0.3), 5L, 4L));
+  }
+
+  private static Product product(final long id, final int salesUnits, final Stock stock) {
+    return new Product(
+      ProductId.of(id),
+      ProductName.of("Product " + id),
+      SalesUnits.of(salesUnits),
+      stock);
   }
 }

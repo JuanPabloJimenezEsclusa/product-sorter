@@ -8,13 +8,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import java.util.List;
 import java.util.stream.Stream;
 
-import com.acidtango.productsorter.domain.model.Product;
-import com.acidtango.productsorter.domain.vo.ProductId;
-import com.acidtango.productsorter.domain.vo.ProductName;
-import com.acidtango.productsorter.domain.vo.SalesUnits;
-import com.acidtango.productsorter.domain.vo.Size;
-import com.acidtango.productsorter.domain.vo.Stock;
-import com.acidtango.productsorter.domain.vo.StockBySize;
 import com.acidtango.productsorter.infrastructure.persistence.entity.ProductDocument;
 import com.acidtango.productsorter.infrastructure.persistence.entity.ProductDocument.StockEntry;
 import com.mongodb.client.MongoClients;
@@ -24,9 +17,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.mongodb.MongoDBContainer;
 
 @Testcontainers
 class MongoProductRepositoryTest {
@@ -34,16 +27,8 @@ class MongoProductRepositoryTest {
   @Container
   static MongoDBContainer mongodb = new MongoDBContainer("mongo:8");
 
-  private MongoTemplate mongoTemplate;
   private final ProductDocumentMapper mapper = new ProductDocumentMapper();
-
-  private static Stream<Arguments> productDocuments() {
-    return Stream.of(
-      arguments(named("V-NECK", new ProductDocument("1", "V-NECK BASIC SHIRT", 100,
-        List.of(new StockEntry("S", 4), new StockEntry("M", 9), new StockEntry("L", 0))))),
-      arguments(named("LACE", new ProductDocument("5", "CONTRASTING LACE T-SHIRT", 650,
-        List.of(new StockEntry("S", 0), new StockEntry("M", 1), new StockEntry("L", 0))))));
-  }
+  private MongoTemplate mongoTemplate;
 
   @BeforeEach
   void setUp() {
@@ -110,5 +95,13 @@ class MongoProductRepositoryTest {
     assertThat(products)
       .as("Should be empty when no products exist")
       .isEmpty();
+  }
+
+  private static Stream<Arguments> productDocuments() {
+    return Stream.of(
+      arguments(named("V-NECK", new ProductDocument("1", "V-NECK BASIC SHIRT", 100,
+        List.of(new StockEntry("S", 4), new StockEntry("M", 9), new StockEntry("L", 0))))),
+      arguments(named("LACE", new ProductDocument("5", "CONTRASTING LACE T-SHIRT", 650,
+        List.of(new StockEntry("S", 0), new StockEntry("M", 1), new StockEntry("L", 0))))));
   }
 }

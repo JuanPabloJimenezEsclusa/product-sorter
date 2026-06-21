@@ -33,19 +33,6 @@ class SortProductsUseCaseImplTest {
   private SortProductsUseCaseImpl useCase;
   private TestProductRepository repository;
 
-  private static Stream<Arguments> validRequests() {
-    return Stream.of(
-      arguments(named("6 products", Map.of("salesUnits", 0.7, "stockRatio", 0.3)), 6),
-      arguments(named("1 product", Map.of("salesUnits", 1.0, "stockRatio", 0.0)), 1));
-  }
-
-  private static Stream<Arguments> invalidRequests() {
-    return Stream.of(
-      arguments(named("null", null)),
-      arguments(named("empty", Map.of())),
-      arguments(named("invalid weight", Map.of("salesUnits", 1.5))));
-  }
-
   @BeforeEach
   void setUp() {
     repository = new TestProductRepository();
@@ -81,6 +68,19 @@ class SortProductsUseCaseImplTest {
     assertThatThrownBy(() -> new SortProductsRequest(weights))
       .as("Invalid weights should throw")
       .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  private static Stream<Arguments> validRequests() {
+    return Stream.of(
+      arguments(named("6 products", Map.of("salesUnits", 0.7, "stockRatio", 0.3)), 6),
+      arguments(named("1 product", Map.of("salesUnits", 1.0, "stockRatio", 0.0)), 1));
+  }
+
+  private static Stream<Arguments> invalidRequests() {
+    return Stream.of(
+      arguments(named("null", null)),
+      arguments(named("empty", Map.of())),
+      arguments(named("invalid weight", Map.of("salesUnits", 1.5))));
   }
 
   private static class TestProductRepository implements ProductRepository {

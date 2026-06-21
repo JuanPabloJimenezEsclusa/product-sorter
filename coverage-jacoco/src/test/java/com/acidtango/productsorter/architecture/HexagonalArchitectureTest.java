@@ -12,6 +12,7 @@ class HexagonalArchitectureTest {
 
   private static final String DOMAIN = "com.acidtango.productsorter.domain..";
   private static final String APPLICATION = "com.acidtango.productsorter.application..";
+  private static final String API_SPEC = "com.acidtango.productsorter.api..";
   private static final String ADAPTER_REST = "com.acidtango.productsorter.adapter.rest..";
   private static final String INFRASTRUCTURE = "com.acidtango.productsorter.infrastructure..";
 
@@ -57,6 +58,13 @@ class HexagonalArchitectureTest {
     .because("outbound adapters are independent of inbound adapters");
 
   @ArchTest
+  static final ArchRule infrastructureMustNotDependOnApplication = noClasses()
+    .that().resideInAPackage(INFRASTRUCTURE)
+    .should().dependOnClassesThat().resideInAnyPackage("..application..")
+    .as("Infrastructure must not depend on application")
+    .because("outbound adapter implementations only depend on domain ports");
+
+  @ArchTest
   static final ArchRule adapterRestMustNotDependOnInfrastructure = noClasses()
     .that().resideInAPackage(ADAPTER_REST)
     .should().dependOnClassesThat().resideInAnyPackage("..infrastructure..")
@@ -95,10 +103,27 @@ class HexagonalArchitectureTest {
     .because("adapter-rest translates HTTP to use case calls via Spring MVC and OAuth2");
 
   @ArchTest
+  static final ArchRule apiSpecDependencies = classes()
+    .that().resideInAPackage(API_SPEC)
+    .should().onlyDependOnClassesThat().resideInAnyPackage(concat(
+      API_SPEC,
+      "org.springframework.http..",
+      "org.springframework.web..",
+      "org.springframework.format..",
+      "org.springframework.lang..",
+      "org.springframework.validation..",
+      "io.swagger..",
+      "jakarta..",
+      "com.fasterxml.jackson..",
+      "org.openapitools.."))
+    .as("API Spec dependencies must be whitelisted")
+    .because("api-spec is a generated OpenAPI contract with framework annotations only");
+
+  @ArchTest
   static final ArchRule infrastructureDependencies = classes()
     .that().resideInAPackage(INFRASTRUCTURE)
     .should().onlyDependOnClassesThat().resideInAnyPackage(concat(
-      DOMAIN, APPLICATION, INFRASTRUCTURE,
+      DOMAIN, INFRASTRUCTURE,
       "org.springframework.cache..",
       "org.springframework.context..",
       "org.springframework.data..",
