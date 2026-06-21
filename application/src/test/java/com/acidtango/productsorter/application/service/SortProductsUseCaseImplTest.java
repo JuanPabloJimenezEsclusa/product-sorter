@@ -45,7 +45,7 @@ class SortProductsUseCaseImplTest {
   void shouldSortProductsViaRepository(final Map<String, Double> weights, final int productCount) {
     repository.products = IntStream.range(0, productCount)
       .mapToObj(i -> Instancio.of(Product.class)
-        .set(field(Product::productId), ProductId.of((long) i + 1))
+        .set(field(Product::productId), ProductId.of(String.valueOf(i + 1)))
         .set(field(Product::productName), ProductName.of("Product " + (i + 1)))
         .set(field(Product::salesUnits), SalesUnits.of((i + 1) * 100))
         .set(field(Product::stock), Stock.of(List.of(

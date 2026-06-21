@@ -7,20 +7,13 @@ distributor:
       protocols:
         grpc:
           endpoint: 0.0.0.0:4317
-
-ingester:
-  trace_idle_period: 10s
-  max_block_duration: 5m
-
-compactor:
-  compaction:
-    block_retention: 24h
+        http:
+          endpoint: 0.0.0.0:4318
 
 storage:
   trace:
     backend: local
     local:
-      path: /tmp/tempo
-    pool:
-      max_workers: 100
-      queue_depth: 10000
+      path: /tmp/tempo/blocks
+    wal:
+      path: /tmp/tempo/wal

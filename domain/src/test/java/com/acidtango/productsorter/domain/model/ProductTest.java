@@ -22,7 +22,7 @@ class ProductTest {
   @MethodSource("validProductScenarios")
   void shouldCreateProductWithValidAttributes(final String name, final int salesUnits, final String stockRaw) {
     final var product = Instancio.of(Product.class)
-      .set(field(Product::productId), ProductId.of(1))
+      .set(field(Product::productId), ProductId.of("1"))
       .set(field(Product::productName), ProductName.of(name))
       .set(field(Product::salesUnits), SalesUnits.of(salesUnits))
       .set(field(Product::stock), StockMother.from(stockRaw))
@@ -53,7 +53,7 @@ class ProductTest {
     final var stock = StockMother.from("S:1,M:1,L:1");
     return Stream.of(
       arguments(named("null id", (ThrowingCallable) () -> new Product(null, ProductName.of("V"), SalesUnits.of(1), stock)), NullPointerException.class),
-      arguments(named("blank name", (ThrowingCallable) () -> new Product(ProductId.of(1), ProductName.of(""), SalesUnits.of(1), stock)), IllegalArgumentException.class),
-      arguments(named("negative sales", (ThrowingCallable) () -> new Product(ProductId.of(1), ProductName.of("V"), SalesUnits.of(-1), stock)), IllegalArgumentException.class));
+      arguments(named("blank name", (ThrowingCallable) () -> new Product(ProductId.of("1"), ProductName.of(""), SalesUnits.of(1), stock)), IllegalArgumentException.class),
+      arguments(named("negative sales", (ThrowingCallable) () -> new Product(ProductId.of("1"), ProductName.of("V"), SalesUnits.of(-1), stock)), IllegalArgumentException.class));
   }
 }

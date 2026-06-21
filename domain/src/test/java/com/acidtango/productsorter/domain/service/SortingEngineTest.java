@@ -24,12 +24,12 @@ class SortingEngineTest {
   @MethodSource("sortingScenarios")
   void shouldSortProductsByDescendingWeightedScore(final Map<String, Double> weights) {
     final var products = List.of(
-      new ScoreableProduct(ProductId.of(1L), 650, 0.333),
-      new ScoreableProduct(ProductId.of(2L), 50, 1.0),
-      new ScoreableProduct(ProductId.of(3L), 80, 1.0),
-      new ScoreableProduct(ProductId.of(4L), 3, 1.0),
-      new ScoreableProduct(ProductId.of(5L), 650, 0.333),
-      new ScoreableProduct(ProductId.of(6L), 20, 1.0));
+      new ScoreableProduct(ProductId.of("1"), 650, 0.333),
+      new ScoreableProduct(ProductId.of("2"), 50, 1.0),
+      new ScoreableProduct(ProductId.of("3"), 80, 1.0),
+      new ScoreableProduct(ProductId.of("4"), 3, 1.0),
+      new ScoreableProduct(ProductId.of("5"), 650, 0.333),
+      new ScoreableProduct(ProductId.of("6"), 20, 1.0));
 
     final var sorted = engine.sortScoreables(products, weights, 650);
     assertThat(sorted)
@@ -55,10 +55,10 @@ class SortingEngineTest {
   @ParameterizedTest(name = "{0}")
   @MethodSource("existingProductScenarios")
   void shouldSortProductsAsSpecifiedInDocument(final List<ScoreableProduct> products,
-                                               final Map<String, Double> weights,
-                                               final int maxSales,
-                                               final long firstProductId,
-                                               final long lastProductId) {
+                                                final Map<String, Double> weights,
+                                                final int maxSales,
+                                                final String firstProductId,
+                                                final String lastProductId) {
     final var sorted = engine.sortScoreables(products, weights, maxSales);
     final var ids = sorted.stream().map(s -> s.product().productId().value()).toList();
     assertThat(ids.getFirst())
@@ -83,15 +83,15 @@ class SortingEngineTest {
 
   private static Stream<Arguments> existingProductScenarios() {
     final var existingProducts = List.of(
-      new ScoreableProduct(ProductId.of(1L), 100, 0.667),
-      new ScoreableProduct(ProductId.of(2L), 50, 1.0),
-      new ScoreableProduct(ProductId.of(3L), 80, 1.0),
-      new ScoreableProduct(ProductId.of(4L), 3, 1.0),
-      new ScoreableProduct(ProductId.of(5L), 650, 0.333),
-      new ScoreableProduct(ProductId.of(6L), 20, 1.0));
+      new ScoreableProduct(ProductId.of("1"), 100, 0.667),
+      new ScoreableProduct(ProductId.of("2"), 50, 1.0),
+      new ScoreableProduct(ProductId.of("3"), 80, 1.0),
+      new ScoreableProduct(ProductId.of("4"), 3, 1.0),
+      new ScoreableProduct(ProductId.of("5"), 650, 0.333),
+      new ScoreableProduct(ProductId.of("6"), 20, 1.0));
     return Stream.of(
-      arguments(named("sales desc", existingProducts), Map.of("salesUnits", 1.0, "stockRatio", 0.0), 650, 5L, 4L),
-      arguments(named("stock desc", existingProducts), Map.of("salesUnits", 0.0, "stockRatio", 1.0), 650, 2L, 5L),
-      arguments(named("mixed", existingProducts), Map.of("salesUnits", 0.7, "stockRatio", 0.3), 650, 5L, 4L));
+      arguments(named("sales desc", existingProducts), Map.of("salesUnits", 1.0, "stockRatio", 0.0), 650, "5", "4"),
+      arguments(named("stock desc", existingProducts), Map.of("salesUnits", 0.0, "stockRatio", 1.0), 650, "2", "5"),
+      arguments(named("mixed", existingProducts), Map.of("salesUnits", 0.7, "stockRatio", 0.3), 650, "5", "4"));
   }
 }

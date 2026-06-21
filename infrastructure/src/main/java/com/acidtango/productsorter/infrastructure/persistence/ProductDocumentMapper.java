@@ -17,7 +17,7 @@ public class ProductDocumentMapper {
 
   public Product toDomain(final ProductDocument doc) {
     return new Product(
-      ProductId.of(Long.parseLong(doc.id())),
+      ProductId.of(doc.id()),
       ProductName.of(doc.name()),
       SalesUnits.of(doc.salesUnits()),
       Stock.of(doc.stock().stream()
@@ -35,7 +35,7 @@ public class ProductDocumentMapper {
     final var ratio = (double) sizesWithStock / totalSizes;
 
     return new ScoreableProduct(
-      ProductId.of(Long.parseLong(doc.getObjectId("_id").toString())),
+      ProductId.of(doc.get("_id").toString()),
       doc.getInteger("salesUnits", 0),
       ratio
     );

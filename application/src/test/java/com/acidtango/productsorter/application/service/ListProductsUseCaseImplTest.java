@@ -30,7 +30,7 @@ class ListProductsUseCaseImplTest {
   @Test
   void shouldReturnAllProductsPaginated() {
     repository.products = List.of(
-      product(1L, 100), product(2L, 50), product(3L, 80));
+      product("1", 100), product("2", 50), product("3", 80));
 
     final var result = useCase.execute(1, 2);
     assertThat(result.products()).as("Should return first page").hasSize(2);
@@ -40,14 +40,14 @@ class ListProductsUseCaseImplTest {
 
   @Test
   void shouldReturnEmptyForPageOutOfRange() {
-    repository.products = List.of(product(1L, 100));
+    repository.products = List.of(product("1", 100));
 
     final var result = useCase.execute(99, 20);
     assertThat(result.products()).as("Should be empty").isEmpty();
     assertThat(result.total()).as("Should report total 1").isEqualTo(1);
   }
 
-  private static Product product(final long id, final int salesUnits) {
+  private static Product product(final String id, final int salesUnits) {
     return new Product(
       ProductId.of(id), ProductName.of("P" + id), SalesUnits.of(salesUnits),
       Stock.of(List.of(StockBySize.of(Size.S, 1), StockBySize.of(Size.M, 1), StockBySize.of(Size.L, 1))));

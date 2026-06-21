@@ -35,7 +35,6 @@ public class MongoProductRepositoryAdapter implements ProductRepository {
   }
 
   @Override
-  @Cacheable(cacheNames = "productCache", key = "'maxSales'")
   public OptionalInt findMaxSalesUnits() {
     final var doc = mongoTemplate.findOne(
       new Query().with(Sort.by(Sort.Direction.DESC, "salesUnits"))
@@ -55,7 +54,7 @@ public class MongoProductRepositoryAdapter implements ProductRepository {
 
   @Override
   public List<Product> findByIds(final List<ProductId> ids) {
-    final var stringIds = ids.stream().map(id -> String.valueOf(id.value())).toList();
+    final var stringIds = ids.stream().map(ProductId::value).toList();
     return mongoTemplate.find(
       Query.query(where("_id").in(stringIds)),
       ProductDocument.class

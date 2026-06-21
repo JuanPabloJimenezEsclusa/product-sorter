@@ -45,7 +45,7 @@
 | `infrastructure` | MongoDB persistence adapter, L1 Caffeine + L2 Redis caching |
 | `infrastructure-observability` | Metrics decorator, Micrometer business metrics, MdcFilter (traceId, requestUri, X-Request-Id) |
 | `bootstrap` | Spring Boot composition root. Wires modules, application config |
-| `testdata` | CLI tool for generating 50k realistic products (power-law distribution) |
+| `testdata` | CLI tool for generating realistic products with UUID `_id` and combinatorial names |
 | `coverage-jacoco` | JaCoCo aggregated coverage + ArchUnit hexagonal architecture tests (12 rules) |
 
 ### Dependency Graph
@@ -142,8 +142,6 @@ Cache keys: `product:score:{id}:{criterion}`, `product:maxSales`, `product:catal
 
 Invalidation via `@CacheEvict(allEntries=true)` + versioned catalog.
 
-### Pagination
-
 ### Performance Optimization
 
 For large catalogs (250k+ products), sorting uses a two-phase approach:
@@ -207,28 +205,32 @@ mvn package -pl bootstrap -am -DskipTests
 java -jar bootstrap/target/bootstrap-*.jar --spring.profiles.active=docker
 ```
 
-### Generate test data (50k products)
+### Generate test data
 
 ```bash
 mvn package -pl testdata -am -DskipTests
-java -jar testdata/target/testdata-*-jar-with-dependencies.jar 50000 /tmp/products.json
+java -jar testdata/target/testdata-*-jar-with-dependencies.jar <count> <output.json>
+# Example: 250000 products
+java -jar testdata/target/testdata-*-jar-with-dependencies.jar 250000 /tmp/products.json
 ```
+
+JSON-lines output with UUID `_id` and combinatorial product names. Compatible with `docker/mongo-seed-entrypoint.sh`.
 
 ### API Examples
 
 ```bash
 # Get JWT from keycloak
 TOKEN=$(curl -s -X POST http://localhost:8081/realms/product-sorter/protocol/openid-connect/token \
-  -d "client_id=app" -d "username=user" -d "password=pass" -d "grant_type=password" \
-  | jq -r '.access_token')
+  -d "client_id=product-sorter-client" -d "client_secret=product-sorter-secret" \
+  -d "username=user" -d "password=pass" -d "grant_type=password" | jq -r '.access_token')
 
 # List products (paginated)
 curl -s "http://localhost:8880/api/v1/products?page=1&size=10" \
-  -H "Authorization: Bearer $TOKEN" | jq
+  -H "Authorization: Bearer ${TOKEN}" | jq
 
 # Sort products with weighted criteria
 curl -s -X POST "http://localhost:8880/api/v1/products/sort?page=1&size=20" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{"weights": {"salesUnits": 0.7, "stockRatio": 0.3}}' | jq
 ```
@@ -247,7 +249,7 @@ curl -s -X POST "http://localhost:8880/api/v1/products/sort?page=1&size=20" \
 
 ### Sort Request
 
-```json
+```bash
 POST /api/v1/products/sort?page=1&size=20
 {
   "weights": {
@@ -262,12 +264,10 @@ POST /api/v1/products/sort?page=1&size=20
 ```json
 {
   "data": [
-    { "id": 5,  "name": "CONTRASTING LACE T-SHIRT",  "score": 0.87 },
-    { "id": 1,  "name": "V-NECK BASIC SHIRT",         "score": 0.31 },
-    { "id": 3,  "name": "RAISED PRINT T-SHIRT",        "score": 0.27 },
-    { "id": 2,  "name": "CONTRASTING FABRIC T-SHIRT",  "score": 0.24 },
-    { "id": 6,  "name": "SLOGAN T-SHIRT",              "score": 0.21 },
-    { "id": 4,  "name": "PLEATED T-SHIRT",             "score": 0.16 }
+    {
+      "product": { "id": "550e8400-e29b-41d4-a716-446655440000", "name": "CONTRASTING LACE T-SHIRT", "salesUnits": 650, "stock": [{ "size": "S", "quantity": 0 }, { "size": "M", "quantity": 1 }, { "size": "L", "quantity": 0 }] },
+      "score": 0.87
+    }
   ],
   "page": 1,
   "size": 20,
@@ -276,17 +276,19 @@ POST /api/v1/products/sort?page=1&size=20
 }
 ```
 
+`ScoredProduct` composes `ProductResponse` — the same schema used in the list endpoint. This keeps the product representation consistent across the API and avoids maintaining two parallel schemas that can diverge.
+
 ### List Products Response
 
 ```json
 GET /api/v1/products?page=1&size=10
 {
   "data": [
-    { "id": 1, "name": "V-NECK BASIC SHIRT", "salesUnits": 100, "stock": [
+    { "id": "550e8400-e29b-41d4-a716-446655440000", "name": "V-NECK BASIC SHIRT", "salesUnits": 100, "stock": [
       { "size": "S", "quantity": 4 }, { "size": "M", "quantity": 9 }, { "size": "L", "quantity": 0 }
     ]},
-    { "id": 5, "name": "CONTRASTING LACE T-SHIRT", "salesUnits": 650, "stock": [
-      { "size": "S", "quantity": 0 }, { "size": "M", "quantity": 1 }, { "size": "L", "quantity": 0 }
+    { "id": "6fa459ea-ee8a-3ca5-8b4a-22e3b2a5b4c6", "name": "CONTRASTING FABRIC T-SHIRT", "salesUnits": 50, "stock": [
+      { "size": "S", "quantity": 35 }, { "size": "M", "quantity": 9 }, { "size": "L", "quantity": 9 }
     ]}
   ],
   "page": 1,
@@ -366,7 +368,26 @@ For simple listing without sorting, use `GET /api/v1/products`.
 
 ### Pagination
 
-Offset-based pagination with `page` (1-indexed, default 1) and `size` (max 100). Chosen over cursor-based because products are not inserted/deleted during navigation (stable collection) and client implementation is simpler.
+Offset-based pagination with `page` (1-indexed, default 1) and `size` (max 100). Chosen over cursor-based because products are stable (no insertions/deletions during navigation) and offset-based is simpler for clients.
+
+### UUID as `_id`
+
+MongoDB `_id` uses UUID strings (e.g. `"550e8400-e29b-41d4-a716-446655440000"`). Reasons:
+- IDs are globally unique across systems without a central coordinator
+- Clients can generate IDs client-side (useful for offline-capable or event-driven architectures)
+- Avoids sequential ID enumeration by external consumers
+- Stored as plain strings, not `BinData` UUID, so Spring Data MongoDB maps directly to `String` without custom converters
+
+### ScoredProduct composition
+
+`ScoredProduct` composes `ProductResponse` rather than duplicating its fields:
+- **DRY** — `ProductResponse` is the single schema for product data across all endpoints
+- **Semantic** — scoring is a projection *over* a product, not a flattened version of it
+- **Evolution** — adding a field to `ProductResponse` (e.g. `category`) automatically enriches the sort response without schema changes
+
+### Caching (L1 + L2)
+
+Scoreable projections (`findAllScoreable`) are cached in Caffeine (L1, 30s TTL) and Redis (L2, 30s TTL) via `@Cacheable`. Max sales is cached at L1 only (5min TTL) since it rarely changes. Cache-aside pattern with `@CacheEvict` on catalog version bumps.
 
 ### Hexagonal architecture with decorators
 

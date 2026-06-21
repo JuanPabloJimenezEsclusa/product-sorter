@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import com.acidtango.productsorter.infrastructure.persistence.entity.ProductDocument;
-import com.acidtango.productsorter.infrastructure.persistence.entity.ProductDocument.StockEntry;
+import com.acidtango.productsorter.infrastructure.persistence.entity.StockEntry;
 import com.mongodb.client.MongoClients;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,7 +25,7 @@ import org.testcontainers.mongodb.MongoDBContainer;
 class MongoProductRepositoryTest {
 
   @Container
-  static MongoDBContainer mongodb = new MongoDBContainer("mongo:8");
+  static MongoDBContainer mongodb = new MongoDBContainer("mongodb/mongodb-community-server:8-ubi9");
 
   private final ProductDocumentMapper mapper = new ProductDocumentMapper();
   private MongoTemplate mongoTemplate;

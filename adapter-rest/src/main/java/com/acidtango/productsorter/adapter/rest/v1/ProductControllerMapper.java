@@ -2,6 +2,7 @@ package com.acidtango.productsorter.adapter.rest.v1;
 
 import com.acidtango.productsorter.api.v1.dto.*;
 import com.acidtango.productsorter.domain.service.ScoredProductPage;
+import com.acidtango.productsorter.domain.vo.Size;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -15,8 +16,19 @@ public class ProductControllerMapper {
     response.setData(domain.products().stream()
       .map(sp -> {
         final var dto = new ScoredProduct();
-        dto.setId(sp.product().productId().value());
-        dto.setName(sp.product().productName().value());
+        final var productDto = new ProductResponse();
+        productDto.setId(sp.product().productId().value());
+        productDto.setName(sp.product().productName().value());
+        productDto.setSalesUnits(sp.product().salesUnits().value());
+        productDto.setStock(sp.product().stock().entries().stream()
+          .map(e -> {
+            final var entry = new com.acidtango.productsorter.api.v1.dto.StockEntry();
+            entry.setSize(e.size().name());
+            entry.setQuantity(e.quantity());
+            return entry;
+          })
+          .toList());
+        dto.setProduct(productDto);
         dto.setScore(sp.score());
         return dto;
       })

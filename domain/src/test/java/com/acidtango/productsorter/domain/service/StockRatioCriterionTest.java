@@ -18,7 +18,7 @@ class StockRatioCriterionTest {
     "0.6667"
   })
   void shouldCalculateStockScore(final double stockRatio) {
-    final var product = new ScoreableProduct(ProductId.of(1L), 100, stockRatio);
+    final var product = new ScoreableProduct(ProductId.of("1"), 100, stockRatio);
     final var score = StockRatioCriterion.INSTANCE.rawScore(product);
     assertThat(score)
       .as("Stock ratio score should match expected")

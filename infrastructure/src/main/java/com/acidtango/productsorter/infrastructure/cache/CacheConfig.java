@@ -33,7 +33,8 @@ public class CacheConfig {
     final var manager = new CaffeineCacheManager("productScores", "productCache");
     manager.setCaffeine(Caffeine.newBuilder()
       .maximumSize(100)
-      .expireAfterWrite(Duration.ofSeconds(30)));
+      .expireAfterWrite(Duration.ofSeconds(30))
+      .recordStats());
     manager.setAllowNullValues(false);
     return manager;
   }

@@ -5,37 +5,39 @@ import java.util.random.RandomGenerator;
 
 public class RealisticProductNames {
 
-  private static final List<String> TEMPLATES = List.of(
-    "V-NECK BASIC SHIRT", "CONTRASTING FABRIC T-SHIRT",
-    "RAISED PRINT T-SHIRT", "PLEATED T-SHIRT",
-    "CONTRASTING LACE T-SHIRT", "SLOGAN T-SHIRT",
-    "ORGANIC COTTON T-SHIRT", "CLASSIC LINEN SHIRT",
-    "STRIPED OXFORD SHIRT", "DENIM CHAMBRAY SHIRT",
-    "FLANNEL PLAID SHIRT", "POLO PIQUE SHIRT",
-    "HENLEY NECK SHIRT", "CHAMBRAY WORK SHIRT",
-    "LINEN RELAXED SHIRT", "COTTON TWILL SHIRT",
-    "GRAPHIC PRINT TEE", "TIE-DYE T-SHIRT",
-    "OVERSIZED STREETWEAR TEE", "ATHLETIC PERFORMANCE TEE",
-    "COMPRESSION RASHGUARD", "RAGLAN BASEBALL TEE",
-    "CROP TOP T-SHIRT", "TURTLENECK LONG SLEEVE",
-    "MOCK NECK SWEATER", "CARDIGAN KNIT SHIRT",
-    "HAWAIIAN PRINT SHIRT", "GUAYABERA LINEN SHIRT",
-    "MILITARY UTILITY SHIRT", "WESTERN SNAP SHIRT",
-    "CAMP COLLAR SHIRT", "BAND COLLAR LINEN SHIRT",
-    "DOUBLE CUFF FORMAL SHIRT", "SPREAD COLLAR BUSINESS SHIRT",
-    "BUTTON DOWN OXFORD", "SEERSUCKER SUMMER SHIRT",
-    "BATIK PRINT SHIRT", "TYE-DYE GRAPHIC TEE",
-    "BASEBALL 3/4 SLEEVE TEE", "RINGER NECK T-SHIRT",
-    "VINTAGE WASHED TEE", "SLUB COTTON TEE",
-    "POCKET LOGO T-SHIRT", "NEGATIVE SPACE PRINT TEE",
-    "ABSTRACT ARTIST TEE", "MINIMALIST LOGO TEE",
-    "RETRO ARCADE GRAPHIC TEE", "BAND MERCH TOUR TEE",
-    "CAMOUFLAGE PRINT TEE", "ANIMAL PATTERN TEE",
-    "WASHED DENIM SHIRT", "CORDUROY BUTTON DOWN",
-    "VELVET COLLAR SHIRT", "SATIN FORMAL SHIRT",
-    "LINEN GUAYABERA SHIRT", "BRODERIE ANGLAISE SHIRT",
-    "EMBROIDERED BOHEMIAN SHIRT", "PATCHWORK DENIM SHIRT",
-    "DISTRESSED GRUNGE SHIRT", "PREPPY VARSITY SHIRT"
+  private static final List<String> STYLES = List.of(
+    "CLASSIC", "MODERN", "VINTAGE", "PREMIUM", "ESSENTIAL",
+    "URBAN", "RUSTIC", "ATHLETIC", "CASUAL", "FORMAL",
+    "LUXURY", "LIGHT-WEIGHT", "HEAVY-DUTY", "SLIM FIT", "RELAXED",
+    "OVERSIZED", "TAILORED", "ACTIVE", "HERITAGE", "CONTEMPORARY"
+  );
+
+  private static final List<String> FABRICS = List.of(
+    "COTTON", "LINEN", "DENIM", "SILK", "VELVET",
+    "CORDUROY", "FLANNEL", "SEERSUCKER", "JERSEY", "PIQUE",
+    "TWILL", "CHAMBRAY", "SATIN", "SLUB", "ORGANIC COTTON",
+    "RECYCLED POLY", "BRODERIE", "MELANGE", "OXFORD", "POPLIN"
+  );
+
+  private static final List<String> PATTERNS = List.of(
+    "STRIPED", "PLAID", "GRAPHIC", "EMBROIDERED",
+    "CAMOUFLAGE", "BATIK", "ABSTRACT", "MINIMALIST", "RETRO",
+    "PATCHWORK", "DISTRESSED", "PREPPY", "BOHEMIAN", "TRIBAL",
+    "GEOMETRIC", "FLORAL", "ANIMAL", "TIE-DYE", "ARGYLE", "IKAT"
+  );
+
+  private static final List<String> NECKLINES = List.of(
+    "V-NECK", "CREW NECK", "MOCK NECK", "BAND COLLAR",
+    "CAMP COLLAR", "SPREAD COLLAR", "BUTTON DOWN", "HENLEY NECK",
+    "SCOOP NECK", "BOAT NECK", "COWL NECK", "MANDARIN COLLAR",
+    "TURTLENECK", "RINGER NECK", "SCOOP BACK", "KEYHOLE NECK"
+  );
+
+  private static final List<String> GARMENTS = List.of(
+    "T-SHIRT", "SHIRT", "POLO", "HENLEY", "SWEATER",
+    "CARDIGAN", "TANK TOP", "HOODIE", "SWEATSHIRT", "BLOUSE",
+    "VEST", "PULLOVER", "JACKET", "TEE", "TOP",
+    "TUNIC", "BODICE", "RAGLAN", "JERSEY", "SHELL"
   );
 
   private final RandomGenerator rng;
@@ -45,6 +47,20 @@ public class RealisticProductNames {
   }
 
   public String sample() {
-    return TEMPLATES.get(rng.nextInt(TEMPLATES.size()));
+    final var parts = new java.util.ArrayList<String>();
+    if (rng.nextBoolean()) {
+      parts.add(STYLES.get(rng.nextInt(STYLES.size())));
+    }
+    if (rng.nextDouble() < 0.65) {
+      parts.add(FABRICS.get(rng.nextInt(FABRICS.size())));
+    }
+    if (rng.nextDouble() < 0.35) {
+      parts.add(PATTERNS.get(rng.nextInt(PATTERNS.size())));
+    }
+    if (rng.nextDouble() < 0.5) {
+      parts.add(NECKLINES.get(rng.nextInt(NECKLINES.size())));
+    }
+    parts.add(GARMENTS.get(rng.nextInt(GARMENTS.size())));
+    return String.join(" ", parts);
   }
 }

@@ -65,7 +65,7 @@ class ProductControllerTest {
   void shouldReturnSortedProducts() {
     final var scoredProducts = IntStream.range(0, 3)
       .mapToObj(i -> new com.acidtango.productsorter.domain.service.ScoredProduct(
-        new Product(ProductId.of((long) i + 1), ProductName.of("P" + (i + 1)),
+        new Product(ProductId.of(String.valueOf(i + 1)), ProductName.of("P" + (i + 1)),
           SalesUnits.of((i + 1) * 100),
           Stock.of(List.of(StockBySize.of(Size.S, 1), StockBySize.of(Size.M, 1), StockBySize.of(Size.L, 1)))),
         (3 - i) * 0.1))
@@ -86,9 +86,9 @@ class ProductControllerTest {
   @Test
   void shouldReturnProductsWithPagination() {
     final var products = List.of(
-      new Product(ProductId.of(1L), ProductName.of("P1"), SalesUnits.of(100),
+      new Product(ProductId.of("1"), ProductName.of("P1"), SalesUnits.of(100),
         Stock.of(List.of(StockBySize.of(Size.S, 1), StockBySize.of(Size.M, 1), StockBySize.of(Size.L, 1)))),
-      new Product(ProductId.of(2L), ProductName.of("P2"), SalesUnits.of(50),
+      new Product(ProductId.of("2"), ProductName.of("P2"), SalesUnits.of(50),
         Stock.of(List.of(StockBySize.of(Size.S, 0), StockBySize.of(Size.M, 0), StockBySize.of(Size.L, 0)))));
     when(listUseCase.execute(1, 10)).thenReturn(com.acidtango.productsorter.domain.model.ProductPage.of(products, 1, 10, 2));
 

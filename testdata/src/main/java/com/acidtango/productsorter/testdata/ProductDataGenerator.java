@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.random.RandomGenerator;
@@ -32,7 +33,7 @@ public class ProductDataGenerator {
     try (final var writer = new PrintWriter(output, StandardCharsets.UTF_8)) {
       for (int i = 1; i <= count; i++) {
         final var product = mapper.createObjectNode();
-        product.put("id", String.valueOf(i));
+        product.put("_id", UUID.randomUUID().toString());
         product.put("name", names.sample());
         product.put("salesUnits", sales.sample());
 

@@ -18,7 +18,7 @@ class SalesUnitsCriterionTest {
     "100, 650, 0.154"
   })
   void shouldNormalizeSalesUnits(final int sales, final int maxSales, final double expected) {
-    final var product = new ScoreableProduct(ProductId.of(1L), sales, 1.0);
+    final var product = new ScoreableProduct(ProductId.of("1"), sales, 1.0);
     final var score = new SalesUnitsCriterion(maxSales).rawScore(product);
     assertThat(score)
       .as("Sales units score should match expected")

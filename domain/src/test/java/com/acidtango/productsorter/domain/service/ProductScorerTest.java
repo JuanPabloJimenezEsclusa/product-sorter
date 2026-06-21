@@ -22,7 +22,7 @@ class ProductScorerTest {
   @MethodSource("scoringScenarios")
   void shouldComputeWeightedScore(final double wSales, final double wStock, final double sSales,
                                   final double sStock, final double expected) {
-    final var product = new ScoreableProduct(ProductId.of(1L), 100, 0.5);
+    final var product = new ScoreableProduct(ProductId.of("1"), 100, 0.5);
 
     final List<SortingCriterion> criteria = List.of(
       new WeightedCriterion(s -> sSales, wSales),

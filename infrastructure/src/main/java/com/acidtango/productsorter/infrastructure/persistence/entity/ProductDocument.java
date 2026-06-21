@@ -12,7 +12,4 @@ public record ProductDocument(
     int salesUnits,
     List<StockEntry> stock
 ) {
-
-  public record StockEntry(String size, int quantity) {
-  }
 }
