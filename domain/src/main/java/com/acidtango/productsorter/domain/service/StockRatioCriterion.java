@@ -1,10 +1,12 @@
 package com.acidtango.productsorter.domain.service;
 
-import com.acidtango.productsorter.domain.model.Product;
+import com.acidtango.productsorter.domain.model.ScoreableProduct;
 
-public class StockRatioCriterion implements SortingCriterion {
+public enum StockRatioCriterion implements SortingCriterion {
+  INSTANCE;
+
   @Override
-  public double rawScore(Product product) {
-    return product.stock().ratio();
+  public double rawScore(final ScoreableProduct product) {
+    return product.stockRatio();
   }
 }

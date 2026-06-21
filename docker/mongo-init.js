@@ -9,4 +9,6 @@ db.products.insertMany([
   { _id: "6", name: "SLOGAN T-SHIRT", salesUnits: 20, stock: [{ size: "S", quantity: 9 }, { size: "M", quantity: 2 }, { size: "L", quantity: 5 }] }
 ]);
 
-print("Seeded 6 products");
+db.products.createIndex({ salesUnits: -1 });
+
+print("Seeded 6 products, created index {salesUnits: -1}");

@@ -3,6 +3,7 @@ package com.acidtango.productsorter.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.acidtango.productsorter.domain.model.Product;
+import com.acidtango.productsorter.domain.model.ScoreableProduct;
 import com.acidtango.productsorter.domain.port.ProductRepository;
 import com.acidtango.productsorter.domain.port.SortProductsUseCase;
 import com.acidtango.productsorter.domain.service.SortingEngine;
@@ -54,8 +55,15 @@ class ListProductsUseCaseImplTest {
     List<Product> products = List.of();
 
     @Override
-    public List<Product> findAll() {
-      return products;
-    }
+    public List<Product> findAll() { return products; }
+
+    @Override
+    public java.util.OptionalInt findMaxSalesUnits() { return java.util.OptionalInt.empty(); }
+
+    @Override
+    public List<ScoreableProduct> findAllScoreable() { return List.of(); }
+
+    @Override
+    public List<Product> findByIds(final List<com.acidtango.productsorter.domain.vo.ProductId> ids) { return List.of(); }
   }
 }

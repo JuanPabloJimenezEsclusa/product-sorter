@@ -145,6 +145,7 @@ class HexagonalArchitectureTest {
       "org.springframework.stereotype..",
       "com.github.benmanes.caffeine..",
       "com.mongodb..",
+      "org.bson..",
       "io.micrometer.."))
     .as("Infrastructure dependencies must be whitelisted")
     .because("infrastructure adapters implement persistence, caching, and observability");

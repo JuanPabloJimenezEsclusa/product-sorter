@@ -1,19 +1,17 @@
 package com.acidtango.productsorter.domain.service;
 
-import com.acidtango.productsorter.domain.model.Product;
+import com.acidtango.productsorter.domain.model.ScoreableProduct;
 
-public class SalesUnitsCriterion implements SortingCriterion {
-  private final int maxSalesUnits;
+public record SalesUnitsCriterion(int maxSalesUnits) implements SortingCriterion {
 
-  public SalesUnitsCriterion(final int maxSalesUnits) {
+  public SalesUnitsCriterion {
     if (maxSalesUnits <= 0) {
       throw new IllegalArgumentException("maxSalesUnits must be positive");
     }
-    this.maxSalesUnits = maxSalesUnits;
   }
 
   @Override
-  public double rawScore(final Product product) {
-    return (double) product.salesUnits().value() / maxSalesUnits;
+  public double rawScore(final ScoreableProduct product) {
+    return (double) product.salesUnits() / maxSalesUnits;
   }
 }

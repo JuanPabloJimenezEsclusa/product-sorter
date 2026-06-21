@@ -2,19 +2,14 @@ package com.acidtango.productsorter.domain.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.offset;
-import static org.instancio.Select.field;
 import static org.junit.jupiter.api.Named.named;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.util.List;
 import java.util.stream.Stream;
 
-import com.acidtango.productsorter.domain.model.Product;
-import com.acidtango.productsorter.domain.model.StockMother;
+import com.acidtango.productsorter.domain.model.ScoreableProduct;
 import com.acidtango.productsorter.domain.vo.ProductId;
-import com.acidtango.productsorter.domain.vo.ProductName;
-import com.acidtango.productsorter.domain.vo.SalesUnits;
-import org.instancio.Instancio;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -26,13 +21,8 @@ class ProductScorerTest {
   @ParameterizedTest(name = "{0}")
   @MethodSource("scoringScenarios")
   void shouldComputeWeightedScore(final double wSales, final double wStock, final double sSales,
-                                   final double sStock, final double expected) {
-    final var product = Instancio.of(Product.class)
-      .set(field(Product::salesUnits), SalesUnits.of(100))
-      .set(field(Product::productId), ProductId.of(1L))
-      .set(field(Product::productName), ProductName.of("Test"))
-      .set(field(Product::stock), StockMother.from("S:1,M:1,L:1"))
-      .create();
+                                  final double sStock, final double expected) {
+    final var product = new ScoreableProduct(ProductId.of(1L), 100, 0.5);
 
     final List<SortingCriterion> criteria = List.of(
       new WeightedCriterion(s -> sSales, wSales),

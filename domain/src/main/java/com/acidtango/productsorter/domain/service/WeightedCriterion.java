@@ -1,31 +1,16 @@
 package com.acidtango.productsorter.domain.service;
 
-import com.acidtango.productsorter.domain.model.Product;
+import com.acidtango.productsorter.domain.model.ScoreableProduct;
 
-public class WeightedCriterion implements SortingCriterion {
-  private final SortingCriterion wrapped;
-  private final double weight;
-
-  public WeightedCriterion(final SortingCriterion wrapped, final double weight) {
-    this.wrapped = wrapped;
-    this.weight = weight;
-  }
+public record WeightedCriterion(SortingCriterion wrapped, double weight) implements SortingCriterion {
 
   @Override
-  public double rawScore(final Product product) {
+  public double rawScore(final ScoreableProduct product) {
     return weight * wrapped.rawScore(product);
   }
 
   @Override
   public String name() {
     return "weighted_" + wrapped.name();
-  }
-
-  public SortingCriterion wrapped() {
-    return wrapped;
-  }
-
-  public double weight() {
-    return weight;
   }
 }

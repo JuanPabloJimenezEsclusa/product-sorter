@@ -8,13 +8,14 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import com.acidtango.productsorter.domain.model.Product;
+import com.acidtango.productsorter.domain.model.ScoreableProduct;
 import com.acidtango.productsorter.domain.port.ProductRepository;
 import com.acidtango.productsorter.domain.port.SortProductsRequest;
-import com.acidtango.productsorter.domain.service.ScoredProductPage;
 import com.acidtango.productsorter.domain.service.SortingEngine;
 import com.acidtango.productsorter.domain.vo.ProductId;
 import com.acidtango.productsorter.domain.vo.ProductName;
@@ -89,6 +90,27 @@ class SortProductsUseCaseImplTest {
     @Override
     public List<Product> findAll() {
       return products;
+    }
+
+    @Override
+    public OptionalInt findMaxSalesUnits() {
+      return products.stream()
+        .mapToInt(p -> p.salesUnits().value())
+        .max();
+    }
+
+    @Override
+    public List<ScoreableProduct> findAllScoreable() {
+      return products.stream()
+        .map(p -> new ScoreableProduct(p.productId(), p.salesUnits().value(), p.stock().ratio()))
+        .toList();
+    }
+
+    @Override
+    public List<Product> findByIds(final List<ProductId> ids) {
+      return products.stream()
+        .filter(p -> ids.contains(p.productId()))
+        .toList();
     }
   }
 }
