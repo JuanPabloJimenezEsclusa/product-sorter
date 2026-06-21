@@ -1,0 +1,12 @@
+# <type>(<scope>): <subject>
+# │       │          │
+# │       │          └─► Present tense imperative. No capital. No period.
+# │       └─► api-spec | domain | application | infrastructure
+# │           bootstrap | testdata | coverage | docker | ci | config
+# └─► feat | fix | docs | style | refactor | perf | test | build | ci | chore
+#
+# Examples:
+# feat(domain): add stock ratio scoring criterion
+# test(domain): parametrize sorting engine with Instancio
+# ci(workflows): add commitlint validation
+# refactor(infrastructure): extract caching to decorator

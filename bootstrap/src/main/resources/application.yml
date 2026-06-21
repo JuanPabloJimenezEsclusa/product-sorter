@@ -1,0 +1,91 @@
+spring:
+  application:
+    name: product-sorter
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+  mongodb:
+    uri: "${MONGODB_URI:mongodb://localhost:27017/productsorter?maxPoolSize=200&connectTimeoutMS=120000&timeoutMS=120000&serverSelectionTimeoutMS=90000}"
+    ssl:
+      enabled: false
+  docker:
+    compose:
+      enabled: false
+  threads:
+    virtual:
+      enabled: true
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    oauth:
+      client-id: app
+      use-pkce-with-authorization-code-grant: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+
+server:
+  application-display-name: application
+  port: ${PORT:8880}
+
+logging:
+  level:
+    root: WARN
+    com.acidtango.productsorter: INFO
+    org.springframework.boot: INFO
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: "docker-compose"
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      username: ${REDIS_USERNAME:default}
+      password: ${REDIS_PASSWORD:admin}
+  docker:
+    compose:
+      enabled: true
+      lifecycle-management: start_and_stop
+      readiness:
+        tcp-ports: 4318,27017,8081
+      file: docker-compose.yml
+      skip:
+        in-tests: true
+      start:
+        command: up
+        arguments: --quiet-pull
+        skip: if_running
+        log-level: trace
+      stop:
+        command: down
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8081/realms/product-sorter/protocol/openid-connect/certs}
+
+management:
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+  otlp:
+    tracing:
+      endpoint: ${OTLP_ENDPOINT:http://localhost:4318/v1/traces}
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+cache:
+  redis:
+    enabled: true

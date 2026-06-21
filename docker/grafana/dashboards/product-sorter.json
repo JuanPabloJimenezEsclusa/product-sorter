@@ -1,0 +1,295 @@
+{
+  "title": "Product Sorter",
+  "uid": null,
+  "version": 1,
+  "tags": ["product-sorter", "java", "spring-boot"],
+  "schemaVersion": 40,
+  "timezone": "browser",
+  "editable": true,
+  "refresh": "30s",
+  "panels": [
+    {
+      "title": "Sort Requests",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "rate(sorting_requests_total{application='product-sorter'}[$__rate_interval])",
+          "legendFormat": "requests/s"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "sparkline",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "rps",
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "orange", "value": 50 },
+            { "color": "red", "value": 100 }
+          ]}
+        }
+      },
+      "description": "Sort request rate per second"
+    },
+    {
+      "title": "Sort Duration (p95)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "sorting_duration_seconds{application='product-sorter', quantile='0.95'}",
+          "legendFormat": "p95"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "sparkline",
+        "justifyMode": "center",
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "orange", "value": 0.5 },
+            { "color": "red", "value": 1.0 }
+          ]}
+        }
+      },
+      "description": "95th percentile of sort execution time"
+    },
+    {
+      "title": "Products per Sort",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "sorting_products_count{application='product-sorter'}",
+          "legendFormat": "count"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "sparkline",
+        "justifyMode": "center",
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "orange", "value": 100000 },
+            { "color": "red", "value": 250000 }
+          ]}
+        }
+      },
+      "description": "Products scored per sort request"
+    },
+    {
+      "title": "Sort Duration",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "sorting_duration_seconds{application='product-sorter', quantile='0.50'}",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "sorting_duration_seconds{application='product-sorter', quantile='0.95'}",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "sorting_duration_seconds{application='product-sorter', quantile='0.99'}",
+          "legendFormat": "p99"
+        }
+      ],
+      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "right" } },
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "lineInterpolation": "smooth", "spanNulls": true }, "color": { "mode": "palette-classic" } }
+      },
+      "description": "Sort duration percentiles over time"
+    },
+    {
+      "title": "Weights Distribution",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "sorting_weights_sum{application='product-sorter', criterion='salesUnits'} / sorting_weights_count{application='product-sorter', criterion='salesUnits'}",
+          "legendFormat": "sales units"
+        },
+        {
+          "expr": "sorting_weights_sum{application='product-sorter', criterion='stockRatio'} / sorting_weights_count{application='product-sorter', criterion='stockRatio'}",
+          "legendFormat": "stock ratio"
+        }
+      ],
+      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "right" } },
+      "fieldConfig": {
+        "defaults": { "unit": "percentunit", "custom": { "lineInterpolation": "smooth", "spanNulls": true }, "color": { "mode": "palette-classic" }, "min": 0, "max": 1 }
+      },
+      "description": "Average weight values used in sort requests"
+    },
+    {
+      "title": "Products per Sort Details",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "sorting_products_max{application='product-sorter'}",
+          "legendFormat": "max"
+        },
+        {
+          "expr": "sorting_products_sum{application='product-sorter'} / sorting_products_count{application='product-sorter'}",
+          "legendFormat": "avg"
+        }
+      ],
+      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "right" } },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineInterpolation": "smooth", "spanNulls": true }, "color": { "mode": "palette-classic" } }
+      },
+      "description": "Max and average products sorted per request"
+    },
+    {
+      "title": "JVM Memory",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "jvm_memory_used_bytes{application='product-sorter', area='heap'}",
+          "legendFormat": "heap"
+        },
+        {
+          "expr": "jvm_memory_used_bytes{application='product-sorter', area='nonheap'}",
+          "legendFormat": "non-heap"
+        }
+      ],
+      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "right" } },
+      "fieldConfig": {
+        "defaults": { "unit": "bytes", "custom": { "lineInterpolation": "smooth", "spanNulls": true, "fillOpacity": 20 }, "color": { "mode": "palette-classic" } }
+      },
+      "description": "JVM heap and non-heap memory usage"
+    },
+    {
+      "title": "JVM GC Pause",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "rate(jvm_gc_pause_seconds_count{application='product-sorter'}[1m])",
+          "legendFormat": "{{action}}"
+        }
+      ],
+      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "right" } },
+      "fieldConfig": {
+        "defaults": { "unit": "cps", "custom": { "lineInterpolation": "smooth", "spanNulls": true }, "color": { "mode": "palette-classic" } }
+      },
+      "description": "GC pause frequency per minute"
+    },
+    {
+      "title": "HTTP Request Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "rate(http_server_requests_seconds_count{application='product-sorter', outcome='SUCCESS'}[1m])",
+          "legendFormat": "2xx {{method}} {{uri}}"
+        },
+        {
+          "expr": "rate(http_server_requests_seconds_count{application='product-sorter', outcome='CLIENT_ERROR'}[1m])",
+          "legendFormat": "4xx {{method}} {{uri}}"
+        },
+        {
+          "expr": "rate(http_server_requests_seconds_count{application='product-sorter', outcome='SERVER_ERROR'}[1m])",
+          "legendFormat": "5xx {{method}} {{uri}}"
+        }
+      ],
+      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "right" } },
+      "fieldConfig": {
+        "defaults": { "unit": "rps", "custom": { "lineInterpolation": "smooth", "spanNulls": true }, "color": { "mode": "palette-classic" } }
+      },
+      "description": "HTTP request rate grouped by outcome"
+    },
+    {
+      "title": "Traces (Tempo)",
+      "type": "traces",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "datasource": { "type": "tempo", "uid": "Tempo" },
+      "targets": [
+        {
+          "query": "{service.name=\"product-sorter\"}",
+          "queryType": "serviceMap"
+        }
+      ],
+      "description": "Recent traces from the product-sorter service"
+    },
+    {
+      "title": "Application Logs",
+      "type": "logs",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "datasource": { "type": "loki", "uid": "Loki" },
+      "targets": [
+        {
+          "expr": "{service=\"product-sorter\"} |= ``",
+          "legendFormat": ""
+        }
+      ],
+      "options": { "showTime": true, "showLabels": true, "wrapLogMessage": true, "sortOrder": "Descending" },
+      "description": "Live logs from the product-sorter application"
+    }
+  ],
+  "rows": [],
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": { "selected": true, "text": "Prometheus", "value": "Prometheus" },
+        "hide": 0,
+        "label": "Data Source"
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "name": "Deployments",
+        "type": "events",
+        "datasource": { "type": "prometheus", "uid": "Prometheus" },
+        "expr": "sorting_requests_total{application='product-sorter'}",
+        "iconColor": "pink",
+        "enable": true,
+        "showIn": 0
+      }
+    ]
+  },
+  "links": [],
+  "time": { "from": "now-30m", "to": "now" },
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m"],
+    "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d", "30d"]
+  }
+}
