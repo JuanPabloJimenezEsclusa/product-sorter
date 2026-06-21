@@ -1,13 +1,12 @@
-package com.acidtango.productsorter.domain.model;
+package com.acidtango.productsorter.domain.vo;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 public record Stock(List<StockBySize> entries) {
   public Stock {
-    if (entries == null) {
-      throw new IllegalArgumentException("Stock entries must not be null");
-    }
+    Objects.requireNonNull(entries, "Stock entries must not be null");
   }
 
   public static Stock of(final List<StockBySize> entries) {

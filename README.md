@@ -28,7 +28,9 @@
 
 ---
 
-**Product Sorter** is a REST service that sorts a product catalog by weighted scoring criteria (sales units, stock ratio). Built with hexagonal (ports & adapters) architecture on Java 25, Spring Boot 4.1, and Maven multi-module.
+**Product Sorter** is a REST service that sorts a product catalog by weighted scoring criteria (
+sales units, stock ratio). Built with hexagonal (ports & adapters) architecture on Java 25, Spring
+Boot 4.1, and Maven multi-module.
 
 ---
 
@@ -36,15 +38,15 @@
 
 ### Modules
 
-| Module | Description |
-|--------|-------------|
-| `api-spec` | OpenAPI 3.1 contract to generated Spring interfaces via openapi-generator |
-| `domain` | Pure Java. Zero framework dependencies. VOs, Aggregate, Domain Services, Ports |
-| `application` | Use case orchestrating domain logic through inbound/outbound ports |
-| `infrastructure` | REST controller, MongoDB persistence, L1/L2 cache, OAuth2 security, SpringDoc |
-| `bootstrap` | Spring Boot composition root. Wires modules, application config |
-| `testdata` | CLI tool for generating 50k realistic products (power-law, deterministic) |
-| `coverage-jacoco` | JaCoCo aggregated coverage + ArchUnit hexagonal architecture tests |
+| Module            | Description                                                                    |
+|-------------------|--------------------------------------------------------------------------------|
+| `api-spec`        | OpenAPI 3.1 contract to generated Spring interfaces via openapi-generator      |
+| `domain`          | Pure Java. Zero framework dependencies. VOs, Aggregate, Domain Services, Ports |
+| `application`     | Use case orchestrating domain logic through inbound/outbound ports             |
+| `infrastructure`  | REST controller, MongoDB persistence, L1/L2 cache, OAuth2 security, SpringDoc  |
+| `bootstrap`       | Spring Boot composition root. Wires modules, application config                |
+| `testdata`        | CLI tool for generating 50k realistic products (power-law, deterministic)      |
+| `coverage-jacoco` | JaCoCo aggregated coverage + ArchUnit hexagonal architecture tests             |
 
 ### Layer Constraints
 
@@ -179,12 +181,12 @@ curl -s -X POST http://localhost:8080/api/v1/products/sort \
 
 ## API
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
+| Method | Path                    | Auth       | Description                        |
+|--------|-------------------------|------------|------------------------------------|
 | `POST` | `/api/v1/products/sort` | Bearer JWT | Sort products by weighted criteria |
-| `GET` | `/swagger-ui.html` | No | OpenAPI docs (SpringDoc) |
-| `GET` | `/actuator/health` | No | Health check |
-| `GET` | `/actuator/prometheus` | No | Prometheus metrics |
+| `GET`  | `/swagger-ui.html`      | No         | OpenAPI docs (SpringDoc)           |
+| `GET`  | `/actuator/health`      | No         | Health check                       |
+| `GET`  | `/actuator/prometheus`  | No         | Prometheus metrics                 |
 
 ### Request
 
@@ -202,12 +204,36 @@ curl -s -X POST http://localhost:8080/api/v1/products/sort \
 ```json
 {
   "sortedProducts": [
-    { "id": 5,  "name": "CONTRASTING LACE T-SHIRT",   "score": 0.87 },
-    { "id": 1,  "name": "V-NECH BASIC SHIRT",          "score": 0.31 },
-    { "id": 3,  "name": "RAISED PRINT T-SHIRT",        "score": 0.27 },
-    { "id": 2,  "name": "CONTRASTING FABRIC T-SHIRT",  "score": 0.24 },
-    { "id": 6,  "name": "SLOGAN T-SHIRT",              "score": 0.21 },
-    { "id": 4,  "name": "PLEATED T-SHIRT",             "score": 0.16 }
+    {
+      "id": 5,
+      "name": "CONTRASTING LACE T-SHIRT",
+      "score": 0.87
+    },
+    {
+      "id": 1,
+      "name": "V-NECH BASIC SHIRT",
+      "score": 0.31
+    },
+    {
+      "id": 3,
+      "name": "RAISED PRINT T-SHIRT",
+      "score": 0.27
+    },
+    {
+      "id": 2,
+      "name": "CONTRASTING FABRIC T-SHIRT",
+      "score": 0.24
+    },
+    {
+      "id": 6,
+      "name": "SLOGAN T-SHIRT",
+      "score": 0.21
+    },
+    {
+      "id": 4,
+      "name": "PLEATED T-SHIRT",
+      "score": 0.16
+    }
   ]
 }
 ```
@@ -216,12 +242,12 @@ curl -s -X POST http://localhost:8080/api/v1/products/sort \
 
 ## Testing
 
-| Type | Tools | Cases | Coverage |
-|------|-------|-------|----------|
-| Unit | JUnit 5 + Instancio + AssertJ | 28 | Domain >95% |
-| Integration | Testcontainers + Mockito | 5 | Infrastructure >80% |
-| E2E | REST Assured + Testcontainers | 4 | Full pipeline |
-| Architecture | ArchUnit | 7 | Hexagonal boundaries |
+| Type         | Tools                         | Cases | Coverage             |
+|--------------|-------------------------------|-------|----------------------|
+| Unit         | JUnit 5 + Instancio + AssertJ | 28    | Domain >95%          |
+| Integration  | Testcontainers + Mockito      | 5     | Infrastructure >80%  |
+| E2E          | REST Assured + Testcontainers | 4     | Full pipeline        |
+| Architecture | ArchUnit                      | 7     | Hexagonal boundaries |
 
 All tests use `@ParameterizedTest`, AssertJ assertions, and Instancio for data generation.
 
@@ -229,38 +255,38 @@ All tests use `@ParameterizedTest`, AssertJ assertions, and Instancio for data g
 
 ## Quality
 
-| Tool | Phase | Fails build? |
-|------|-------|-------------|
-| JaCoCo | verify | Yes (<85% instruction, <80% branch) |
-| ArchUnit | test | Yes |
-| Checkstyle | validate | No (reports only) |
-| OpenRewrite | process-sources | No (dry-run) |
-| Enforcer | validate | Yes (Java 25, Maven 3.9+, no duplicates) |
-| Commitlint | PR | Yes |
+| Tool        | Phase           | Fails build?                             |
+|-------------|-----------------|------------------------------------------|
+| JaCoCo      | verify          | Yes (<85% instruction, <80% branch)      |
+| ArchUnit    | test            | Yes                                      |
+| Checkstyle  | validate        | No (reports only)                        |
+| OpenRewrite | process-sources | No (dry-run)                             |
+| Enforcer    | validate        | Yes (Java 25, Maven 3.9+, no duplicates) |
+| Commitlint  | PR              | Yes                                      |
 
 ---
 
 ## CI/CD
 
-| Workflow | Trigger | Description |
-|----------|---------|-------------|
-| `ci.yml` | PR to main | `mvn verify` + SonarCloud + dependency review + commitlint |
-| `pages.yml` | Push to main | Maven site + coverage reports to GitHub Pages |
-| `release.yml` | Tag v* | Changelog generation + GitHub release |
-| `commitlint.yml` | PR to main | Conventional Commits validation |
-| `dependabot.yml` | Weekly | Maven, Docker, Compose, Actions updates |
+| Workflow         | Trigger      | Description                                                |
+|------------------|--------------|------------------------------------------------------------|
+| `ci.yml`         | PR to main   | `mvn verify` + SonarCloud + dependency review + commitlint |
+| `pages.yml`      | Push to main | Maven site + coverage reports to GitHub Pages              |
+| `release.yml`    | Tag v*       | Changelog generation + GitHub release                      |
+| `commitlint.yml` | PR to main   | Conventional Commits validation                            |
+| `dependabot.yml` | Weekly       | Maven, Docker, Compose, Actions updates                    |
 
 ---
 
 ## Observability
 
-| Service | Port | Credentials |
-|---------|------|-------------|
-| Grafana | 3000 | admin/admin |
-| Prometheus | 9090 | — |
-| Tempo | 3200 | — |
-| Loki | 3100 | — |
-| Keycloak | 8081 | admin/admin |
+| Service    | Port | Credentials |
+|------------|------|-------------|
+| Grafana    | 3000 | admin/admin |
+| Prometheus | 9090 | —           |
+| Tempo      | 3200 | —           |
+| Loki       | 3100 | —           |
+| Keycloak   | 8081 | admin/admin |
 
 Pre-configured dashboards: JVM metrics, HTTP requests, Redis cache, traces (Tempo), logs (Loki).
 

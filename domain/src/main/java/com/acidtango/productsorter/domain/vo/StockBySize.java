@@ -1,4 +1,4 @@
-package com.acidtango.productsorter.domain.model;
+package com.acidtango.productsorter.domain.vo;
 
 public record StockBySize(Size size, int quantity) {
   public StockBySize {
@@ -7,7 +7,7 @@ public record StockBySize(Size size, int quantity) {
     }
   }
 
-  public static StockBySize of(Size size, int quantity) {
+  public static StockBySize of(final Size size, final int quantity) {
     return new StockBySize(size, quantity);
   }
 

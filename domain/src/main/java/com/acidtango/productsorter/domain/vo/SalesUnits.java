@@ -1,4 +1,4 @@
-package com.acidtango.productsorter.domain.model;
+package com.acidtango.productsorter.domain.vo;
 
 public record SalesUnits(int value) {
   public SalesUnits {
@@ -7,7 +7,7 @@ public record SalesUnits(int value) {
     }
   }
 
-  public static SalesUnits of(int value) {
+  public static SalesUnits of(final int value) {
     return new SalesUnits(value);
   }
 }

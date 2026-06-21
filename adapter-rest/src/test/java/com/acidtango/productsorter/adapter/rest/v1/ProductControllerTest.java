@@ -1,21 +1,26 @@
 package com.acidtango.productsorter.adapter.rest.v1;
 
 import static org.assertj.core.api.Assertions.assertThat;
-
-import com.acidtango.productsorter.domain.model.*;
-import com.acidtango.productsorter.domain.port.SortProductsUseCase;
-import com.acidtango.productsorter.domain.service.ScoredProduct;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import com.acidtango.productsorter.domain.model.Product;
+import com.acidtango.productsorter.domain.vo.ProductId;
+import com.acidtango.productsorter.domain.vo.ProductName;
+import com.acidtango.productsorter.domain.vo.SalesUnits;
+import com.acidtango.productsorter.domain.vo.Size;
+import com.acidtango.productsorter.domain.vo.Stock;
+import com.acidtango.productsorter.domain.vo.StockBySize;
+import com.acidtango.productsorter.domain.port.SortProductsUseCase;
+import com.acidtango.productsorter.domain.service.ScoredProduct;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class ProductControllerTest {
 

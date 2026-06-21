@@ -1,6 +1,5 @@
 package com.acidtango.productsorter.adapter.rest.v1;
 
-import com.acidtango.productsorter.adapter.rest.exception.InvalidWeightsException;
 import com.acidtango.productsorter.api.v1.ProductsApi;
 import com.acidtango.productsorter.api.v1.dto.ScoredProduct;
 import com.acidtango.productsorter.api.v1.dto.SortRequest;
@@ -22,9 +21,6 @@ public class ProductController implements ProductsApi {
   @Override
   public ResponseEntity<SortResponse> sortProducts(final SortRequest sortRequest) {
     final var weights = sortRequest.getWeights();
-    if (weights == null || weights.isEmpty()) {
-      throw new InvalidWeightsException("Weights must not be null or empty");
-    }
     final var request = new SortProductsRequest(weights);
     final var scoredProducts = useCase.execute(request.weights());
     final var response = new SortResponse();

@@ -2,8 +2,19 @@ package com.acidtango.productsorter.infrastructure.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
+import static org.junit.jupiter.api.Named.named;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import com.acidtango.productsorter.domain.model.*;
+import java.util.List;
+import java.util.stream.Stream;
+
+import com.acidtango.productsorter.domain.model.Product;
+import com.acidtango.productsorter.domain.vo.ProductId;
+import com.acidtango.productsorter.domain.vo.ProductName;
+import com.acidtango.productsorter.domain.vo.SalesUnits;
+import com.acidtango.productsorter.domain.vo.Size;
+import com.acidtango.productsorter.domain.vo.Stock;
+import com.acidtango.productsorter.domain.vo.StockBySize;
 import com.acidtango.productsorter.infrastructure.persistence.entity.ProductDocument;
 import com.acidtango.productsorter.infrastructure.persistence.entity.ProductDocument.StockEntry;
 import com.mongodb.client.MongoClients;
@@ -17,16 +28,22 @@ import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import java.util.List;
-import java.util.stream.Stream;
-
 @Testcontainers
 class MongoProductRepositoryTest {
 
   @Container
-  static MongoDBContainer mongodb = new MongoDBContainer("mongo:7");
+  static MongoDBContainer mongodb = new MongoDBContainer("mongo:8");
 
   private MongoTemplate mongoTemplate;
+  private final ProductDocumentMapper mapper = new ProductDocumentMapper();
+
+  private static Stream<Arguments> productDocuments() {
+    return Stream.of(
+      arguments(named("V-NECK", new ProductDocument("1", "V-NECK BASIC SHIRT", 100,
+        List.of(new StockEntry("S", 4), new StockEntry("M", 9), new StockEntry("L", 0))))),
+      arguments(named("LACE", new ProductDocument("5", "CONTRASTING LACE T-SHIRT", 650,
+        List.of(new StockEntry("S", 0), new StockEntry("M", 1), new StockEntry("L", 0))))));
+  }
 
   @BeforeEach
   void setUp() {
@@ -35,20 +52,20 @@ class MongoProductRepositoryTest {
     mongoTemplate.dropCollection("products");
   }
 
-  @ParameterizedTest
+  @ParameterizedTest(name = "{0}")
   @MethodSource("productDocuments")
   void shouldPersistAndRetrieveProductDocument(final ProductDocument doc) {
     mongoTemplate.save(doc, "products");
-    final var result = mongoTemplate.findById(doc.getId(), ProductDocument.class, "products");
+    final var result = mongoTemplate.findById(doc.id(), ProductDocument.class, "products");
     assertThat(result)
       .as("Document should be persisted")
       .isNotNull();
-    assertThat(result.getName())
+    assertThat(result.name())
       .as("Document name should match")
-      .isEqualTo(doc.getName());
-    assertThat(result.getSalesUnits())
+      .isEqualTo(doc.name());
+    assertThat(result.salesUnits())
       .as("Document sales units should match")
-      .isEqualTo(doc.getSalesUnits());
+      .isEqualTo(doc.salesUnits());
   }
 
   @Test
@@ -57,7 +74,7 @@ class MongoProductRepositoryTest {
       List.of(new StockEntry("S", 4), new StockEntry("M", 9), new StockEntry("L", 0))), "products");
     final var doc = mongoTemplate.findById("1", ProductDocument.class, "products");
     assertThat(doc).as("Document should exist").isNotNull();
-    final var product = domainFrom(doc);
+    final var product = mapper.toDomain(doc);
     assertThat(product.productName().value())
       .as("Product name should map correctly")
       .isEqualTo("V-NECK BASIC SHIRT");
@@ -69,7 +86,7 @@ class MongoProductRepositoryTest {
       List.of(new StockEntry("S", 4), new StockEntry("M", 9), new StockEntry("L", 0))), "products");
     final var doc = mongoTemplate.findById("1", ProductDocument.class, "products");
     assertThat(doc).as("Document should exist").isNotNull();
-    final var product = domainFrom(doc);
+    final var product = mapper.toDomain(doc);
     assertThat(product.salesUnits().value())
       .as("Sales units should map correctly")
       .isEqualTo(100);
@@ -81,7 +98,7 @@ class MongoProductRepositoryTest {
       List.of(new StockEntry("S", 4), new StockEntry("M", 9), new StockEntry("L", 0))), "products");
     final var doc = mongoTemplate.findById("1", ProductDocument.class, "products");
     assertThat(doc).as("Document should exist").isNotNull();
-    final var product = domainFrom(doc);
+    final var product = mapper.toDomain(doc);
     assertThat(product.stock().ratio())
       .as("Stock ratio should map and compute correctly")
       .isCloseTo(0.667, within(0.001));
@@ -93,23 +110,5 @@ class MongoProductRepositoryTest {
     assertThat(products)
       .as("Should be empty when no products exist")
       .isEmpty();
-  }
-
-  private static Product domainFrom(final ProductDocument doc) {
-    return new Product(
-      ProductId.of(Long.parseLong(doc.getId())),
-      ProductName.of(doc.getName()),
-      SalesUnits.of(doc.getSalesUnits()),
-      Stock.of(doc.getStock().stream()
-        .map(e -> StockBySize.of(Size.valueOf(e.getSize()), e.getQuantity()))
-        .toList()));
-  }
-
-  private static Stream<Arguments> productDocuments() {
-    return Stream.of(
-      Arguments.of(new ProductDocument("1", "V-NECK BASIC SHIRT", 100,
-        List.of(new StockEntry("S", 4), new StockEntry("M", 9), new StockEntry("L", 0)))),
-      Arguments.of(new ProductDocument("5", "CONTRASTING LACE T-SHIRT", 650,
-        List.of(new StockEntry("S", 0), new StockEntry("M", 1), new StockEntry("L", 0)))));
   }
 }

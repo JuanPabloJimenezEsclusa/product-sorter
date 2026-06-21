@@ -1,4 +1,4 @@
 /**
- * Core domain model: products, stock, and their value objects.
+ * Product aggregate root.
  */
 package com.acidtango.productsorter.domain.model;

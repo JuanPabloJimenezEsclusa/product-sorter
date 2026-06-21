@@ -13,9 +13,8 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
   @Bean
-  public SecurityFilterChain filterChain(final HttpSecurity http) throws Exception {
-    http
-      .csrf(AbstractHttpConfigurer::disable)
+  public SecurityFilterChain filterChain(final HttpSecurity http) {
+    http.csrf(AbstractHttpConfigurer::disable)
       .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
       .authorizeHttpRequests(auth -> auth
         .requestMatchers(
@@ -27,7 +26,8 @@ public class SecurityConfig {
         .requestMatchers("/api/**").authenticated()
         .anyRequest().authenticated()
       )
-      .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {}));
+      .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {
+      }));
     return http.build();
   }
 }

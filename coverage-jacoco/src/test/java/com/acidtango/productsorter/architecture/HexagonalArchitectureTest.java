@@ -20,7 +20,9 @@ class HexagonalArchitectureTest {
     "com.tngtech.archunit..",
     "org.junit..",
     "org.assertj..",
-    "org.mockito.."
+    "org.mockito..",
+    "org.springframework.boot..",
+    "org.springframework.test.."
   };
 
   @ArchTest
@@ -55,6 +57,13 @@ class HexagonalArchitectureTest {
     .because("outbound adapters are independent of inbound adapters");
 
   @ArchTest
+  static final ArchRule adapterRestMustNotDependOnInfrastructure = noClasses()
+    .that().resideInAPackage(ADAPTER_REST)
+    .should().dependOnClassesThat().resideInAnyPackage("..infrastructure..")
+    .as("Adapter-rest must not depend on infrastructure")
+    .because("inbound adapters don't need outbound adapter details");
+
+  @ArchTest
   static final ArchRule domainDependencies = classes()
     .that().resideInAPackage(DOMAIN)
     .should().onlyDependOnClassesThat().resideInAnyPackage(concat(DOMAIN))
@@ -73,27 +82,32 @@ class HexagonalArchitectureTest {
     .that().resideInAPackage(ADAPTER_REST)
     .should().onlyDependOnClassesThat().resideInAnyPackage(concat(
       DOMAIN, APPLICATION, ADAPTER_REST,
-      "org.springframework..",
-      "org.springframework.boot..",
+      "org.springframework.context..",
+      "org.springframework.http..",
+      "org.springframework.security..",
+      "org.springframework.web..",
       "org.springdoc..",
       "io.swagger..",
       "jakarta..",
+      "org.slf4j..",
       "com.acidtango.productsorter.api.."))
     .as("Adapter-rest dependencies must be whitelisted")
-    .because("adapter-rest translates HTTP to use case calls");
+    .because("adapter-rest translates HTTP to use case calls via Spring MVC and OAuth2");
 
   @ArchTest
   static final ArchRule infrastructureDependencies = classes()
     .that().resideInAPackage(INFRASTRUCTURE)
     .should().onlyDependOnClassesThat().resideInAnyPackage(concat(
       DOMAIN, APPLICATION, INFRASTRUCTURE,
-      "org.springframework..",
-      "org.springframework.boot..",
+      "org.springframework.cache..",
+      "org.springframework.context..",
+      "org.springframework.data..",
+      "org.springframework.stereotype..",
       "com.github.benmanes.caffeine..",
       "com.mongodb..",
       "io.micrometer.."))
     .as("Infrastructure dependencies must be whitelisted")
-    .because("infrastructure adapters implement domain ports");
+    .because("infrastructure adapters implement persistence, caching, and observability");
 
   private static String[] concat(final String... rest) {
     final var result = new String[COMMON.length + rest.length];

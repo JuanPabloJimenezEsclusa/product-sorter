@@ -1,11 +1,11 @@
 package com.acidtango.productsorter.domain.service;
 
-import com.acidtango.productsorter.domain.model.Product;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+
+import com.acidtango.productsorter.domain.model.Product;
 
 public class SortingEngine {
   private final ProductScorer scorer = new ProductScorer();

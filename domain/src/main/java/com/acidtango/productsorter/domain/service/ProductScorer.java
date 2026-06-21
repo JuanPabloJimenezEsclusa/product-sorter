@@ -1,8 +1,8 @@
 package com.acidtango.productsorter.domain.service;
 
-import com.acidtango.productsorter.domain.model.Product;
-
 import java.util.List;
+
+import com.acidtango.productsorter.domain.model.Product;
 
 public class ProductScorer {
 

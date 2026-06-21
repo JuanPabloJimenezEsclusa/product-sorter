@@ -1,12 +1,13 @@
 package com.acidtango.productsorter.infrastructure.cache;
 
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
-import org.springframework.cache.support.AbstractCacheManager;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+
+import org.jspecify.annotations.NonNull;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.support.AbstractCacheManager;
 
 public class CompositeCacheManager extends AbstractCacheManager {
 
@@ -16,6 +17,7 @@ public class CompositeCacheManager extends AbstractCacheManager {
     this.cacheManagers = Objects.requireNonNull(cacheManagers);
   }
 
+  @NonNull
   @Override
   protected Collection<? extends Cache> loadCaches() {
     return cacheManagers.stream()
@@ -26,7 +28,7 @@ public class CompositeCacheManager extends AbstractCacheManager {
   }
 
   @Override
-  protected Cache getMissingCache(final String name) {
+  protected Cache getMissingCache(final @NonNull String name) {
     for (final var cm : cacheManagers) {
       final var cache = cm.getCache(name);
       if (cache != null) {

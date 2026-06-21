@@ -1,5 +1,8 @@
 package com.acidtango.productsorter.infrastructure.cache;
 
+import java.time.Duration;
+import java.util.List;
+
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
@@ -10,9 +13,6 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-
-import java.time.Duration;
-import java.util.List;
 
 @Configuration
 @EnableCaching

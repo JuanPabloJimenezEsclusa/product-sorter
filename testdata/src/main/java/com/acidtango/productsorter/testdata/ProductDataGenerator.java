@@ -9,18 +9,34 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ProductDataGenerator {
 
-  private final RandomGenerator rng;
   private final RealisticProductNames names;
   private final SalesDistribution sales;
   private final StockAllocator stock;
   private final ObjectMapper mapper;
 
-  public ProductDataGenerator(final long seed) {
-    this.rng = RandomGenerator.of("L64X128MixRandom");
+  public ProductDataGenerator() {
+    final var rng = RandomGenerator.of("L64X128MixRandom");
     this.names = new RealisticProductNames(rng);
     this.sales = new SalesDistribution(rng);
     this.stock = new StockAllocator(rng);
     this.mapper = new ObjectMapper();
+  }
+
+  static void main(final String[] args) throws Exception {
+    if (args.length < 2) {
+      System.err.println("Usage: ProductDataGenerator <count> <output.json> [--seed <n>]");
+      System.exit(1);
+    }
+
+    final var count = Integer.parseInt(args[0]);
+    final var output = new File(args[1]);
+    final var seed = args.length >= 4 && "--seed".equals(args[2])
+      ? Long.parseLong(args[3]) : 0L;
+
+    output.getParentFile().mkdirs();
+    final var generator = new ProductDataGenerator();
+    generator.generate(count, output);
+    System.out.println("Generated " + count + " products to " + output.getAbsolutePath());
   }
 
   public void generate(final int count, final File output) throws Exception {
@@ -44,22 +60,5 @@ public class ProductDataGenerator {
         writer.println(mapper.writeValueAsString(product));
       }
     }
-  }
-
-  static void main(final String[] args) throws Exception {
-    if (args.length < 2) {
-      System.err.println("Usage: ProductDataGenerator <count> <output.json> [--seed <n>]");
-      System.exit(1);
-    }
-
-    final var count = Integer.parseInt(args[0]);
-    final var output = new File(args[1]);
-    final var seed = args.length >= 4 && "--seed".equals(args[2])
-      ? Long.parseLong(args[3]) : 0L;
-
-    output.getParentFile().mkdirs();
-    final var generator = new ProductDataGenerator(seed);
-    generator.generate(count, output);
-    System.out.println("Generated " + count + " products to " + output.getAbsolutePath());
   }
 }

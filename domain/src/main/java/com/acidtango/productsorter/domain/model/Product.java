@@ -1,18 +1,14 @@
 package com.acidtango.productsorter.domain.model;
 
+import java.util.Objects;
+
+import com.acidtango.productsorter.domain.vo.*;
+
 public record Product(ProductId productId, ProductName productName, SalesUnits salesUnits, Stock stock) {
   public Product {
-    if (productId == null) {
-      throw new IllegalArgumentException("ProductId must not be null");
-    }
-    if (productName == null) {
-      throw new IllegalArgumentException("ProductName must not be null");
-    }
-    if (salesUnits == null) {
-      throw new IllegalArgumentException("SalesUnits must not be null");
-    }
-    if (stock == null) {
-      throw new IllegalArgumentException("Stock must not be null");
-    }
+    Objects.requireNonNull(productId, "ProductId must not be null");
+    Objects.requireNonNull(productName, "ProductName must not be null");
+    Objects.requireNonNull(salesUnits, "SalesUnits must not be null");
+    Objects.requireNonNull(stock, "Stock must not be null");
   }
 }
