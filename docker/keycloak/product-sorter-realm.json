@@ -1,0 +1,52 @@
+{
+  "realm": "product-sorter",
+  "enabled": true,
+  "accessTokenLifespan": 3600,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": false,
+  "users": [
+    {
+      "username": "user",
+      "email": "user@product-sorter.com",
+      "firstName": "Product",
+      "lastName": "Sorter",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "pass",
+          "temporary": false
+        }
+      ],
+      "requiredActions": []
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "product-sorter-client",
+      "secret": "product-sorter-secret",
+      "enabled": true,
+      "publicClient": false,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "redirectUris": []
+    },
+    {
+      "clientId": "app",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "redirectUris": ["http://localhost:8081/*"]
+    }
+  ]
+}

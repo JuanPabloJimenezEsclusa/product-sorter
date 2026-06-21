@@ -1,0 +1,11 @@
+.git
+.gitignore
+.editorconfig
+.idea/
+.vscode/
+*.iml
+**/target
+**/*.md
+sonar-project.properties
+.github
+*.log
