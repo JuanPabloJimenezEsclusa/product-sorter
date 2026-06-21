@@ -72,3 +72,15 @@ management:
   otlp:
     tracing:
       endpoint: http://otel-collector:4318/v1/traces
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: "docker-compose"
+  docker:
+    compose:
+      enabled: true
+      lifecycle-management: start_and_stop
+      file: docker-compose.yml
