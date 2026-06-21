@@ -1,6 +1,8 @@
 package com.acidtango.productsorter.config;
 
+import com.acidtango.productsorter.application.service.ListProductsUseCaseImpl;
 import com.acidtango.productsorter.application.service.SortProductsUseCaseImpl;
+import com.acidtango.productsorter.domain.port.ListProductsUseCase;
 import com.acidtango.productsorter.domain.port.ProductRepository;
 import com.acidtango.productsorter.domain.port.SortProductsUseCase;
 import com.acidtango.productsorter.domain.service.SortingEngine;
@@ -23,5 +25,10 @@ public class ApplicationConfig {
                                                   final SortingMetrics metrics) {
     final var impl = new SortProductsUseCaseImpl(repository, engine);
     return new MetricsSortProductsUseCase(impl, metrics);
+  }
+
+  @Bean
+  public ListProductsUseCase listProductsUseCase(final ProductRepository repository) {
+    return new ListProductsUseCaseImpl(repository);
   }
 }

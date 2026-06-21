@@ -181,12 +181,13 @@ curl -s -X POST http://localhost:8080/api/v1/products/sort \
 
 ## API
 
-| Method | Path                    | Auth       | Description                        |
-|--------|-------------------------|------------|------------------------------------|
-| `POST` | `/api/v1/products/sort` | Bearer JWT | Sort products by weighted criteria |
-| `GET`  | `/swagger-ui.html`      | No         | OpenAPI docs (SpringDoc)           |
-| `GET`  | `/actuator/health`      | No         | Health check                       |
-| `GET`  | `/actuator/prometheus`  | No         | Prometheus metrics                 |
+| Method | Path                    | Auth       | Description                                    |
+|--------|-------------------------|------------|------------------------------------------------|
+| `GET`  | `/api/v1/products`      | Bearer JWT | List products (paginated: `page`, `size`)      |
+| `POST` | `/api/v1/products/sort` | Bearer JWT | Sort products by weighted criteria (paginated) |
+| `GET`  | `/swagger-ui.html`      | No         | OpenAPI docs (SpringDoc)                       |
+| `GET`  | `/actuator/health`      | No         | Health check                                   |
+| `GET`  | `/actuator/prometheus`  | No         | Prometheus metrics                             |
 
 ### Request
 
@@ -289,6 +290,32 @@ All tests use `@ParameterizedTest`, AssertJ assertions, and Instancio for data g
 | Keycloak   | 8081 | admin/admin |
 
 Pre-configured dashboards: JVM metrics, HTTP requests, Redis cache, traces (Tempo), logs (Loki).
+
+---
+
+## Design Decisions
+
+### POST vs GET for sorting
+
+`POST /api/v1/products/sort` uses POST because sorting is a computational
+operation (scoring + ordering), not a resource retrieval. The weights map
+(`{ salesUnits: 0.7, stockRatio: 0.3 }`) would be fragile as query parameters
+and would not scale with additional criteria.
+
+For simple product listing without sorting, use `GET /api/v1/products` with
+optional `page` and `size` query parameters.
+
+### Pagination
+
+All collection endpoints are paginated with `page` (1-indexed) and `size`
+(max 100) parameters. Responses include `total` and `totalPages` for client
+navigation. This prevents unbounded responses when the catalog grows to 50k+
+products.
+
+**Why offset-based instead of cursor-based?**
+- Products are not inserted/deleted during navigation (stable collection)
+- Simpler client implementation
+- Sufficient for the expected usage pattern (top-N results)
 
 ---
 

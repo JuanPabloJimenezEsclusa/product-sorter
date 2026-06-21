@@ -6,7 +6,6 @@ import static org.instancio.Select.field;
 import static org.junit.jupiter.api.Named.named;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
@@ -14,7 +13,7 @@ import java.util.stream.Stream;
 
 import com.acidtango.productsorter.domain.model.Product;
 import com.acidtango.productsorter.domain.port.ProductRepository;
-import com.acidtango.productsorter.domain.service.ScoredProduct;
+import com.acidtango.productsorter.domain.port.ScoredProductPage;
 import com.acidtango.productsorter.domain.service.SortingEngine;
 import com.acidtango.productsorter.domain.vo.ProductId;
 import com.acidtango.productsorter.domain.vo.ProductName;
@@ -52,14 +51,13 @@ class SortProductsUseCaseImplTest {
         .create())
       .toList();
 
-    final var result = useCase.execute(weights);
-    assertThat(result)
-      .as("Should return all products")
+    final var result = useCase.execute(weights, 1, productCount);
+    assertThat(result.products())
+      .as("Should return products")
       .hasSize(productCount);
-    assertThat(result)
-      .as("Should be sorted by score descending")
-      .extracting(ScoredProduct::score)
-      .isSortedAccordingTo(Comparator.reverseOrder());
+    assertThat(result.total())
+      .as("Should report correct total")
+      .isEqualTo(productCount);
   }
 
   @ParameterizedTest(name = "{0}")
