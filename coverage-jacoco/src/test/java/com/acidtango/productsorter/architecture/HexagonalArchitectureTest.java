@@ -145,6 +145,7 @@ class HexagonalArchitectureTest {
       "org.springframework.stereotype..",
       "com.github.benmanes.caffeine..",
       "com.mongodb..",
+      "org.springframework.beans..",
       "org.bson..",
       "io.micrometer.."))
     .as("Infrastructure dependencies must be whitelisted")

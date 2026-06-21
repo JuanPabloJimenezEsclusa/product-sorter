@@ -43,7 +43,7 @@
 | `application` | Use case implementations orchestrating domain logic through ports |
 | `adapter-rest` | REST controller, DTO mapping, OAuth2 security, OpenAPI docs, exception handling |
 | `infrastructure` | MongoDB persistence adapter, L1 Caffeine + L2 Redis caching |
-| `infrastructure-observability` | Micrometer business metrics, OTel tracing, MDC logging filter |
+| `infrastructure-observability` | Metrics decorator, Micrometer business metrics, MdcFilter (traceId, requestUri, X-Request-Id) |
 | `bootstrap` | Spring Boot composition root. Wires modules, application config |
 | `testdata` | CLI tool for generating 50k realistic products (power-law distribution) |
 | `coverage-jacoco` | JaCoCo aggregated coverage + ArchUnit hexagonal architecture tests (12 rules) |
@@ -144,6 +144,17 @@ Invalidation via `@CacheEvict(allEntries=true)` + versioned catalog.
 
 ### Pagination
 
+### Performance Optimization
+
+For large catalogs (250k+ products), sorting uses a two-phase approach:
+1. **Projection query:** `findAllScoreable()` fetches only `id`, `salesUnits`, and `stock` from MongoDB (avoids transferring product names and full documents)
+2. **Lazy fetch:** only the top 20 products from the sorted result are fetched as full documents via `findByIds()`
+3. **Index:** `{salesUnits: -1}` index ensures `findMaxSalesUnits()` is an IXSCAN (1 entry, ~1ms) instead of COLLSCAN
+
+This reduces total sort time from ~540ms to ~165ms for 250k products. Results are cached via `@Cacheable` in Redis L2 (TTL 30s for scoreables, 5min for maxSales).
+
+### Pagination
+
 All collection endpoints return paginated responses with offset-based pagination (1-indexed):
 
 ```json
@@ -185,6 +196,7 @@ mvn test -pl adapter-rest -am                      # Adapter tests
 mvn test -pl infrastructure -am                    # Integration tests (MongoDB via Testcontainers)
 mvn test -pl coverage-jacoco -am                   # ArchUnit architecture tests (12 rules)
 mvn clean verify -Psecurity                        # With OWASP Dependency-Check
+mvn clean verify -Ppitest                          # With PIT mutation testing (domain module)
 ```
 
 ### Run (full stack)
@@ -199,7 +211,7 @@ java -jar bootstrap/target/bootstrap-*.jar --spring.profiles.active=docker
 
 ```bash
 mvn package -pl testdata -am -DskipTests
-java -jar testdata/target/testdata-*.jar 50000 /tmp/seed.json --seed 42
+java -jar testdata/target/testdata-*-jar-with-dependencies.jar 50000 /tmp/products.json
 ```
 
 ### API Examples
@@ -311,6 +323,7 @@ All tests use `@ParameterizedTest(name = "{0}")` with `Named.named()` and `Argum
 | Enforcer | validate | Yes (Java 25, Maven 3.9+, no duplicates) |
 | Commitlint | PR | Yes (Conventional Commits, excludes dependabot) |
 | OWASP Dep-Check | verify (with `-Psecurity`) | Yes (CVSS ≥ 7) |
+| PIT Mutation | test (with `-Ppitest`) | Yes (80% mutation score) |
 
 ---
 

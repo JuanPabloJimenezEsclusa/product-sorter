@@ -3,31 +3,46 @@ package com.acidtango.productsorter.adapter.rest.v1;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import com.acidtango.productsorter.api.v1.dto.SortRequest;
-import com.acidtango.productsorter.domain.model.Product;
-import com.acidtango.productsorter.domain.port.ListProductsUseCase;
-import com.acidtango.productsorter.domain.service.ScoredProductPage;
-import com.acidtango.productsorter.domain.port.SortProductsUseCase;
-
-
-import com.acidtango.productsorter.domain.vo.*;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 
+import com.acidtango.productsorter.api.v1.dto.SortRequest;
+import com.acidtango.productsorter.domain.model.Product;
+import com.acidtango.productsorter.domain.port.ListProductsUseCase;
+import com.acidtango.productsorter.domain.port.SortProductsUseCase;
+import com.acidtango.productsorter.domain.service.ScoredProductPage;
+import com.acidtango.productsorter.domain.vo.ProductId;
+import com.acidtango.productsorter.domain.vo.ProductName;
+import com.acidtango.productsorter.domain.vo.SalesUnits;
+import com.acidtango.productsorter.domain.vo.Size;
+import com.acidtango.productsorter.domain.vo.Stock;
+import com.acidtango.productsorter.domain.vo.StockBySize;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Spy;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+@ExtendWith(MockitoExtension.class)
 class ProductControllerTest {
 
-  private final SortProductsUseCase sortUseCase = mock(SortProductsUseCase.class);
-  private final ListProductsUseCase listUseCase = mock(ListProductsUseCase.class);
-  private final ProductControllerMapper mapper = new ProductControllerMapper();
-  private final ProductController controller = new ProductController(sortUseCase, listUseCase, mapper);
+  @Spy
+  private ProductControllerMapper mapper;
+
+  @Mock
+  private SortProductsUseCase sortUseCase;
+
+  @Mock
+  private ListProductsUseCase listUseCase;
+
+  @InjectMocks
+  private ProductController controller;
 
   @ParameterizedTest
   @CsvSource({

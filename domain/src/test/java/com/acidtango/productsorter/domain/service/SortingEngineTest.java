@@ -43,8 +43,9 @@ class SortingEngineTest {
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("edgeCases")
-  void shouldHandleEdgeCases(final List<ScoreableProduct> products, final Map<String, Double> weights,
-                              final int expectedSize) {
+  void shouldHandleEdgeCases(final List<ScoreableProduct> products,
+                             final Map<String, Double> weights,
+                             final int expectedSize) {
     final var sorted = engine.sortScoreables(products, weights, 1);
     assertThat(sorted)
       .as("Should return correct number of products")
@@ -54,10 +55,10 @@ class SortingEngineTest {
   @ParameterizedTest(name = "{0}")
   @MethodSource("existingProductScenarios")
   void shouldSortProductsAsSpecifiedInDocument(final List<ScoreableProduct> products,
-                                                final Map<String, Double> weights,
-                                                final int maxSales,
-                                                final long firstProductId,
-                                                final long lastProductId) {
+                                               final Map<String, Double> weights,
+                                               final int maxSales,
+                                               final long firstProductId,
+                                               final long lastProductId) {
     final var sorted = engine.sortScoreables(products, weights, maxSales);
     final var ids = sorted.stream().map(s -> s.product().productId().value()).toList();
     assertThat(ids.getFirst())

@@ -2,17 +2,19 @@ package com.acidtango.productsorter.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+
 import com.acidtango.productsorter.domain.model.Product;
 import com.acidtango.productsorter.domain.model.ScoreableProduct;
 import com.acidtango.productsorter.domain.port.ProductRepository;
-import com.acidtango.productsorter.domain.port.SortProductsUseCase;
-import com.acidtango.productsorter.domain.service.SortingEngine;
-import com.acidtango.productsorter.domain.vo.*;
+import com.acidtango.productsorter.domain.vo.ProductId;
+import com.acidtango.productsorter.domain.vo.ProductName;
+import com.acidtango.productsorter.domain.vo.SalesUnits;
+import com.acidtango.productsorter.domain.vo.Size;
+import com.acidtango.productsorter.domain.vo.Stock;
+import com.acidtango.productsorter.domain.vo.StockBySize;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
-import java.util.Map;
 
 class ListProductsUseCaseImplTest {
 

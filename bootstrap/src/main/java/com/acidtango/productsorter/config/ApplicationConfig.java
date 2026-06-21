@@ -21,8 +21,8 @@ public class ApplicationConfig {
 
   @Bean
   public SortProductsUseCase sortProductsUseCase(final ProductRepository repository,
-                                                  final SortingEngine engine,
-                                                  final SortingMetrics metrics) {
+                                                 final SortingEngine engine,
+                                                 final SortingMetrics metrics) {
     final var impl = new SortProductsUseCaseImpl(repository, engine);
     return new MetricsSortProductsUseCase(impl, metrics);
   }

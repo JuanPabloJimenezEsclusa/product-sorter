@@ -1,13 +1,19 @@
 package com.acidtango.productsorter.testdata;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.random.RandomGenerator;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ProductDataGenerator {
+
+  private static final Logger log = Logger.getLogger(ProductDataGenerator.class.getName());
 
   private final RealisticProductNames names;
   private final SalesDistribution sales;
@@ -22,7 +28,7 @@ public class ProductDataGenerator {
     this.mapper = new ObjectMapper();
   }
 
-  public void generate(final int count, final File output) throws Exception {
+  public void generate(final int count, final File output) throws IOException {
     try (final var writer = new PrintWriter(output, StandardCharsets.UTF_8)) {
       for (int i = 1; i <= count; i++) {
         final var product = mapper.createObjectNode();
@@ -45,20 +51,21 @@ public class ProductDataGenerator {
     }
   }
 
-  static void main(final String[] args) throws Exception {
+  static void main(final String[] args) throws IOException {
     if (args.length < 2) {
-      System.err.println("Usage: ProductDataGenerator <count> <output.json> [--seed <n>]");
+      log.severe("Usage: ProductDataGenerator <count> <output.json>");
       System.exit(1);
     }
 
     final var count = Integer.parseInt(args[0]);
-    final var output = new File(args[1]);
-    final var seed = args.length >= 4 && "--seed".equals(args[2])
-      ? Long.parseLong(args[3]) : 0L;
+    final var output = Path.of(args[1]).normalize().toFile();
 
-    output.getParentFile().mkdirs();
+    if (output.getParentFile() != null && !output.getParentFile().exists()
+        && !output.getParentFile().mkdirs()) {
+      throw new IOException("Failed to create output directory: " + output.getParentFile().getAbsolutePath());
+    }
     final var generator = new ProductDataGenerator();
     generator.generate(count, output);
-    System.out.println("Generated " + count + " products to " + output.getAbsolutePath());
+    log.log(Level.INFO, "Generated {0} products to {1}", new Object[] { count, output.getCanonicalPath() });
   }
 }

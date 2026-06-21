@@ -12,6 +12,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class SortingMetrics {
 
+  private static final String STOCK_RATIO = "stockRatio";
+  private static final String SALES_UNITS = "salesUnits";
+
   private final Counter requests;
   private final Timer duration;
   private final DistributionSummary productsSummary;
@@ -34,12 +37,12 @@ public class SortingMetrics {
       .register(registry);
 
     this.salesWeight = DistributionSummary.builder("sorting.weights")
-      .tag("criterion", "salesUnits")
+      .tag("criterion", SALES_UNITS)
       .description("Sales units weight used in requests")
       .register(registry);
 
     this.stockWeight = DistributionSummary.builder("sorting.weights")
-      .tag("criterion", "stockRatio")
+      .tag("criterion", STOCK_RATIO)
       .description("Stock ratio weight used in requests")
       .register(registry);
   }
@@ -48,11 +51,11 @@ public class SortingMetrics {
     requests.increment();
     duration.record(elapsed);
     productsSummary.record(productCount);
-    if (weights.containsKey("salesUnits")) {
-      salesWeight.record(weights.get("salesUnits"));
+    if (weights.containsKey(SALES_UNITS)) {
+      salesWeight.record(weights.get(SALES_UNITS));
     }
-    if (weights.containsKey("stockRatio")) {
-      stockWeight.record(weights.get("stockRatio"));
+    if (weights.containsKey(STOCK_RATIO)) {
+      stockWeight.record(weights.get(STOCK_RATIO));
     }
   }
 }

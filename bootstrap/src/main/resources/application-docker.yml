@@ -1,3 +1,7 @@
+cache:
+  redis:
+    enabled: true
+
 spring:
   data:
     mongodb:
