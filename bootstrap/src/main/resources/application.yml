@@ -1,25 +1,21 @@
 spring:
+  application:
+    name: product-sorter
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
       - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
-
-  application:
-    name: product-sorter
-
-  threads:
-    virtual:
-      enabled: true
-
   data:
     mongodb:
       uri: ${MONGODB_URI:mongodb://localhost:27017/productsorter}
-
   security:
     oauth2:
       resourceserver:
         jwt:
           issuer-uri: ${JWT_ISSUER_URI:http://localhost:8081/realms/product-sorter}
+  threads:
+    virtual:
+      enabled: true
 
 springdoc:
   api-docs:
@@ -43,4 +39,36 @@ management:
       endpoint: ${OTLP_ENDPOINT:http://localhost:4318/v1/traces}
 
 server:
-  port: ${PORT:8080}
+  application-display-name: application
+  port: ${PORT:8880}
+
+logging:
+  level:
+    root: WARN
+    com.acidtango.productsorter: INFO
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: "docker"
+  data:
+    mongodb:
+      uri: mongodb://mongodb:27017/productsorter
+    redis:
+      host: redis
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://keycloak:8080/realms/product-sorter
+
+cache:
+  redis:
+    enabled: true
+
+management:
+  otlp:
+    tracing:
+      endpoint: http://otel-collector:4318/v1/traces

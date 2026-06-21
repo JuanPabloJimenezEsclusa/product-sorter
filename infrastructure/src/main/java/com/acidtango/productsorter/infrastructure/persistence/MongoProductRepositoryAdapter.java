@@ -10,7 +10,6 @@ import com.acidtango.productsorter.domain.model.ScoreableProduct;
 import com.acidtango.productsorter.domain.port.ProductRepository;
 import com.acidtango.productsorter.domain.vo.ProductId;
 import com.acidtango.productsorter.infrastructure.persistence.entity.ProductDocument;
-import org.bson.Document;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -50,8 +49,8 @@ public class MongoProductRepositoryAdapter implements ProductRepository {
   public List<ScoreableProduct> findAllScoreable() {
     final var query = new Query();
     query.fields().include("_id", "salesUnits", "stock");
-    final var docs = mongoTemplate.find(query, Document.class, "products");
-    return docs.stream().map(this::toScoreable).toList();
+    final var docs = mongoTemplate.find(query, org.bson.Document.class, "products");
+    return docs.stream().map(mapper::toScoreable).toList();
   }
 
   @Override
@@ -63,21 +62,5 @@ public class MongoProductRepositoryAdapter implements ProductRepository {
     ).stream()
       .map(mapper::toDomain)
       .toList();
-  }
-
-  private ScoreableProduct toScoreable(final Document doc) {
-    @SuppressWarnings("unchecked")
-    final var stockEntries = (List<Document>) doc.get("stock");
-    final var sizesWithStock = stockEntries != null
-      ? stockEntries.stream().filter(e -> ((Number) e.get("quantity")).intValue() > 0).count()
-      : 0L;
-    final var totalSizes = stockEntries != null ? stockEntries.size() : 1;
-    final var ratio = (double) sizesWithStock / totalSizes;
-
-    return new ScoreableProduct(
-      ProductId.of(Long.parseLong(doc.getObjectId("_id").toString())),
-      doc.getInteger("salesUnits", 0),
-      ratio
-    );
   }
 }

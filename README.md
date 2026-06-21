@@ -1,17 +1,17 @@
 [![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
 <p align="center">
-  <a href="https://sonarcloud.io/summary/new_code?id=acidtango_product-sorter"><img src="https://sonarcloud.io/api/project_badges/measure?project=acidtango_product-sorter&metric=alert_status" alt="Quality Gate"/></a>
-  <a href="https://sonarcloud.io/summary/new_code?id=acidtango_product-sorter"><img src="https://sonarcloud.io/api/project_badges/measure?project=acidtango_product-sorter&metric=coverage" alt="Coverage"/></a>
-  <a href="https://sonarcloud.io/summary/new_code?id=acidtango_product-sorter"><img src="https://sonarcloud.io/api/project_badges/measure?project=acidtango_product-sorter&metric=sqale_rating" alt="Maintainability"/></a>
-  <a href="https://sonarcloud.io/summary/new_code?id=acidtango_product-sorter"><img src="https://sonarcloud.io/api/project_badges/measure?project=acidtango_product-sorter&metric=reliability_rating" alt="Reliability"/></a>
-  <a href="https://sonarcloud.io/summary/new_code?id=acidtango_product-sorter"><img src="https://sonarcloud.io/api/project_badges/measure?project=acidtango_product-sorter&metric=security_rating" alt="Security"/></a>
+  <a href="https://sonarcloud.io/summary/new_code?id=JuanPabloJimenezEsclusa_product-sorter"><img src="https://sonarcloud.io/api/project_badges/measure?project=JuanPabloJimenezEsclusa_product-sorter&metric=alert_status" alt="Quality Gate"/></a>
+  <a href="https://sonarcloud.io/summary/new_code?id=JuanPabloJimenezEsclusa_product-sorter"><img src="https://sonarcloud.io/api/project_badges/measure?project=JuanPabloJimenezEsclusa_product-sorter&metric=coverage" alt="Coverage"/></a>
+  <a href="https://sonarcloud.io/summary/new_code?id=JuanPabloJimenezEsclusa_product-sorter"><img src="https://sonarcloud.io/api/project_badges/measure?project=JuanPabloJimenezEsclusa_product-sorter&metric=sqale_rating" alt="Maintainability"/></a>
+  <a href="https://sonarcloud.io/summary/new_code?id=JuanPabloJimenezEsclusa_product-sorter"><img src="https://sonarcloud.io/api/project_badges/measure?project=JuanPabloJimenezEsclusa_product-sorter&metric=reliability_rating" alt="Reliability"/></a>
+  <a href="https://sonarcloud.io/summary/new_code?id=JuanPabloJimenezEsclusa_product-sorter"><img src="https://sonarcloud.io/api/project_badges/measure?project=JuanPabloJimenezEsclusa_product-sorter&metric=security_rating" alt="Security"/></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/acidtango/product-sorter/actions/workflows/ci.yml"><img src="https://github.com/acidtango/product-sorter/actions/workflows/ci.yml/badge.svg" alt="CI"/></a>
-  <a href="https://github.com/acidtango/product-sorter/actions/workflows/pages.yml"><img src="https://github.com/acidtango/product-sorter/actions/workflows/pages.yml/badge.svg" alt="Pages"/></a>
-  <a href="https://github.com/acidtango/product-sorter/actions/workflows/release.yml"><img src="https://github.com/acidtango/product-sorter/actions/workflows/release.yml/badge.svg" alt="Release"/></a>
+  <a href="https://github.com/JuanPabloJimenezEsclusa/product-sorter/actions/workflows/ci.yml"><img src="https://github.com/JuanPabloJimenezEsclusa/product-sorter/actions/workflows/ci.yml/badge.svg" alt="CI"/></a>
+  <a href="https://github.com/JuanPabloJimenezEsclusa/product-sorter/actions/workflows/pages.yml"><img src="https://github.com/JuanPabloJimenezEsclusa/product-sorter/actions/workflows/pages.yml/badge.svg" alt="Pages"/></a>
+  <a href="https://github.com/JuanPabloJimenezEsclusa/product-sorter/actions/workflows/release.yml"><img src="https://github.com/JuanPabloJimenezEsclusa/product-sorter/actions/workflows/release.yml/badge.svg" alt="Release"/></a>
 </p>
 
 ---
@@ -182,7 +182,7 @@ All collection endpoints return paginated responses with offset-based pagination
 
 ```bash
 # Prerequisites: JDK 25, Maven 3.9+, Docker
-git clone https://github.com/acidtango/product-sorter.git
+git clone https://github.com/JuanPabloJimenezEsclusa/product-sorter.git
 cd product-sorter
 ```
 
@@ -223,11 +223,11 @@ TOKEN=$(curl -s -X POST http://localhost:8081/realms/product-sorter/protocol/ope
   | jq -r '.access_token')
 
 # List products (paginated)
-curl -s "http://localhost:8080/api/v1/products?page=1&size=10" \
+curl -s "http://localhost:8880/api/v1/products?page=1&size=10" \
   -H "Authorization: Bearer $TOKEN" | jq
 
 # Sort products with weighted criteria
-curl -s -X POST "http://localhost:8080/api/v1/products/sort?page=1&size=20" \
+curl -s -X POST "http://localhost:8880/api/v1/products/sort?page=1&size=20" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"weights": {"salesUnits": 0.7, "stockRatio": 0.3}}' | jq

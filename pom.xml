@@ -20,6 +20,13 @@
   <description>REST service that sorts a product catalog by weighted scoring criteria</description>
   <url>https://github.com/acidtango/product-sorter</url>
 
+  <distributionManagement>
+    <site>
+      <id>github-pages</id>
+      <url>file:${project.build.directory}/site-staging</url>
+    </site>
+  </distributionManagement>
+
   <modules>
     <module>api-spec</module>
     <module>domain</module>
