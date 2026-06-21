@@ -2,29 +2,31 @@ name: CodeQL
 
 on:
   push:
-    branches: [main]
+    branches: [develop]
   pull_request:
-    branches: [main]
+    branches: [develop]
+    types: [opened, synchronize, reopened, ready_for_review]
   schedule:
     - cron: '0 0 * * 0'
 
 concurrency:
-  group: codeql-${{ github.ref }}
+  group: codeql
   cancel-in-progress: true
+
+env:
+  MAVEN_CLI_OPTS: "-B -ntp -e"
 
 jobs:
   analyze:
-    permissions:
-      security-events: write
-      actions: read
-      contents: read
+    if: ${{ !github.event.pull_request || github.event.pull_request.draft == false }}
+    permissions: { security-events: write, actions: read, contents: read }
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
 
       - uses: actions/setup-java@v5
         with:
-          distribution: graalvm
+          distribution: zulu
           java-version: 25
           cache: maven
 
@@ -33,6 +35,6 @@ jobs:
           languages: java
           queries: security-and-quality
 
-      - run: mvn -B -ntp -e clean compile -DskipTests
+      - run: mvn ${MAVEN_CLI_OPTS} clean compile -DskipTests
 
       - uses: github/codeql-action/analyze@v3

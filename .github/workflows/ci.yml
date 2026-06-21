@@ -2,11 +2,11 @@ name: Continuous Integration
 
 on:
   pull_request:
-    branches: [main]
+    branches: [develop]
     types: [opened, synchronize, reopened, ready_for_review]
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci
   cancel-in-progress: true
 
 env:
@@ -24,7 +24,7 @@ jobs:
 
       - uses: actions/setup-java@v5
         with:
-          distribution: graalvm
+          distribution: corretto
           java-version: 25
           cache: maven
 

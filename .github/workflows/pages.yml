@@ -2,7 +2,7 @@ name: Pages
 
 on:
   push:
-    branches: [main]
+    branches: [develop]
 
 concurrency:
   group: pages
@@ -13,6 +13,7 @@ env:
 
 jobs:
   deploy:
+    if: ${{ !github.event.pull_request || github.event.pull_request.draft == false }}
     permissions: { contents: read, pages: write, id-token: write }
     timeout-minutes: 15
     runs-on: ubuntu-latest
@@ -22,7 +23,7 @@ jobs:
 
       - uses: actions/setup-java@v5
         with:
-          distribution: graalvm
+          distribution: temurin
           java-version: 25
           cache: maven
 
