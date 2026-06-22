@@ -6,7 +6,7 @@ x-resources: &default-resources
 
 services:
   mongodb:
-    image: mongodb/mongodb-community-server:8.3.2-ubi9
+    image: mongodb/mongodb-community-server:8-ubi9
     container_name: product-sorter-mongodb
     ports: ["27017:27017"]
     networks: [product-sorter]
@@ -27,6 +27,7 @@ services:
     container_name: product-sorter-redis
     ports: ["6379:6379"]
     networks: [product-sorter]
+    command: redis-server --save 20 1 --loglevel warning --requirepass admin
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -35,6 +36,20 @@ services:
       resources:
         limits: { cpus: "2", memory: "2048M" }
         reservations: { cpus: "1", memory: "1024M" }
+
+  redisinsight:
+    image: redislabs/redisinsight:latest
+    container_name: product-sorter-redisinsight
+    hostname: redisinsight
+    ports: ["5540:5540"]
+    networks: [product-sorter]
+    environment:
+      RI_REDIS_HOST_0: redis
+      RI_REDIS_PORT_0: 6379
+      RI_REDIS_ALIAS_0: REDIS_LOCAL
+      RI_REDIS_USERNAME_0: default
+      RI_REDIS_PASSWORD_0: admin
+    <<: *default-resources
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.6.3
