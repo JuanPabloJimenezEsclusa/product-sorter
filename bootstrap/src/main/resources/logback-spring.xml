@@ -3,13 +3,31 @@
   <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
   <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
 
+  <springProperty scope="context" name="appName" source="spring.application.name" defaultValue="product-sorter"/>
+  <springProperty scope="context" name="lokiUrl" source="logging.loki.url" defaultValue="http://localhost:3100/loki/api/v1/push"/>
+
   <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
       <pattern>%d{HH:mm:ss.SSS} [%t] [traceId=%mdc{traceId}%replace(,requestId=%mdc{requestId}){'requestId=',''}] [%mdc{requestUri}] %-5level %logger{36} - %msg%n</pattern>
     </encoder>
   </appender>
 
+  <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+    <http>
+      <url>${lokiUrl}</url>
+    </http>
+    <format>
+      <label>
+        <pattern>service=${appName},level=%level,logger=%logger{36}</pattern>
+      </label>
+      <message>
+        <pattern>%d{HH:mm:ss.SSS} [%t] [traceId=%mdc{traceId}%replace(,requestId=%mdc{requestId}){'requestId=',''}] [%mdc{requestUri}] %msg%n</pattern>
+      </message>
+    </format>
+  </appender>
+
   <root level="INFO">
     <appender-ref ref="CONSOLE"/>
+    <appender-ref ref="LOKI"/>
   </root>
 </configuration>

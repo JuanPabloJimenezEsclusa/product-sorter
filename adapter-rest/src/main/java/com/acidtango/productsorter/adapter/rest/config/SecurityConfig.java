@@ -21,7 +21,8 @@ public class SecurityConfig {
           "/swagger-ui/**",
           "/v3/api-docs/**",
           "/actuator/health",
-          "/actuator/info"
+          "/actuator/info",
+          "/actuator/prometheus"
         ).permitAll()
         .requestMatchers("/api/**").authenticated()
         .anyRequest().authenticated()

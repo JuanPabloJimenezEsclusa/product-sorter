@@ -62,6 +62,7 @@
     <openapi-generator.version>7.12.0</openapi-generator.version>
     <springdoc.version>3.0.3</springdoc.version>
     <swagger-annotations.version>2.2.51</swagger-annotations.version>
+    <loki-logback-appender.version>1.5.2</loki-logback-appender.version>
 
     <sonar.organization>acidtango</sonar.organization>
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>
@@ -268,7 +269,13 @@
                 <rules>
                   <banDuplicatePomDependencyVersions/>
                   <requireReleaseDeps/>
-                  <requireUpperBoundDeps/>
+                  <requireUpperBoundDeps>
+                    <excludes>
+                      <exclude>io.prometheus:prometheus-metrics-core</exclude>
+                      <exclude>io.prometheus:prometheus-metrics-exposition-formats</exclude>
+                      <exclude>io.prometheus:prometheus-metrics-tracer-common</exclude>
+                    </excludes>
+                  </requireUpperBoundDeps>
                   <requireMavenVersion>
                     <version>[3.9.4,4.0.0)</version>
                   </requireMavenVersion>
@@ -445,8 +452,6 @@
               </mutators>
               <excludedClasses>
                 <param>com.acidtango.productsorter.domain.service.ScoredProduct</param>
-                <param>com.acidtango.productsorter.domain.service.ScoredProductPage</param>
-                <param>com.acidtango.productsorter.domain.model.ProductPage</param>
                 <param>com.acidtango.productsorter.domain.model.ScoreableProduct</param>
               </excludedClasses>
               <threads>4</threads>

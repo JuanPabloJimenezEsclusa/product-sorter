@@ -58,6 +58,7 @@
                 <interfaceOnly>true</interfaceOnly>
                 <skipDefaultInterface>true</skipDefaultInterface>
                 <useTags>true</useTags>
+                <useBeanValidation>false</useBeanValidation>
               </configOptions>
             </configuration>
           </execution>
