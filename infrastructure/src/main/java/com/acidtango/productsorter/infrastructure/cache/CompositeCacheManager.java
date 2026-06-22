@@ -1,15 +1,17 @@
 package com.acidtango.productsorter.infrastructure.cache;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
-import org.springframework.cache.support.AbstractCacheManager;
 
-public class CompositeCacheManager extends AbstractCacheManager {
+public class CompositeCacheManager implements CacheManager {
 
   private final List<CacheManager> cacheManagers;
 
@@ -17,24 +19,32 @@ public class CompositeCacheManager extends AbstractCacheManager {
     this.cacheManagers = Objects.requireNonNull(cacheManagers);
   }
 
-  @NonNull
   @Override
-  protected Collection<? extends Cache> loadCaches() {
-    return cacheManagers.stream()
-      .flatMap(cm -> cm.getCacheNames().stream()
-        .map(cm::getCache)
-        .filter(Objects::nonNull))
-      .toList();
-  }
-
-  @Override
-  protected Cache getMissingCache(final @NonNull String name) {
+  public @Nullable Cache getCache(final @NonNull String name) {
+    final var caches = new ArrayList<Cache>();
     for (final var cm : cacheManagers) {
       final var cache = cm.getCache(name);
       if (cache != null) {
-        return cache;
+        caches.add(cache);
       }
     }
-    return null;
+    if (caches.isEmpty()) {
+      return null;
+    }
+    if (caches.size() == 1) {
+      return caches.getFirst();
+    }
+    return new MultiTierCache(name, caches.getFirst(), caches.getLast());
+  }
+
+  @Override
+  public @NonNull Collection<String> getCacheNames() {
+    final var names = new LinkedHashMap<String, Boolean>();
+    for (final var cm : cacheManagers) {
+      for (final var name : cm.getCacheNames()) {
+        names.put(name, Boolean.TRUE);
+      }
+    }
+    return names.keySet();
   }
 }

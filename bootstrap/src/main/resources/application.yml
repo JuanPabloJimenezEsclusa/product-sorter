@@ -12,11 +12,6 @@ spring:
   docker:
     compose:
       enabled: false
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8081/realms/product-sorter}
   threads:
     virtual:
       enabled: true
@@ -35,12 +30,6 @@ management:
     web:
       exposure:
         include: health,info,prometheus,metrics
-  tracing:
-    sampling:
-      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
-  otlp:
-    tracing:
-      endpoint: ${OTLP_ENDPOINT:http://localhost:4318/v1/traces}
 
 server:
   application-display-name: application
@@ -57,28 +46,13 @@ logging:
 spring:
   config:
     activate:
-      on-profile: "docker"
-  mongodb:
-    uri: "${MONGODB_URI:mongodb://mongodb:27017/productsorter?maxPoolSize=200&connectTimeoutMS=120000&timeoutMS=120000&serverSelectionTimeoutMS=90000}"
+      on-profile: "docker-compose"
   data:
     redis:
-      host: redis
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: ${JWT_ISSUER_URI:http://keycloak:8080/realms/product-sorter}
-
-cache:
-  redis:
-    enabled: true
-
----
-
-spring:
-  config:
-    activate:
-      on-profile: "docker-compose"
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      username: ${REDIS_USERNAME:default}
+      password: ${REDIS_PASSWORD:admin}
   docker:
     compose:
       enabled: true
@@ -95,3 +69,20 @@ spring:
         log-level: trace
       stop:
         command: down
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8081/realms/product-sorter}
+
+management:
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+  otlp:
+    tracing:
+      endpoint: ${OTLP_ENDPOINT:http://localhost:4318/v1/traces}
+
+cache:
+  redis:
+    enabled: true

@@ -30,15 +30,17 @@ public class ProductController implements ProductsApi {
                                                    final Integer size) {
     final var weights = sortRequest.getWeights();
     final var request = new SortProductsRequest(weights);
-    final var result = sortUseCase.execute(
-      request.weights(), mapper.pageOrDefault(page), mapper.sizeOrDefault(size));
-    return ResponseEntity.ok(mapper.toSortResponse(result));
+    final var resolvedPage = mapper.pageOrDefault(page);
+    final var resolvedSize = mapper.sizeOrDefault(size);
+    final var scoredProducts = sortUseCase.execute(request.weights(), resolvedPage, resolvedSize);
+    return ResponseEntity.ok(mapper.toSortResponse(scoredProducts, resolvedPage, resolvedSize));
   }
 
   @Override
   public ResponseEntity<com.acidtango.productsorter.api.v1.dto.ProductPage> getProducts(final Integer page, final Integer size) {
-    final var result = listUseCase.execute(mapper.pageOrDefault(page), mapper.sizeOrDefault(size));
-    final var dto = mapper.toProductPage(result);
-    return ResponseEntity.ok(dto);
+    final var resolvedPage = mapper.pageOrDefault(page);
+    final var resolvedSize = mapper.sizeOrDefault(size);
+    final var products = listUseCase.execute(resolvedPage, resolvedSize);
+    return ResponseEntity.ok(mapper.toProductPage(products, resolvedPage, resolvedSize));
   }
 }

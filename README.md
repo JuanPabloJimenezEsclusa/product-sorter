@@ -200,9 +200,8 @@ mvn clean verify -Ppitest                          # With PIT mutation testing (
 ### Run (full stack)
 
 ```bash
-docker compose up -d
 mvn package -pl bootstrap -am -DskipTests
-java -jar bootstrap/target/bootstrap-*.jar --spring.profiles.active=docker
+java -jar bootstrap/target/bootstrap-*.jar --spring.profiles.active=docker-compose
 ```
 
 ### Generate test data

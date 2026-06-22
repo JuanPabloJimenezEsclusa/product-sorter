@@ -25,7 +25,7 @@ import org.testcontainers.mongodb.MongoDBContainer;
 class MongoProductRepositoryTest {
 
   @Container
-  static MongoDBContainer mongodb = new MongoDBContainer("mongodb/mongodb-community-server:8-ubi9");
+  static MongoDBContainer mongodb = new MongoDBContainer("mongodb/mongodb-community-server:8.3.2-ubi9");
 
   private final ProductDocumentMapper mapper = new ProductDocumentMapper();
   private MongoTemplate mongoTemplate;

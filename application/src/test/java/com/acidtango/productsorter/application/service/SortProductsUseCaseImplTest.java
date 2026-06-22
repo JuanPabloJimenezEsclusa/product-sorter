@@ -54,12 +54,9 @@ class SortProductsUseCaseImplTest {
       .toList();
 
     final var result = useCase.execute(weights, 1, productCount);
-    assertThat(result.products())
+    assertThat(result)
       .as("Should return products")
       .hasSize(productCount);
-    assertThat(result.total())
-      .as("Should report correct total")
-      .isEqualTo(productCount);
   }
 
   @ParameterizedTest(name = "{0}")
@@ -88,8 +85,9 @@ class SortProductsUseCaseImplTest {
     List<Product> products = List.of();
 
     @Override
-    public List<Product> findAll() {
-      return products;
+    public List<Product> findPage(final int page, final int size) {
+      final var skip = (long) (page - 1) * size;
+      return products.stream().skip(skip).limit(size).toList();
     }
 
     @Override

@@ -8,7 +8,7 @@ import com.acidtango.productsorter.domain.model.ScoreableProduct;
 import com.acidtango.productsorter.domain.vo.ProductId;
 
 public interface ProductRepository {
-  List<Product> findAll();
+  List<Product> findPage(int page, int size);
   OptionalInt findMaxSalesUnits();
   List<ScoreableProduct> findAllScoreable();
   List<Product> findByIds(List<ProductId> ids);

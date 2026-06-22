@@ -28,8 +28,12 @@ public class MongoProductRepositoryAdapter implements ProductRepository {
   }
 
   @Override
-  public List<Product> findAll() {
-    return mongoTemplate.findAll(ProductDocument.class).stream()
+  @Cacheable(cacheNames = "productCache", key = "#page + '-' + #size")
+  public List<Product> findPage(final int page, final int size) {
+    final var skip = (long) (page - 1) * size;
+    return mongoTemplate.find(
+      new Query().skip(skip).limit(size),
+      ProductDocument.class, "products").stream()
       .map(mapper::toDomain)
       .toList();
   }

@@ -1,7 +1,9 @@
 package com.acidtango.productsorter.domain.port;
 
-import com.acidtango.productsorter.domain.model.ProductPage;
+import java.util.List;
+
+import com.acidtango.productsorter.domain.model.Product;
 
 public interface ListProductsUseCase {
-  ProductPage execute(int page, int size);
+  List<Product> execute(int page, int size);
 }

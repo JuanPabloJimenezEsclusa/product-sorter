@@ -1,7 +1,9 @@
 package com.acidtango.productsorter.application.service;
 
+import java.util.List;
+
+import com.acidtango.productsorter.domain.model.Product;
 import com.acidtango.productsorter.domain.port.ListProductsUseCase;
-import com.acidtango.productsorter.domain.model.ProductPage;
 import com.acidtango.productsorter.domain.port.ProductRepository;
 
 public class ListProductsUseCaseImpl implements ListProductsUseCase {
@@ -13,11 +15,7 @@ public class ListProductsUseCaseImpl implements ListProductsUseCase {
   }
 
   @Override
-  public ProductPage execute(final int page, final int size) {
-    final var all = repository.findAll();
-    final var total = (long) all.size();
-    final var skip = (long) (page - 1) * size;
-    final var paged = all.stream().skip(skip).limit(size).toList();
-    return ProductPage.of(paged, page, size, total);
+  public List<Product> execute(final int page, final int size) {
+    return repository.findPage(page, size);
   }
 }

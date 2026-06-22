@@ -132,11 +132,6 @@ components:
           type: integer
         size:
           type: integer
-        total:
-          type: integer
-          format: int64
-        totalPages:
-          type: integer
 
     ScoredProduct:
       type: object
@@ -167,11 +162,6 @@ components:
         page:
           type: integer
         size:
-          type: integer
-        total:
-          type: integer
-          format: int64
-        totalPages:
           type: integer
 
     ProductResponse:

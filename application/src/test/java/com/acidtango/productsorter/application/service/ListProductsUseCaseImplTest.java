@@ -28,14 +28,12 @@ class ListProductsUseCaseImplTest {
   }
 
   @Test
-  void shouldReturnAllProductsPaginated() {
+  void shouldReturnFirstPage() {
     repository.products = List.of(
       product("1", 100), product("2", 50), product("3", 80));
 
     final var result = useCase.execute(1, 2);
-    assertThat(result.products()).as("Should return first page").hasSize(2);
-    assertThat(result.total()).as("Should report total 3").isEqualTo(3);
-    assertThat(result.totalPages()).as("Should report 2 pages").isEqualTo(2);
+    assertThat(result).as("Should return first page").hasSize(2);
   }
 
   @Test
@@ -43,8 +41,24 @@ class ListProductsUseCaseImplTest {
     repository.products = List.of(product("1", 100));
 
     final var result = useCase.execute(99, 20);
-    assertThat(result.products()).as("Should be empty").isEmpty();
-    assertThat(result.total()).as("Should report total 1").isEqualTo(1);
+    assertThat(result).as("Should be empty").isEmpty();
+  }
+
+  @Test
+  void shouldDelegatePaginationToRepository() {
+    repository.products = List.of(
+      product("1", 100), product("2", 50), product("3", 80), product("4", 200));
+
+    final var page1 = useCase.execute(1, 2);
+    assertThat(page1).as("Page 1 should have 2 products").hasSize(2);
+    assertThat(page1.getFirst().productId().value()).as("First product").isEqualTo("1");
+
+    final var page2 = useCase.execute(2, 2);
+    assertThat(page2).as("Page 2 should have 2 products").hasSize(2);
+    assertThat(page2.getFirst().productId().value()).as("First product on page 2").isEqualTo("3");
+
+    final var page3 = useCase.execute(3, 2);
+    assertThat(page3).as("Page 3 should be empty").isEmpty();
   }
 
   private static Product product(final String id, final int salesUnits) {
@@ -57,7 +71,10 @@ class ListProductsUseCaseImplTest {
     List<Product> products = List.of();
 
     @Override
-    public List<Product> findAll() { return products; }
+    public List<Product> findPage(final int page, final int size) {
+      final var skip = (long) (page - 1) * size;
+      return products.stream().skip(skip).limit(size).toList();
+    }
 
     @Override
     public java.util.OptionalInt findMaxSalesUnits() { return java.util.OptionalInt.empty(); }

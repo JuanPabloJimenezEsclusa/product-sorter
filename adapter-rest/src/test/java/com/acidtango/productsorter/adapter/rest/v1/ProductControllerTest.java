@@ -13,7 +13,6 @@ import com.acidtango.productsorter.api.v1.dto.SortRequest;
 import com.acidtango.productsorter.domain.model.Product;
 import com.acidtango.productsorter.domain.port.ListProductsUseCase;
 import com.acidtango.productsorter.domain.port.SortProductsUseCase;
-import com.acidtango.productsorter.domain.service.ScoredProductPage;
 import com.acidtango.productsorter.domain.vo.ProductId;
 import com.acidtango.productsorter.domain.vo.ProductName;
 import com.acidtango.productsorter.domain.vo.SalesUnits;
@@ -52,7 +51,7 @@ class ProductControllerTest {
   })
   void shouldReturn200ForValidWeights(final Double wSales, final Double wStock) {
     when(sortUseCase.execute(any(), eq(1), eq(20)))
-      .thenReturn(ScoredProductPage.of(List.of(), 1, 20, 0));
+      .thenReturn(List.of());
 
     final var dto = new SortRequest();
     dto.setWeights(Map.of("salesUnits", wSales, "stockRatio", wStock));
@@ -70,8 +69,7 @@ class ProductControllerTest {
           Stock.of(List.of(StockBySize.of(Size.S, 1), StockBySize.of(Size.M, 1), StockBySize.of(Size.L, 1)))),
         (3 - i) * 0.1))
       .toList();
-    final var domainPage = ScoredProductPage.of(scoredProducts, 1, 20, 3);
-    when(sortUseCase.execute(any(), eq(1), eq(20))).thenReturn(domainPage);
+    when(sortUseCase.execute(any(), eq(1), eq(20))).thenReturn(scoredProducts);
 
     final var dto = new SortRequest();
     dto.setWeights(Map.of("salesUnits", 0.7, "stockRatio", 0.3));
@@ -90,23 +88,21 @@ class ProductControllerTest {
         Stock.of(List.of(StockBySize.of(Size.S, 1), StockBySize.of(Size.M, 1), StockBySize.of(Size.L, 1)))),
       new Product(ProductId.of("2"), ProductName.of("P2"), SalesUnits.of(50),
         Stock.of(List.of(StockBySize.of(Size.S, 0), StockBySize.of(Size.M, 0), StockBySize.of(Size.L, 0)))));
-    when(listUseCase.execute(1, 10)).thenReturn(com.acidtango.productsorter.domain.model.ProductPage.of(products, 1, 10, 2));
+    when(listUseCase.execute(1, 10)).thenReturn(products);
 
     final var response = controller.getProducts(1, 10);
     assertThat(response.getStatusCode().value()).as("Should return HTTP 200").isEqualTo(200);
     assertThat(response.getBody()).as("Body should not be null").isNotNull();
     assertThat(response.getBody().getData()).as("Should return 2 products").hasSize(2);
-    assertThat(response.getBody().getTotal()).as("Should report total 2").isEqualTo(2);
   }
 
   @Test
   void shouldReturnEmptyPageWhenNoProducts() {
-    when(listUseCase.execute(1, 20)).thenReturn(com.acidtango.productsorter.domain.model.ProductPage.of(List.of(), 1, 20, 0));
+    when(listUseCase.execute(1, 20)).thenReturn(List.of());
 
     final var response = controller.getProducts(null, null);
     assertThat(response.getStatusCode().value()).as("Should return HTTP 200").isEqualTo(200);
     assertThat(response.getBody()).as("Body should not be null").isNotNull();
     assertThat(response.getBody().getData()).as("Should be empty").isEmpty();
-    assertThat(response.getBody().getTotal()).as("Should report 0 total").isEqualTo(0);
   }
 }

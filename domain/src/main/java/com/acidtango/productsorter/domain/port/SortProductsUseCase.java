@@ -1,9 +1,10 @@
 package com.acidtango.productsorter.domain.port;
 
+import java.util.List;
 import java.util.Map;
 
-import com.acidtango.productsorter.domain.service.ScoredProductPage;
+import com.acidtango.productsorter.domain.service.ScoredProduct;
 
 public interface SortProductsUseCase {
-  ScoredProductPage execute(Map<String, Double> weights, int page, int size);
+  List<ScoredProduct> execute(Map<String, Double> weights, int page, int size);
 }

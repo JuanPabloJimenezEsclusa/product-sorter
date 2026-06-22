@@ -1,10 +1,11 @@
 package com.acidtango.productsorter.infrastructure.observability;
 
-import com.acidtango.productsorter.domain.service.ScoredProductPage;
-import com.acidtango.productsorter.domain.port.SortProductsUseCase;
-
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
+
+import com.acidtango.productsorter.domain.port.SortProductsUseCase;
+import com.acidtango.productsorter.domain.service.ScoredProduct;
 
 public class MetricsSortProductsUseCase implements SortProductsUseCase {
 
@@ -17,11 +18,11 @@ public class MetricsSortProductsUseCase implements SortProductsUseCase {
   }
 
   @Override
-  public ScoredProductPage execute(final Map<String, Double> weights, final int page, final int size) {
+  public List<ScoredProduct> execute(final Map<String, Double> weights, final int page, final int size) {
     final var start = System.nanoTime();
     final var result = delegate.execute(weights, page, size);
     final var elapsed = Duration.ofNanos(System.nanoTime() - start);
-    metrics.recordSort(result.products().size(), elapsed, weights);
+    metrics.recordSort(result.size(), elapsed, weights);
     return result;
   }
 }
