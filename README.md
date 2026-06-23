@@ -57,7 +57,6 @@ flowchart LR
     domain --> infrastructure
     domain --> infrastructure-observability
     adapter-rest & infrastructure & infrastructure-observability --> bootstrap
-    coverage-jacoco -->|scans| api-spec & domain & application & adapter-rest & infrastructure & infrastructure-observability & bootstrap
 ```
 
 ### Layer Constraints
@@ -75,17 +74,20 @@ flowchart LR
 flowchart LR
     subgraph Strategy
         SC[SortingCriterion]
-        SU[SalesUnitsCriterion<br/>sales / maxSales]
-        SR[StockRatioCriterion<br/>sizesWithStock / 3]
-        WC[WeightedCriterion] ★ Decorator
+        SU[SalesUnitsCriterion - sales / maxSales]
+        SR[StockRatioCriterion - sizesWithStock / 3]
+        WC[WeightedCriterion - decorator]
     end
     subgraph Domain Services
-        PS[ProductScorer<br/>Σ weighted scores]
-        SE[SortingEngine<br/>load → score → sort]
+        PS[ProductScorer - sum weighted scores]
+        SE[SortingEngine - load, score, sort]
     end
-    SC --> SU & SR
-    SU & SR -.->|wrapped by| WC
-    WC --> PS --> SE
+    SC --> SU
+    SC --> SR
+    SU -.-> WC
+    SR -.-> WC
+    WC --> PS
+    PS --> SE
 ```
 
 ### Data Flow
@@ -151,20 +153,6 @@ For large catalogs (250k+ products), sorting uses a two-phase approach:
 
 This reduces total sort time from ~540ms to ~165ms for 250k products. Results are cached via `@Cacheable` in Redis L2 (TTL 120s for scoreables, 120s for product pages).
 
-### Pagination
-
-Offset-based pagination (1-indexed):
-
-```json
-{
-  "data": [...],
-  "page": 1,
-  "size": 20
-}
-```
-
-Responses include `page` and `size` but omit `total` and `totalPages` to avoid the COUNT query on MongoDB.
-
 ### Business Metrics (Micrometer)
 
 | Metric | Type | Tags | Description |
@@ -187,14 +175,14 @@ cd product-sorter
 ### Build & Test
 
 ```bash
-mvn clean verify                                   # Full CI: test + coverage + checkstyle + enforcer
-mvn test -pl domain                                # Domain unit tests
-mvn test -pl application -am                       # Application tests
-mvn test -pl adapter-rest -am                      # Adapter tests
-mvn test -pl infrastructure -am                    # Integration tests (MongoDB via Testcontainers)
-mvn test -pl coverage-jacoco -am                   # ArchUnit architecture tests (12 rules)
-mvn clean verify -Psecurity                        # With OWASP Dependency-Check
-mvn clean verify -Ppitest                          # With PIT mutation testing (domain module)
+mvn clean verify                     # Full CI: test + coverage + checkstyle + enforcer
+mvn test -pl domain                  # Domain unit tests
+mvn test -pl application -am         # Application tests
+mvn test -pl adapter-rest -am        # Adapter tests
+mvn test -pl infrastructure -am      # Integration tests (MongoDB via Testcontainers)
+mvn test -pl coverage-jacoco -am     # ArchUnit architecture tests
+mvn clean verify -Psecurity          # With OWASP Dependency-Check
+mvn clean verify -Ppitest            # With PIT mutation testing (domain module)
 ```
 
 ### Run (full stack)
@@ -211,6 +199,10 @@ java -jar bootstrap/target/bootstrap-*.jar --spring.profiles.active=docker-compo
 ```bash
 docker compose --profile app up --build
 ```
+
+### Deployment Architecture
+
+![Architecture Diagram](docs/images/product-sorter-architecture.svg)
 
 ### Generate test data
 
@@ -229,44 +221,27 @@ mvn test-compile exec:java -pl infrastructure \
   -Dexec.args="250000 /tmp/products.json"
 ```
 
-### API Examples
-
-```bash
-# Get JWT from keycloak
-TOKEN=$(curl -s -X POST http://localhost:8081/realms/product-sorter/protocol/openid-connect/token \
-  -d "client_id=product-sorter-client" -d "client_secret=product-sorter-secret" \
-  -d "username=user" -d "password=pass" -d "grant_type=password" | jq -r '.access_token')
-
-# List products (paginated)
-curl -s "http://localhost:8880/api/v1/products?page=1&size=10" \
-  -H "Authorization: Bearer ${TOKEN}" | jq
-
-# Sort products with weighted criteria
-curl -s -X POST "http://localhost:8880/api/v1/products/sort?page=1&size=20" \
-  -H "Authorization: Bearer ${TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d '{"weights": {"salesUnits": 0.7, "stockRatio": 0.3}}' | jq
-```
-
 ---
 
 ## API
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| `GET` | `/api/v1/products` | Bearer JWT | List products (paginated: `page`, `size`) |
 | `POST` | `/api/v1/products/sort` | Bearer JWT | Sort products by weighted criteria (paginated) |
+| `GET` | `/api/v1/products` | Bearer JWT | List products (paginated: `page`, `size`) |
 
 ### Sort Request
 
 ```bash
-POST /api/v1/products/sort?page=1&size=20
-{
-  "weights": {
-    "salesUnits": 0.7,
-    "stockRatio": 0.3
-  }
-}
+TOKEN=$(curl -s -X POST http://localhost:8081/realms/product-sorter/protocol/openid-connect/token \
+  -d "client_id=product-sorter-client" -d "client_secret=product-sorter-secret" \
+  -d "username=user" -d "password=pass" -d "grant_type=password" | jq -r '.access_token')
+  
+# Sort products with weighted criteria
+curl -s -X POST "http://localhost:8880/api/v1/products/sort?page=1&size=20" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"weights": {"salesUnits": 0.7, "stockRatio": 0.3}}' | jq
 ```
 
 ### Sort Response
@@ -294,7 +269,9 @@ POST /api/v1/products/sort?page=1&size=20
 ### List Products Request
 
 ```bash
-GET /api/v1/products?page=1&size=10
+# List products (paginated)
+curl -s "http://localhost:8880/api/v1/products?page=1&size=10" \
+  -H "Authorization: Bearer ${TOKEN}" | jq
 ```
 
 ### List Products Response
