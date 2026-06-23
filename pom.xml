@@ -27,7 +27,7 @@
   <distributionManagement>
     <site>
       <id>github-pages</id>
-      <url>file:${project.build.directory}/site-staging</url>
+      <url>file:./target/site-staging</url>
     </site>
   </distributionManagement>
 
