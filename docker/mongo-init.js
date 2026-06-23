@@ -1,7 +1,7 @@
 db = db.getSiblingDB("productsorter");
 
 db.products.insertMany([
-  { _id: "550e8400-e29b-41d4-a716-446655440000", name: "V-NECK BASIC SHIRT", salesUnits: 100, stock: [{ size: "S", quantity: 4 }, { size: "M", quantity: 9 }, { size: "L", quantity: 0 }] },
+  { _id: "550e8400-e29b-41d4-a716-446655440000", name: "V-NECH BASIC SHIRT", salesUnits: 100, stock: [{ size: "S", quantity: 4 }, { size: "M", quantity: 9 }, { size: "L", quantity: 0 }] },
   { _id: "6fa459ea-ee8a-3ca5-8b4a-22e3b2a5b4c6", name: "CONTRASTING FABRIC T-SHIRT", salesUnits: 50, stock: [{ size: "S", quantity: 35 }, { size: "M", quantity: 9 }, { size: "L", quantity: 9 }] },
   { _id: "7c9e6679-7425-40de-944b-e07fc1f90ae7", name: "RAISED PRINT T-SHIRT", salesUnits: 80, stock: [{ size: "S", quantity: 20 }, { size: "M", quantity: 2 }, { size: "L", quantity: 20 }] },
   { _id: "8a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d", name: "PLEATED T-SHIRT", salesUnits: 3, stock: [{ size: "S", quantity: 25 }, { size: "M", quantity: 30 }, { size: "L", quantity: 10 }] },

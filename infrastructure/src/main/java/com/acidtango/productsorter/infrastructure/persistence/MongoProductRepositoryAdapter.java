@@ -32,7 +32,7 @@ public class MongoProductRepositoryAdapter implements ProductRepository {
   public List<Product> findPage(final int page, final int size) {
     final var skip = (long) (page - 1) * size;
     return mongoTemplate.find(
-      new Query().skip(skip).limit(size),
+      new Query().with(Sort.by(Sort.Direction.ASC, "_id")).skip(skip).limit(size),
       ProductDocument.class, "products").stream()
       .map(mapper::toDomain)
       .toList();

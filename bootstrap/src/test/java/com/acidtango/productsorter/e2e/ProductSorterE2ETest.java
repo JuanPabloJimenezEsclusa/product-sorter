@@ -74,7 +74,6 @@ class ProductSorterE2ETest {
   @DynamicPropertySource
   static void configure(final DynamicPropertyRegistry registry) {
     registry.add("spring.mongodb.uri", mongodb::getReplicaSetUrl);
-    registry.add("spring.security.oauth2.resourceserver.jwt.issuer-uri", () -> "http://localhost:9999/realms/test");
   }
 
   @LocalServerPort

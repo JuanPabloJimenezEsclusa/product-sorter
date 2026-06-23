@@ -281,7 +281,7 @@ curl -s "http://localhost:8880/api/v1/products?page=1&size=10" \
   "data": [
     { 
       "id": "550e8400-e29b-41d4-a716-446655440000", 
-      "name": "V-NECK BASIC SHIRT", 
+      "name": "V-NECH BASIC SHIRT", 
       "salesUnits": 100, 
       "stock": [
         { "size": "S", "quantity": 4 },

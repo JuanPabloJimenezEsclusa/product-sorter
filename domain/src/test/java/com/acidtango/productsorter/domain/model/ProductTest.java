@@ -46,7 +46,7 @@ class ProductTest {
 
   private static Stream<Arguments> validProductScenarios() {
     return Stream.of(
-      arguments(named("basic shirt", "V-NECK BASIC SHIRT"), 100, "S:4,M:9,L:0"),
+      arguments(named("basic shirt", "V-NECH BASIC SHIRT"), 100, "S:4,M:9,L:0"),
       arguments(named("lace shirt", "CONTRASTING LACE T-SHIRT"), 650, "S:0,M:1,L:0"));
   }
 
