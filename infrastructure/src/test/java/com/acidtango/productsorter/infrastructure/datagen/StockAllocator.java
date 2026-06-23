@@ -1,18 +1,18 @@
-package com.acidtango.productsorter.testdata;
+package com.acidtango.productsorter.infrastructure.datagen;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.random.RandomGenerator;
 
-public class StockAllocator {
+class StockAllocator {
 
   private final RandomGenerator rng;
 
-  public StockAllocator(final RandomGenerator rng) {
+  StockAllocator(final RandomGenerator rng) {
     this.rng = rng;
   }
 
-  public Map<String, Integer> allocate() {
+  Map<String, Integer> allocate() {
     final var stock = new LinkedHashMap<String, Integer>();
     final var outOfStock = rng.nextDouble() < 0.15;
     stock.put("S", outOfStock ? 0 : Math.max(0, (int) (rng.nextGaussian() * 10 + 20)));

@@ -1,3 +1,4 @@
+[![Pages](https://img.shields.io/badge/Docs-GitHub%20Pages-blue.svg)](https://juanpablojimenezesclusa.github.io/product-sorter/) 
 [![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
 <p align="center">
@@ -45,7 +46,6 @@
 | `infrastructure` | MongoDB persistence adapter, L1 Caffeine + L2 Redis caching |
 | `infrastructure-observability` | Metrics decorator, Micrometer business metrics, MdcFilter (traceId, requestUri, X-Request-Id) |
 | `bootstrap` | Spring Boot composition root. Wires modules, application config |
-| `testdata` | CLI tool for generating realistic products with UUID `_id` and combinatorial names |
 | `coverage-jacoco` | JaCoCo aggregated coverage + ArchUnit hexagonal architecture tests (12 rules) |
 
 ### Dependency Graph
@@ -206,11 +206,19 @@ java -jar bootstrap/target/bootstrap-*.jar --spring.profiles.active=docker-compo
 
 ### Generate test data
 
+```txt
+mvn test-compile exec:java -pl infrastructure \
+  -Dexec.mainClass="com.acidtango.productsorter.infrastructure.datagen.ProductDataGenerator" \
+  -Dexec.classpathScope=test \
+  -Dexec.args="<count> <output.json>"
+```
+
 ```bash
-mvn package -pl testdata -am -DskipTests
-java -jar testdata/target/testdata-*-jar-with-dependencies.jar <count> <output.json>
 # Example: 250000 products
-java -jar testdata/target/testdata-*-jar-with-dependencies.jar 250000 /tmp/products.json
+mvn test-compile exec:java -pl infrastructure \
+  -Dexec.mainClass="com.acidtango.productsorter.infrastructure.datagen.ProductDataGenerator" \
+  -Dexec.classpathScope=test \
+  -Dexec.args="250000 /tmp/products.json"
 ```
 
 JSON-lines output with UUID `_id` and combinatorial product names. Compatible with `docker/mongo-seed-entrypoint.sh`.
@@ -308,8 +316,6 @@ GET /api/v1/products?page=1&size=10
 | Integration | Testcontainers (MongoDB 8) | 6 (persistence mapping) |
 | Adapter | Mockito | 6 (controller + mapper) |
 | Architecture | ArchUnit | 12 hexagonal boundary rules |
-
-All tests use `@ParameterizedTest(name = "{0}")` with `Named.named()` and `Arguments.arguments()`. Data generation via Instancio. Assertions via AssertJ with `.as("description")`.
 
 ---
 

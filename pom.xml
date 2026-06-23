@@ -18,7 +18,11 @@
 
   <name>Product Sorter</name>
   <description>REST service that sorts a product catalog by weighted scoring criteria</description>
-  <url>https://github.com/acidtango/product-sorter</url>
+  <url>https://juanpablojimenezesclusa.github.io/product-sorter</url>
+
+  <organization>
+    <name>JPJE Innovation Inc</name>
+  </organization>
 
   <distributionManagement>
     <site>
@@ -26,6 +30,27 @@
       <url>file:${project.build.directory}/site-staging</url>
     </site>
   </distributionManagement>
+
+  <licenses>
+    <license>
+      <name>GPL-3.0-only</name>
+      <url>https://opensource.org/license/GPL-3.0</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>juan.pablo.jimenez.esclusa</id>
+      <name>Juan Pablo Jimenez Esclusa</name>
+      <email>juan.pablo.jimenez.esclusa@gmail.com</email>
+      <organization>${project.organization.name}</organization>
+      <roles>
+        <role>Developer</role>
+        <role>Architect</role>
+      </roles>
+    </developer>
+  </developers>
 
   <modules>
     <module>api-spec</module>
@@ -35,7 +60,6 @@
     <module>infrastructure-observability</module>
     <module>adapter-rest</module>
     <module>bootstrap</module>
-    <module>testdata</module>
     <module>coverage-jacoco</module>
   </modules>
 
@@ -114,11 +138,6 @@
       <dependency>
         <groupId>com.acidtango</groupId>
         <artifactId>bootstrap</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.acidtango</groupId>
-        <artifactId>testdata</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

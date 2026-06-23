@@ -2,19 +2,20 @@ package com.acidtango.productsorter.domain.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.instancio.Select.field;
 import static org.junit.jupiter.api.Named.named;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import com.acidtango.productsorter.domain.vo.*;
-import org.instancio.Instancio;
-import static org.instancio.Select.field;
+import java.util.stream.Stream;
 
+import com.acidtango.productsorter.domain.vo.ProductId;
+import com.acidtango.productsorter.domain.vo.ProductName;
+import com.acidtango.productsorter.domain.vo.SalesUnits;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
+import org.instancio.Instancio;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-
-import java.util.stream.Stream;
 
 class ProductTest {
 

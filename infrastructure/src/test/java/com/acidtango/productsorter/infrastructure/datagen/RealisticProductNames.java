@@ -1,9 +1,9 @@
-package com.acidtango.productsorter.testdata;
+package com.acidtango.productsorter.infrastructure.datagen;
 
 import java.util.List;
 import java.util.random.RandomGenerator;
 
-public class RealisticProductNames {
+class RealisticProductNames {
 
   private static final List<String> STYLES = List.of(
     "CLASSIC", "MODERN", "VINTAGE", "PREMIUM", "ESSENTIAL",
@@ -42,11 +42,11 @@ public class RealisticProductNames {
 
   private final RandomGenerator rng;
 
-  public RealisticProductNames(final RandomGenerator rng) {
+  RealisticProductNames(final RandomGenerator rng) {
     this.rng = rng;
   }
 
-  public String sample() {
+  String sample() {
     final var parts = new java.util.ArrayList<String>();
     if (rng.nextBoolean()) {
       parts.add(STYLES.get(rng.nextInt(STYLES.size())));

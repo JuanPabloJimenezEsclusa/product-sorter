@@ -52,6 +52,7 @@
               <library>spring-boot</library>
               <apiPackage>com.acidtango.productsorter.api.v1</apiPackage>
               <modelPackage>com.acidtango.productsorter.api.v1.dto</modelPackage>
+              <ignoreFileOverride>${project.basedir}/.openapi-generator-ignore</ignoreFileOverride>
               <configOptions>
                 <useSpringBoot3>true</useSpringBoot3>
                 <useJakartaEe>true</useJakartaEe>

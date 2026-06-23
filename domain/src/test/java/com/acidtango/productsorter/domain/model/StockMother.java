@@ -1,9 +1,10 @@
 package com.acidtango.productsorter.domain.model;
 
+import java.util.stream.Stream;
+
 import com.acidtango.productsorter.domain.vo.Size;
 import com.acidtango.productsorter.domain.vo.Stock;
 import com.acidtango.productsorter.domain.vo.StockBySize;
-import java.util.stream.Stream;
 
 public class StockMother {
 

@@ -1,4 +1,4 @@
-package com.acidtango.productsorter.testdata;
+package com.acidtango.productsorter.infrastructure.datagen;
 
 import java.io.File;
 import java.io.IOException;
