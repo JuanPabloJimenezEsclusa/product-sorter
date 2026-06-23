@@ -10,7 +10,7 @@ x-resources: &default-resources
 
 services:
   mongodb:
-    image: mongodb/mongodb-community-server:8.3.2-ubi9
+    image: mongodb/mongodb-community-server:8.3.4-ubi9
     container_name: product-sorter-mongodb
     hostname: mongodb
     restart: unless-stopped
@@ -138,7 +138,7 @@ services:
     <<: *default-resources
 
   grafana:
-    image: grafana/grafana:13.0.2
+    image: grafana/grafana:13.1.0
     container_name: product-sorter-grafana
     restart: unless-stopped
     ports: ["3000:3000"]
