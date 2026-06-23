@@ -47,6 +47,7 @@ jobs:
           path: "./coverage-jacoco/target/site/jacoco-aggregate/index.html"
 
   dependency-review:
+    if: github.event_name == 'pull_request'
     needs: test
     permissions: { contents: read, pull-requests: write }
     timeout-minutes: 10
