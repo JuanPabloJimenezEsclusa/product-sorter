@@ -135,35 +135,35 @@ flowchart LR
 ### Caching (L1 + L2)
 
 ```
-score(key) → Caffeine (30s TTL, max 1000) → Redis (5min TTL)
+get(k) → Caffeine (30s TTL, max 100) → miss → Redis (120s TTL) → miss → MongoDB
 ```
 
-Cache keys: `product:score:{id}:{criterion}`, `product:maxSales`, `product:catalog:version`.
+`MultiTierCache` wraps Caffeine (L1) and Redis (L2). On read: checks L1 first, then L2, populates L1 on L2 hit. On write: writes to both tiers.
 
-Invalidation via `@CacheEvict(allEntries=true)` + versioned catalog.
+Cache namespace: `productCache` with keys per page (`"1-20"`, `"2-20"`) and keys for scoreable projections (`"scoreables"`).
 
 ### Performance Optimization
 
 For large catalogs (250k+ products), sorting uses a two-phase approach:
-1. **Projection query:** `findAllScoreable()` fetches only `id`, `salesUnits`, and `stock` from MongoDB (avoids transferring product names and full documents)
+1. **Projection query:** `findAllScoreable()` fetches only `_id`, `salesUnits`, and `stock` from MongoDB via field projection
 2. **Lazy fetch:** only the top 20 products from the sorted result are fetched as full documents via `findByIds()`
 3. **Index:** `{salesUnits: -1}` index ensures `findMaxSalesUnits()` is an IXSCAN (1 entry, ~1ms) instead of COLLSCAN
 
-This reduces total sort time from ~540ms to ~165ms for 250k products. Results are cached via `@Cacheable` in Redis L2 (TTL 30s for scoreables, 5min for maxSales).
+This reduces total sort time from ~540ms to ~165ms for 250k products. Results are cached via `@Cacheable` in Redis L2 (TTL 120s for scoreables, 120s for product pages).
 
 ### Pagination
 
-All collection endpoints return paginated responses with offset-based pagination (1-indexed):
+Offset-based pagination (1-indexed):
 
 ```json
 {
   "data": [...],
   "page": 1,
-  "size": 20,
-  "total": 50000,
-  "totalPages": 2500
+  "size": 20
 }
 ```
+
+Responses include `page` and `size` but omit `total` and `totalPages` to avoid the COUNT query on MongoDB.
 
 ### Business Metrics (Micrometer)
 
@@ -199,9 +199,17 @@ mvn clean verify -Ppitest                          # With PIT mutation testing (
 
 ### Run (full stack)
 
+**Option 1 — Local dev (app on host):**
+
 ```bash
 mvn package -pl bootstrap -am -DskipTests
 java -jar bootstrap/target/bootstrap-*.jar --spring.profiles.active=docker-compose
+```
+
+**Option 2 — Fully containerized (Docker Compose):**
+
+```bash
+docker compose --profile app up --build
 ```
 
 ### Generate test data
@@ -220,8 +228,6 @@ mvn test-compile exec:java -pl infrastructure \
   -Dexec.classpathScope=test \
   -Dexec.args="250000 /tmp/products.json"
 ```
-
-JSON-lines output with UUID `_id` and combinatorial product names. Compatible with `docker/mongo-seed-entrypoint.sh`.
 
 ### API Examples
 
@@ -250,9 +256,6 @@ curl -s -X POST "http://localhost:8880/api/v1/products/sort?page=1&size=20" \
 |--------|------|------|-------------|
 | `GET` | `/api/v1/products` | Bearer JWT | List products (paginated: `page`, `size`) |
 | `POST` | `/api/v1/products/sort` | Bearer JWT | Sort products by weighted criteria (paginated) |
-| `GET` | `/swagger-ui.html` | No | OpenAPI docs (SpringDoc) |
-| `GET` | `/actuator/health` | No | Health check |
-| `GET` | `/actuator/prometheus` | No | Prometheus metrics |
 
 ### Sort Request
 
@@ -272,36 +275,51 @@ POST /api/v1/products/sort?page=1&size=20
 {
   "data": [
     {
-      "product": { "id": "550e8400-e29b-41d4-a716-446655440000", "name": "CONTRASTING LACE T-SHIRT", "salesUnits": 650, "stock": [{ "size": "S", "quantity": 0 }, { "size": "M", "quantity": 1 }, { "size": "L", "quantity": 0 }] },
+      "product": { 
+        "id": "550e8400-e29b-41d4-a716-446655440000", 
+        "name": "CONTRASTING LACE T-SHIRT", 
+        "salesUnits": 650, 
+        "stock": [
+          { "size": "S", "quantity": 0 }, 
+          { "size": "M", "quantity": 1 }, 
+          { "size": "L", "quantity": 0 }]},
       "score": 0.87
     }
   ],
   "page": 1,
-  "size": 20,
-  "total": 6,
-  "totalPages": 1
+  "size": 20
 }
 ```
 
-`ScoredProduct` composes `ProductResponse` — the same schema used in the list endpoint. This keeps the product representation consistent across the API and avoids maintaining two parallel schemas that can diverge.
+### List Products Request
+
+```bash
+GET /api/v1/products?page=1&size=10
+```
 
 ### List Products Response
 
 ```json
-GET /api/v1/products?page=1&size=10
 {
   "data": [
-    { "id": "550e8400-e29b-41d4-a716-446655440000", "name": "V-NECK BASIC SHIRT", "salesUnits": 100, "stock": [
-      { "size": "S", "quantity": 4 }, { "size": "M", "quantity": 9 }, { "size": "L", "quantity": 0 }
-    ]},
-    { "id": "6fa459ea-ee8a-3ca5-8b4a-22e3b2a5b4c6", "name": "CONTRASTING FABRIC T-SHIRT", "salesUnits": 50, "stock": [
-      { "size": "S", "quantity": 35 }, { "size": "M", "quantity": 9 }, { "size": "L", "quantity": 9 }
-    ]}
-  ],
+    { 
+      "id": "550e8400-e29b-41d4-a716-446655440000", 
+      "name": "V-NECK BASIC SHIRT", 
+      "salesUnits": 100, 
+      "stock": [
+        { "size": "S", "quantity": 4 },
+        { "size": "M", "quantity": 9 },
+        { "size": "L", "quantity": 0 }]},
+    { 
+      "id": "6fa459ea-ee8a-3ca5-8b4a-22e3b2a5b4c6", 
+      "name": "CONTRASTING FABRIC T-SHIRT", 
+      "salesUnits": 50, 
+      "stock": [
+        { "size": "S", "quantity": 35 }, 
+        { "size": "M", "quantity": 9 }, 
+        { "size": "L", "quantity": 9 }]}],
   "page": 1,
-  "size": 10,
-  "total": 6,
-  "totalPages": 1
+  "size": 10
 }
 ```
 
@@ -309,28 +327,30 @@ GET /api/v1/products?page=1&size=10
 
 ## Testing
 
-| Type | Tools | Cases |
-|------|-------|-------|
-| Unit | JUnit 5 + Instancio + AssertJ | 30 (domain model + services) |
-| Application | JUnit 5 + Mockito | 7 (use cases with pagination) |
-| Integration | Testcontainers (MongoDB 8) | 6 (persistence mapping) |
-| Adapter | Mockito | 6 (controller + mapper) |
-| Architecture | ArchUnit | 12 hexagonal boundary rules |
+| Type | Tools | Cases                                |
+|------|-------|--------------------------------------|
+| Unit | JUnit 5 + Instancio + AssertJ | domain model + services              |
+| Application | JUnit 5 + Instancio + Mockito | use cases with pagination            |
+| Integration | Testcontainers (MongoDB 8) | persistence + mapper edge cases      |
+| Cache | Mockito | MultiTierCache + CompositeCacheManager |
+| Observability | Mockito + Micrometer + Spring Mock | metrics, decorator, MDC filter       |
+| Adapter | Mockito | controller + mapper               |
+| Architecture | ArchUnit | hexagonal boundary rules           |
 
 ---
 
 ## Quality
 
-| Tool | Phase | Fails build? |
-|------|-------|-------------|
-| JaCoCo | verify | Yes (<85% instruction, <80% branch) |
-| ArchUnit | test | Yes (12 rules) |
-| Checkstyle | validate | No (reports only, no Javadoc enforcement) |
-| OpenRewrite | process-sources | No (dry-run) |
+| Tool | Phase | Fails build?                            |
+|------|-------|-----------------------------------------|
+| JaCoCo | verify | Yes (>85% instruction, >80% branch)     |
+| ArchUnit | test | Yes                           |
+| Checkstyle | validate | No (reports only)                       |
+| OpenRewrite | process-sources | No (dry-run)                            |
 | Enforcer | validate | Yes (Java 25, Maven 3.9+, no duplicates) |
-| Commitlint | PR | Yes (Conventional Commits, excludes dependabot) |
-| OWASP Dep-Check | verify (with `-Psecurity`) | Yes (CVSS ≥ 7) |
-| PIT Mutation | test (with `-Ppitest`) | Yes (80% mutation score) |
+| Commitlint | PR | Yes (Conventional Commits)              |
+| OWASP Dep-Check | verify (with `-Psecurity`) | Yes (CVSS ≥ 7)                          |
+| PIT Mutation | test (with `-Ppitest`) | Yes (80% mutation score)                |
 
 ---
 
@@ -339,10 +359,9 @@ GET /api/v1/products?page=1&size=10
 | Workflow | Trigger | Description |
 |----------|---------|-------------|
 | `ci.yml` | PR to `develop` | `mvn verify` + SonarCloud + dependency review |
-| `pages.yml` | Push to `develop` | Maven site + coverage reports to GitHub Pages |
-| `release.yml` | Tag `v*` | Changelog generation + GitHub release |
-| `commitlint.yml` | PR to `develop` | Conventional Commits validation (excludes dependabot) |
 | `codeql.yml` | PR + push to `develop` + weekly | GitHub CodeQL security analysis |
+| `commitlint.yml` | PR to `develop` | Conventional Commits validation |
+| `pages.yml` | Push to `develop` | Maven site + coverage reports to GitHub Pages |
 | `dependabot.yml` | Weekly | Maven, Docker, Compose, Actions updates |
 
 ---
@@ -357,10 +376,6 @@ GET /api/v1/products?page=1&size=10
 | Loki | 3100 | — |
 | Keycloak | 8081 | admin/admin |
 
-Grafana dashboards include: Sort Requests counter, Sort Duration (p50/p95/p99), Products per Sort, Weights Distribution, JVM Memory, HTTP Requests, Cache Hit Ratio, Traces (Tempo), Application Logs (Loki).
-
-Logs include MDC context: `traceId`, `requestUri`, and `requestId` (from `X-Request-Id` header). Correlatable with Tempo traces via `traceId`.
-
 ---
 
 ## Design Decisions
@@ -369,11 +384,9 @@ Logs include MDC context: `traceId`, `requestUri`, and `requestId` (from `X-Requ
 
 `POST /api/v1/products/sort` uses POST because sorting is a computational operation (scoring + ordering), not a resource retrieval. The weights map would be fragile as query parameters and would not scale with additional criteria.
 
-For simple listing without sorting, use `GET /api/v1/products`.
+### Pagination (offset-based)
 
-### Pagination
-
-Offset-based pagination with `page` (1-indexed, default 1) and `size` (max 100). Chosen over cursor-based because products are stable (no insertions/deletions during navigation) and offset-based is simpler for clients.
+Offset-based pagination with `page` (1-indexed, default 1) and `size` (max 100). Chosen over cursor-based because products are stable (no insertions/deletions during navigation). `total` and `totalPages` are omitted from responses to avoid the COUNT query on MongoDB — the client knows the page is exhausted when the returned page has fewer items than `size`.
 
 ### UUID as `_id`
 
@@ -390,9 +403,12 @@ MongoDB `_id` uses UUID strings (e.g. `"550e8400-e29b-41d4-a716-446655440000"`).
 - **Semantic** — scoring is a projection *over* a product, not a flattened version of it
 - **Evolution** — adding a field to `ProductResponse` (e.g. `category`) automatically enriches the sort response without schema changes
 
-### Caching (L1 + L2)
+### MultiTierCache (L1 + L2)
 
-Scoreable projections (`findAllScoreable`) are cached in Caffeine (L1, 30s TTL) and Redis (L2, 30s TTL) via `@Cacheable`. Max sales is cached at L1 only (5min TTL) since it rarely changes. Cache-aside pattern with `@CacheEvict` on catalog version bumps.
+`CompositeCacheManager` wraps both `CaffeineCacheManager` (L1) and `RedisCacheManager` (L2). When both managers declare the same cache name, a `MultiTierCache` is created that:
+- **Reads** → L1 → miss → L2 → miss → null. Populates L1 on L2 hit.
+- **Writes** → writes to both L1 and L2.
+- **Evictions** → evicts from both tiers.
 
 ### Hexagonal architecture with decorators
 
@@ -400,7 +416,7 @@ Scoreable projections (`findAllScoreable`) are cached in Caffeine (L1, 30s TTL) 
 
 ### MDC correlation
 
-`MdcFilter` injects `traceId` (from OTel or generated), `requestUri`, and `X-Request-Id` header into SLF4J MDC. Promtail ships logs to Loki, where they can be correlated with Tempo traces via `traceId`.
+`MdcFilter` injects `traceId` (from OTel or generated), `requestUri`, and `X-Request-Id` header into SLF4J MDC. Logs are shipped to Loki (via Loki4j appender) and correlated with Tempo traces via `traceId`.
 
 ---
 
@@ -410,7 +426,7 @@ Scoreable projections (`findAllScoreable`) are cached in Caffeine (L1, 30s TTL) 
 <type>(<scope>): <lowercase subject>
 
 Types: feat | fix | docs | style | refactor | perf | test | build | ci | chore | revert
-Scopes: api-spec | domain | application | infrastructure | infrastructure-observability | adapter-rest | bootstrap | testdata | coverage | docker | ci | config
+Scopes: api-spec | domain | application | infrastructure | infrastructure-observability | adapter-rest | bootstrap | coverage | docker | ci | config
 
 Examples:
   feat(domain): add stock ratio scoring criterion

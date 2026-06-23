@@ -139,6 +139,28 @@ services:
     depends_on: [prometheus, tempo, loki]
     <<: *default-resources
 
+  product-sorter-app:
+    build: .
+    container_name: product-sorter-app
+    hostname: product-sorter-app
+    ports: ["8880:8880"]
+    networks: [product-sorter]
+    profiles: ["app"]
+    environment:
+      MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017/productsorter}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-admin}
+      REDIS_USERNAME: ${REDIS_USERNAME:-default}
+      JWT_ISSUER_URI: ${JWT_ISSUER_URI:-http://keycloak:8080/realms/product-sorter}
+      OTLP_ENDPOINT: ${OTLP_ENDPOINT:-http://otel-collector:4318/v1/traces}
+      TRACING_SAMPLING_PROBABILITY: ${TRACING_SAMPLING_PROBABILITY:-1.0}
+      LOG_PATH: /var/log/product-sorter
+    depends_on:
+      mongodb: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      keycloak: { condition: service_started }
+
 volumes:
   mongodb_data:
 
