@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/JuanPabloJimenezEsclusa/product-sorter/actions/workflows/ci.yml"><img src="https://github.com/JuanPabloJimenezEsclusa/product-sorter/actions/workflows/ci.yml/badge.svg" alt="CI"/></a>
   <a href="https://github.com/JuanPabloJimenezEsclusa/product-sorter/actions/workflows/pages.yml"><img src="https://github.com/JuanPabloJimenezEsclusa/product-sorter/actions/workflows/pages.yml/badge.svg" alt="Pages"/></a>
-  <a href="https://github.com/JuanPabloJimenezEsclusa/product-sorter/actions/workflows/release.yml"><img src="https://github.com/JuanPabloJimenezEsclusa/product-sorter/actions/workflows/release.yml/badge.svg" alt="Release"/></a>
+  <a href="https://github.com/JuanPabloJimenezEsclusa/product-sorter/actions/workflows/codeql.yml"><img src="https://github.com/JuanPabloJimenezEsclusa/product-sorter/actions/workflows/codeql.yml/badge.svg" alt="CodeQL"/></a>
 </p>
 
 ---

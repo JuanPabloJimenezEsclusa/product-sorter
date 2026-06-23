@@ -89,14 +89,17 @@
     <swagger-annotations.version>2.2.52</swagger-annotations.version>
     <loki-logback-appender.version>2.0.3</loki-logback-appender.version>
 
-    <sonar.organization>acidtango</sonar.organization>
+    <sonar.organization>juanpablojimenezesclusa</sonar.organization>
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>
-    <sonar.projectKey>acidtango_product-sorter</sonar.projectKey>
+    <sonar.projectKey>JuanPabloJimenezEsclusa_product-sorter</sonar.projectKey>
     <sonar.coverage.jacoco.xmlReportPaths>
-      ${project.basedir}/coverage-jacoco/target/site/jacoco-aggregate/jacoco.xml
+      ${project.basedir}/coverage-jacoco/target/site/jacoco-aggregate/jacoco.xml,
+      ${project.basedir}/../coverage-jacoco/target/site/jacoco-aggregate/jacoco.xml
     </sonar.coverage.jacoco.xmlReportPaths>
+    <sonar.scm.exclusions.disabled>true</sonar.scm.exclusions.disabled>
+    <sonar.branch.name>develop</sonar.branch.name>
     <sonar.coverage.exclusions>
-      **/*Config.java,**/*Application.java,**/*Mapper.java,**/*Exception.java,**/dto/**
+      **/config/OpenApiConfig.java,**/config/VersioningConfig.java,**/config/CacheConfig.java,**/config/ApplicationConfig.java,**/*Application.java,**/*Exception.java,**/dto/**
     </sonar.coverage.exclusions>
 
     <inceptionYear>2026</inceptionYear>
@@ -172,9 +175,11 @@
           <version>${jacoco-maven-plugin.version}</version>
           <configuration>
             <excludes>
-              <exclude>**/*Config.class</exclude>
+              <exclude>**/config/OpenApiConfig.class</exclude>
+              <exclude>**/config/VersioningConfig.class</exclude>
+              <exclude>**/config/CacheConfig.class</exclude>
+              <exclude>**/config/ApplicationConfig.class</exclude>
               <exclude>**/*Application.class</exclude>
-              <exclude>**/*Mapper.class</exclude>
               <exclude>**/*Exception.class</exclude>
               <exclude>**/dto/*.class</exclude>
             </excludes>
