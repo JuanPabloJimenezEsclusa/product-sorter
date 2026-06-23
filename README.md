@@ -53,10 +53,11 @@
 ```mermaid
 flowchart LR
     api-spec --> adapter-rest
-    domain --> application --> adapter-rest
+    domain --> application
+    domain --> adapter-rest
     domain --> infrastructure
     domain --> infrastructure-observability
-    adapter-rest & infrastructure & infrastructure-observability --> bootstrap
+  domain & application & adapter-rest & infrastructure & infrastructure-observability --> bootstrap
 ```
 
 ### Layer Constraints
