@@ -1,5 +1,7 @@
 package com.acidtango.productsorter.domain.service;
 
+import static com.acidtango.productsorter.domain.vo.CriterionType.SALES_UNITS;
+import static com.acidtango.productsorter.domain.vo.CriterionType.STOCK_RATIO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Named.named;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -71,14 +73,14 @@ class SortingEngineTest {
 
   private static Stream<Arguments> sortingScenarios() {
     return Stream.of(
-      arguments(named("sales only", Map.of("salesUnits", 1.0, "stockRatio", 0.0))),
-      arguments(named("stock only", Map.of("salesUnits", 0.0, "stockRatio", 1.0))),
-      arguments(named("balanced", Map.of("salesUnits", 0.5, "stockRatio", 0.5))));
+      arguments(named("sales only", Map.of(SALES_UNITS.key(), 1.0, STOCK_RATIO.key(), 0.0))),
+      arguments(named("stock only", Map.of(SALES_UNITS.key(), 0.0, STOCK_RATIO.key(), 1.0))),
+      arguments(named("balanced", Map.of(SALES_UNITS.key(), 0.5, STOCK_RATIO.key(), 0.5))));
   }
 
   private static Stream<Arguments> edgeCases() {
     return Stream.of(
-      arguments(named("empty products", List.of()), Map.of("salesUnits", 1.0, "stockRatio", 0.0), 0));
+      arguments(named("empty products", List.of()), Map.of(SALES_UNITS.key(), 1.0, STOCK_RATIO.key(), 0.0), 0));
   }
 
   private static Stream<Arguments> existingProductScenarios() {
@@ -90,8 +92,8 @@ class SortingEngineTest {
       new ScoreableProduct(ProductId.of("5"), 650, 0.333),
       new ScoreableProduct(ProductId.of("6"), 20, 1.0));
     return Stream.of(
-      arguments(named("sales desc", existingProducts), Map.of("salesUnits", 1.0, "stockRatio", 0.0), 650, "5", "4"),
-      arguments(named("stock desc", existingProducts), Map.of("salesUnits", 0.0, "stockRatio", 1.0), 650, "2", "5"),
-      arguments(named("mixed", existingProducts), Map.of("salesUnits", 0.7, "stockRatio", 0.3), 650, "5", "4"));
+      arguments(named("sales desc", existingProducts), Map.of(SALES_UNITS.key(), 1.0, STOCK_RATIO.key(), 0.0), 650, "5", "4"),
+      arguments(named("stock desc", existingProducts), Map.of(SALES_UNITS.key(), 0.0, STOCK_RATIO.key(), 1.0), 650, "2", "5"),
+      arguments(named("mixed", existingProducts), Map.of(SALES_UNITS.key(), 0.7, STOCK_RATIO.key(), 0.3), 650, "5", "4"));
   }
 }

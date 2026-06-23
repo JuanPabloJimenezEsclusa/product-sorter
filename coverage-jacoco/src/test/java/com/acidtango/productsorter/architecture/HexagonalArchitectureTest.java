@@ -100,6 +100,8 @@ class HexagonalArchitectureTest {
       "io.swagger..",
       "jakarta..",
       "org.slf4j..",
+      "com.fasterxml.jackson.databind..",
+      "com.fasterxml.jackson.datatype..",
       "com.acidtango.productsorter.api.."))
     .as("Adapter-rest dependencies must be whitelisted")
     .because("adapter-rest translates HTTP to use case calls via Spring MVC and OAuth2");

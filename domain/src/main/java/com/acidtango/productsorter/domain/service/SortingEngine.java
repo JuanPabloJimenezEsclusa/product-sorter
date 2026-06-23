@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.acidtango.productsorter.domain.model.ScoreableProduct;
+import com.acidtango.productsorter.domain.vo.CriterionType;
 
 public class SortingEngine {
 
@@ -20,9 +21,6 @@ public class SortingEngine {
     if (products.isEmpty()) {
       return List.of();
     }
-    if (weights == null || weights.isEmpty()) {
-      throw new IllegalArgumentException("Weights must not be null or empty");
-    }
 
     final var criteria = buildCriteria(weights, maxSalesUnits);
 
@@ -35,13 +33,13 @@ public class SortingEngine {
   private List<SortingCriterion> buildCriteria(final Map<String, Double> weights, final int maxSalesUnits) {
     final var criteria = new ArrayList<SortingCriterion>();
 
-    if (weights.containsKey("salesUnits")) {
+    if (weights.containsKey(CriterionType.SALES_UNITS.key())) {
       final var criterion = new SalesUnitsCriterion(maxSalesUnits);
-      criteria.add(new WeightedCriterion(criterion, weights.get("salesUnits")));
+      criteria.add(new WeightedCriterion(criterion, weights.get(CriterionType.SALES_UNITS.key())));
     }
-    if (weights.containsKey("stockRatio")) {
+    if (weights.containsKey(CriterionType.STOCK_RATIO.key())) {
       final var criterion = StockRatioCriterion.INSTANCE;
-      criteria.add(new WeightedCriterion(criterion, weights.get("stockRatio")));
+      criteria.add(new WeightedCriterion(criterion, weights.get(CriterionType.STOCK_RATIO.key())));
     }
 
     return criteria;

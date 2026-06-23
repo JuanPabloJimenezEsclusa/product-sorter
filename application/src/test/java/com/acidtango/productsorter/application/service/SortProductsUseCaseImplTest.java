@@ -1,5 +1,6 @@
 package com.acidtango.productsorter.application.service;
 
+import static com.acidtango.productsorter.domain.vo.CriterionType.SALES_UNITS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.instancio.Select.field;
@@ -69,15 +70,15 @@ class SortProductsUseCaseImplTest {
 
   private static Stream<Arguments> validRequests() {
     return Stream.of(
-      arguments(named("6 products", Map.of("salesUnits", 0.7, "stockRatio", 0.3)), 6),
-      arguments(named("1 product", Map.of("salesUnits", 1.0, "stockRatio", 0.0)), 1));
+      arguments(named("6 products", Map.of(SALES_UNITS.key(), 0.7, "stockRatio", 0.3)), 6),
+      arguments(named("1 product", Map.of(SALES_UNITS.key(), 1.0, "stockRatio", 0.0)), 1));
   }
 
   private static Stream<Arguments> invalidRequests() {
     return Stream.of(
       arguments(named("null", null)),
       arguments(named("empty", Map.of())),
-      arguments(named("invalid weight", Map.of("salesUnits", 1.5))));
+      arguments(named("invalid weight", Map.of(SALES_UNITS.key(), 1.5))));
   }
 
   private static class TestProductRepository implements ProductRepository {

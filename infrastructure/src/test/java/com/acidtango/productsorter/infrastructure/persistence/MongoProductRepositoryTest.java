@@ -58,15 +58,19 @@ class MongoProductRepositoryTest {
     }
   }
 
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("maxSalesCases")
-  void shouldFindMaxSalesUnits(final boolean dropBefore, final OptionalInt expected) {
-    if (dropBefore) {
-      mongoTemplate.dropCollection("products");
-    }
+  @Test
+  void shouldFindMaxSalesUnits() {
     assertThat(repository.findMaxSalesUnits())
       .as("Max sales units should match")
-      .isEqualTo(expected);
+      .isEqualTo(OptionalInt.of(650));
+  }
+
+  @Test
+  void shouldReturnEmptyMaxSalesWhenNoProducts() {
+    mongoTemplate.dropCollection("products");
+    assertThat(repository.findMaxSalesUnits())
+      .as("Max sales units should be empty when no products")
+      .isEmpty();
   }
 
   @Test
@@ -128,16 +132,7 @@ class MongoProductRepositoryTest {
       .isCloseTo(0.667, within(0.01));
   }
 
-  private static final class ScoreableDocument {
-    final Document input;
-    final int expectedSales;
-    final double expectedRatio;
-
-    ScoreableDocument(final Document input, final int expectedSales, final double expectedRatio) {
-      this.input = input;
-      this.expectedSales = expectedSales;
-      this.expectedRatio = expectedRatio;
-    }
+  private record ScoreableDocument(Document input, int expectedSales, double expectedRatio) {
   }
 
   @ParameterizedTest(name = "{0}")
@@ -173,12 +168,6 @@ class MongoProductRepositoryTest {
       arguments(named("second page", 2), 2, 2, "3"),
       arguments(named("last page partial", 3), 2, 2, "5"),
       arguments(named("page out of range", 99), 20, 0, null));
-  }
-
-  private static Stream<Arguments> maxSalesCases() {
-    return Stream.of(
-      arguments(named("with products", false), OptionalInt.of(650)),
-      arguments(named("no products", true), OptionalInt.empty()));
   }
 
   private static Stream<Arguments> findByIdCases() {

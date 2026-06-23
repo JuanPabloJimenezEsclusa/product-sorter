@@ -1,6 +1,8 @@
 package com.acidtango.productsorter.domain.vo;
 
-public record StockBySize(Size size, int quantity) {
+import java.io.Serializable;
+
+public record StockBySize(Size size, int quantity) implements Serializable {
   public StockBySize {
     if (quantity < 0) {
       throw new IllegalArgumentException("Stock quantity must not be negative");

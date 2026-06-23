@@ -1,8 +1,9 @@
 package com.acidtango.productsorter.domain.vo;
 
+import java.io.Serializable;
 import java.util.Objects;
 
-public record ProductName(String value) {
+public record ProductName(String value) implements Serializable {
   public ProductName {
     Objects.requireNonNull(value, "ProductName must not be null");
     if (value.isBlank()) {

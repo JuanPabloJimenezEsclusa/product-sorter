@@ -67,7 +67,7 @@ public class CacheConfig {
       .disableCachingNullValues()
       .serializeValuesWith(
         RedisSerializationContext.SerializationPair.fromSerializer(
-          RedisSerializer.json()));
+          RedisSerializer.java()));
     return RedisCacheManager.builder(connectionFactory)
       .withCacheConfiguration("productCache", config)
       .build();

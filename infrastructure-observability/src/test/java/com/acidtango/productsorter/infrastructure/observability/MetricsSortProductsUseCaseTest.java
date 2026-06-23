@@ -1,5 +1,6 @@
 package com.acidtango.productsorter.infrastructure.observability;
 
+import static com.acidtango.productsorter.domain.vo.CriterionType.SALES_UNITS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Named.named;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -55,12 +56,12 @@ class MetricsSortProductsUseCaseTest {
 
   private static Stream<Arguments> executeCases() {
     return Stream.of(
-      arguments(named("empty result", List.of()), Map.of("salesUnits", 0.7, "stockRatio", 0.3)),
+      arguments(named("empty result", List.of()), Map.of(SALES_UNITS.key(), 0.7, "stockRatio", 0.3)),
       arguments(named("with products",
         List.of(
           new ScoredProduct(instancioProduct(100), 0.9),
           new ScoredProduct(instancioProduct(50), 0.5))),
-        Map.of("salesUnits", 0.7, "stockRatio", 0.3)));
+        Map.of(SALES_UNITS.key(), 0.7, "stockRatio", 0.3)));
   }
 
   private static Product instancioProduct(final int salesUnits) {

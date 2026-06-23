@@ -1,11 +1,13 @@
 package com.acidtango.productsorter.adapter.rest.exception;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 
 import com.acidtango.productsorter.api.v1.dto.ErrorResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -16,6 +18,11 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(IllegalArgumentException.class)
   public ResponseEntity<ErrorResponse> handleIllegalArgument(final IllegalArgumentException ex) {
+    return ResponseEntity.badRequest().body(build(400, "BAD_REQUEST", ex.getMessage()));
+  }
+
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<ErrorResponse> handleMalformedBody(final HttpMessageNotReadableException ex) {
     return ResponseEntity.badRequest().body(build(400, "BAD_REQUEST", ex.getMessage()));
   }
 
@@ -30,6 +37,6 @@ public class GlobalExceptionHandler {
       .status(status)
       .code(code)
       .message(message)
-      .timestamp(OffsetDateTime.now());
+      .timestamp(OffsetDateTime.now(ZoneId.systemDefault()));
   }
 }

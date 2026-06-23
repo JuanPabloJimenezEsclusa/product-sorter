@@ -21,20 +21,15 @@ RUN --mount=type=cache,id=mvn-repo,target=/app/.m2-repo \
 
 FROM eclipse-temurin:25-jre
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/* \
-    && groupadd -r appuser && useradd -r -g appuser -d /app appuser \
-    && curl -fsSL "https://github.com/tianon/gosu/releases/download/1.17/gosu-amd64" -o /usr/local/bin/gosu \
-    && chmod +x /usr/local/bin/gosu
+    && groupadd -r appuser && useradd -r -g appuser -d /app appuser
 
 WORKDIR /app
-COPY --from=build /app/bootstrap/target/*.jar app.jar
-RUN chown -R appuser:appuser /app
+COPY --from=build --chown=appuser:appuser /app/bootstrap/target/*.jar app.jar
 
-COPY <<'EOF' /usr/local/bin/entrypoint.sh
-#!/bin/sh
-exec gosu appuser "$@"
-EOF
-RUN chmod 755 /usr/local/bin/entrypoint.sh
+USER appuser
+
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 --start-period=60s \
+  CMD curl -sf http://localhost:8880/actuator/health || exit 1
 
 EXPOSE 8880
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["java", "-jar", "app.jar"]

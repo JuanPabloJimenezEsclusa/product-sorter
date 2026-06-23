@@ -3,6 +3,7 @@ package com.acidtango.productsorter.infrastructure.observability;
 import java.time.Duration;
 import java.util.Map;
 
+import com.acidtango.productsorter.domain.vo.CriterionType;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -11,9 +12,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class SortingMetrics {
-
-  private static final String STOCK_RATIO = "stockRatio";
-  private static final String SALES_UNITS = "salesUnits";
 
   private final Counter requests;
   private final Timer duration;
@@ -37,12 +35,12 @@ public class SortingMetrics {
       .register(registry);
 
     this.salesWeight = DistributionSummary.builder("sorting.weights")
-      .tag("criterion", SALES_UNITS)
+      .tag("criterion", CriterionType.SALES_UNITS.key())
       .description("Sales units weight used in requests")
       .register(registry);
 
     this.stockWeight = DistributionSummary.builder("sorting.weights")
-      .tag("criterion", STOCK_RATIO)
+      .tag("criterion", CriterionType.STOCK_RATIO.key())
       .description("Stock ratio weight used in requests")
       .register(registry);
   }
@@ -51,11 +49,11 @@ public class SortingMetrics {
     requests.increment();
     duration.record(elapsed);
     productsSummary.record(productCount);
-    if (weights.containsKey(SALES_UNITS)) {
-      salesWeight.record(weights.get(SALES_UNITS));
+    if (weights.containsKey(CriterionType.SALES_UNITS.key())) {
+      salesWeight.record(weights.get(CriterionType.SALES_UNITS.key()));
     }
-    if (weights.containsKey(STOCK_RATIO)) {
-      stockWeight.record(weights.get(STOCK_RATIO));
+    if (weights.containsKey(CriterionType.STOCK_RATIO.key())) {
+      stockWeight.record(weights.get(CriterionType.STOCK_RATIO.key()));
     }
   }
 }

@@ -1,6 +1,8 @@
 package com.acidtango.productsorter.domain.vo;
 
-public record SalesUnits(int value) {
+import java.io.Serializable;
+
+public record SalesUnits(int value) implements Serializable {
   public SalesUnits {
     if (value < 0) {
       throw new IllegalArgumentException("SalesUnits must not be negative");
