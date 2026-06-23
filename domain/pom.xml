@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>com.acidtango</groupId>
+    <groupId>dev.jpje</groupId>
     <artifactId>product-sorter</artifactId>
     <version>1.0.0</version>
   </parent>
@@ -13,4 +13,40 @@
   <artifactId>domain</artifactId>
   <name>Domain</name>
   <description>Pure Java domain — zero framework dependencies</description>
+
+  <licenses>
+    <license>
+      <name>GPL-3.0-only</name>
+      <url>https://opensource.org/license/GPL-3.0</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.pitest</groupId>
+        <artifactId>pitest-maven</artifactId>
+        <version>${pitest-maven.version}</version>
+        <reportSets>
+          <reportSet>
+            <reports>
+              <report>report</report>
+            </reports>
+          </reportSet>
+        </reportSets>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-project-info-reports-plugin</artifactId>
+        <reportSets>
+          <reportSet>
+            <reports>
+              <report>summary</report>
+            </reports>
+          </reportSet>
+        </reportSets>
+      </plugin>
+    </plugins>
+  </reporting>
 </project>

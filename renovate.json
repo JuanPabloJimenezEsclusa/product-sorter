@@ -1,0 +1,22 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":disableDependencyDashboard"
+  ],
+  "enabledManagers": ["regex"],
+  "regexManagers": [
+    {
+      "description": "Update MongoDB version in Testcontainers Java strings",
+      "fileMatch": ["\\.java$"],
+      "matchStrings": [
+        "new MongoDBContainer\\(\"mongodb/mongodb-community-server:(?<currentValue>.*?)-ubi9\"\\)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "mongodb/mongodb-community-server",
+      "versioningTemplate": "docker"
+    }
+  ],
+  "labels": ["dependencies", "automated"],
+  "schedule": ["on monday"]
+}

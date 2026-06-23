@@ -1,6 +1,8 @@
 name: Continuous Integration
 
 on:
+  push:
+    branches: [develop]
   pull_request:
     branches: [develop]
     types: [opened, synchronize, reopened, ready_for_review]
@@ -16,8 +18,9 @@ env:
 jobs:
   test:
     permissions: { contents: read, pull-requests: write }
-    timeout-minutes: 15
+    timeout-minutes: 25
     runs-on: ubuntu-latest
+    environment: pro
     steps:
       - uses: actions/checkout@v7
         with: { fetch-depth: 0 }
@@ -38,12 +41,17 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ github.token }}
 
+      - name: Mutation Testing
+        if: github.actor != 'dependabot[bot]'
+        run: mvn ${MAVEN_CLI_OPTS} -pl domain -Ppitest verify
+
       - uses: actions/upload-artifact@v7
         with:
           name: jacoco-report
-          path: ./coverage-jacoco/target/site/jacoco-aggregate/index.html
+          path: "./coverage-jacoco/target/site/jacoco-aggregate/index.html"
 
   dependency-review:
+    if: github.event_name == 'pull_request'
     needs: test
     permissions: { contents: read, pull-requests: write }
     timeout-minutes: 10

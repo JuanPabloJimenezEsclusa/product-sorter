@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>com.acidtango</groupId>
+    <groupId>dev.jpje</groupId>
     <artifactId>product-sorter</artifactId>
     <version>1.0.0</version>
   </parent>
@@ -14,41 +14,50 @@
   <name>Testing - Architecture &amp; Coverage</name>
   <description>Module for aggregating JaCoCo code coverage reports across all submodules
   </description>
+
+  <licenses>
+    <license>
+      <name>GPL-3.0-only</name>
+      <url>https://opensource.org/license/GPL-3.0</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
   <packaging>pom</packaging>
 
   <dependencies>
     <dependency>
-      <groupId>com.acidtango</groupId>
+      <groupId>dev.jpje</groupId>
       <artifactId>api-spec</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.acidtango</groupId>
+      <groupId>dev.jpje</groupId>
       <artifactId>domain</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.acidtango</groupId>
+      <groupId>dev.jpje</groupId>
       <artifactId>application</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.acidtango</groupId>
+      <groupId>dev.jpje</groupId>
       <artifactId>adapter-rest</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.acidtango</groupId>
-      <artifactId>infrastructure</artifactId>
+      <groupId>dev.jpje</groupId>
+      <artifactId>adapter-persistence</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.acidtango</groupId>
-      <artifactId>infrastructure-observability</artifactId>
+      <groupId>dev.jpje</groupId>
+      <artifactId>adapter-observability</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.acidtango</groupId>
+      <groupId>dev.jpje</groupId>
       <artifactId>bootstrap</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -153,6 +162,17 @@
             <id>coverage-report</id>
             <reports>
               <report>report-aggregate</report>
+            </reports>
+          </reportSet>
+        </reportSets>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-project-info-reports-plugin</artifactId>
+        <reportSets>
+          <reportSet>
+            <reports>
+              <report>summary</report>
             </reports>
           </reportSet>
         </reportSets>

@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>com.acidtango</groupId>
+    <groupId>dev.jpje</groupId>
     <artifactId>product-sorter</artifactId>
     <version>1.0.0</version>
   </parent>
@@ -14,21 +14,29 @@
   <name>Bootstrap</name>
   <description>Spring Boot composition root</description>
 
+  <licenses>
+    <license>
+      <name>GPL-3.0-only</name>
+      <url>https://opensource.org/license/GPL-3.0</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
   <dependencies>
     <dependency>
-      <groupId>com.acidtango</groupId>
+      <groupId>dev.jpje</groupId>
       <artifactId>adapter-rest</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.acidtango</groupId>
-      <artifactId>infrastructure</artifactId>
+      <groupId>dev.jpje</groupId>
+      <artifactId>adapter-persistence</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.acidtango</groupId>
-      <artifactId>infrastructure-observability</artifactId>
+      <groupId>dev.jpje</groupId>
+      <artifactId>adapter-observability</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.acidtango</groupId>
+      <groupId>dev.jpje</groupId>
       <artifactId>application</artifactId>
     </dependency>
     <dependency>
@@ -61,6 +69,12 @@
       <version>${rest-assured.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>io.rest-assured</groupId>
+      <artifactId>json-schema-validator</artifactId>
+      <version>${rest-assured.version}</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -69,9 +83,25 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
         <configuration>
-          <mainClass>com.acidtango.productsorter.ProductSorterApplication</mainClass>
+          <mainClass>dev.jpje.productsorter.ProductSorterApplication</mainClass>
         </configuration>
       </plugin>
     </plugins>
   </build>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-project-info-reports-plugin</artifactId>
+        <reportSets>
+          <reportSet>
+            <reports>
+              <report>summary</report>
+            </reports>
+          </reportSet>
+        </reportSets>
+      </plugin>
+    </plugins>
+  </reporting>
 </project>

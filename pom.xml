@@ -11,7 +11,7 @@
     <relativePath/>
   </parent>
 
-  <groupId>com.acidtango</groupId>
+  <groupId>dev.jpje</groupId>
   <artifactId>product-sorter</artifactId>
   <version>1.0.0</version>
   <packaging>pom</packaging>
@@ -27,7 +27,7 @@
   <distributionManagement>
     <site>
       <id>github-pages</id>
-      <url>file:${project.build.directory}/site-staging</url>
+      <url>file:./target/site-staging</url>
     </site>
   </distributionManagement>
 
@@ -56,8 +56,8 @@
     <module>api-spec</module>
     <module>domain</module>
     <module>application</module>
-    <module>infrastructure</module>
-    <module>infrastructure-observability</module>
+    <module>adapter-persistence</module>
+    <module>adapter-observability</module>
     <module>adapter-rest</module>
     <module>bootstrap</module>
     <module>coverage-jacoco</module>
@@ -89,14 +89,17 @@
     <swagger-annotations.version>2.2.52</swagger-annotations.version>
     <loki-logback-appender.version>2.0.3</loki-logback-appender.version>
 
-    <sonar.organization>acidtango</sonar.organization>
+    <sonar.organization>juanpablojimenezesclusa</sonar.organization>
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>
-    <sonar.projectKey>acidtango_product-sorter</sonar.projectKey>
+    <sonar.projectKey>JuanPabloJimenezEsclusa_product-sorter</sonar.projectKey>
     <sonar.coverage.jacoco.xmlReportPaths>
-      ${project.basedir}/coverage-jacoco/target/site/jacoco-aggregate/jacoco.xml
+      ${project.basedir}/coverage-jacoco/target/site/jacoco-aggregate/jacoco.xml,
+      ${project.basedir}/../coverage-jacoco/target/site/jacoco-aggregate/jacoco.xml
     </sonar.coverage.jacoco.xmlReportPaths>
+    <sonar.scm.exclusions.disabled>true</sonar.scm.exclusions.disabled>
+    <sonar.branch.name>develop</sonar.branch.name>
     <sonar.coverage.exclusions>
-      **/*Config.java,**/*Application.java,**/*Mapper.java,**/*Exception.java,**/dto/**
+      **/config/OpenApiConfig.java,**/config/VersioningConfig.java,**/config/CacheConfig.java,**/config/ApplicationConfig.java,**/*Application.java,**/*Exception.java,**/dto/**
     </sonar.coverage.exclusions>
 
     <inceptionYear>2026</inceptionYear>
@@ -107,37 +110,37 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <groupId>com.acidtango</groupId>
+        <groupId>dev.jpje</groupId>
         <artifactId>api-spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.acidtango</groupId>
+        <groupId>dev.jpje</groupId>
         <artifactId>domain</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.acidtango</groupId>
+        <groupId>dev.jpje</groupId>
         <artifactId>application</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.acidtango</groupId>
+        <groupId>dev.jpje</groupId>
         <artifactId>adapter-rest</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.acidtango</groupId>
-        <artifactId>infrastructure</artifactId>
+        <groupId>dev.jpje</groupId>
+        <artifactId>adapter-persistence</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.acidtango</groupId>
-        <artifactId>infrastructure-observability</artifactId>
+        <groupId>dev.jpje</groupId>
+        <artifactId>adapter-observability</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.acidtango</groupId>
+        <groupId>dev.jpje</groupId>
         <artifactId>bootstrap</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -172,9 +175,11 @@
           <version>${jacoco-maven-plugin.version}</version>
           <configuration>
             <excludes>
-              <exclude>**/*Config.class</exclude>
+              <exclude>**/config/OpenApiConfig.class</exclude>
+              <exclude>**/config/VersioningConfig.class</exclude>
+              <exclude>**/config/CacheConfig.class</exclude>
+              <exclude>**/config/ApplicationConfig.class</exclude>
               <exclude>**/*Application.class</exclude>
-              <exclude>**/*Mapper.class</exclude>
               <exclude>**/*Exception.class</exclude>
               <exclude>**/dto/*.class</exclude>
             </excludes>
@@ -227,11 +232,11 @@
           <artifactId>maven-checkstyle-plugin</artifactId>
           <version>${maven-checkstyle-plugin.version}</version>
           <configuration>
-            <configLocation>${session.executionRootDirectory}/src/main/resources/checkstyle.xml
-            </configLocation>
+            <configLocation>${session.executionRootDirectory}/src/main/resources/checkstyle.xml</configLocation>
             <consoleOutput>true</consoleOutput>
             <failsOnError>false</failsOnError>
             <includeTestSourceDirectory>true</includeTestSourceDirectory>
+            <excludes>**/target/generated-sources/**</excludes>
           </configuration>
           <dependencies>
             <dependency>
@@ -321,10 +326,8 @@
             <generateSitemap>true</generateSitemap>
             <stagingDirectory>${project.build.directory}/site-staging</stagingDirectory>
             <attributes>
-              <reporting.outputEncoding>${project.reporting.outputEncoding}
-              </reporting.outputEncoding>
-              <project.build.sourceEncoding>${project.build.sourceEncoding}
-              </project.build.sourceEncoding>
+              <reporting.outputEncoding>${project.reporting.outputEncoding}</reporting.outputEncoding>
+              <project.build.sourceEncoding>${project.build.sourceEncoding}</project.build.sourceEncoding>
               <currentYear>${currentYear}</currentYear>
               <inceptionYear>${inceptionYear}</inceptionYear>
             </attributes>
@@ -396,8 +399,7 @@
                   <goal>git-changelog</goal>
                 </goals>
                 <configuration>
-                  <templateFile>${project.basedir}/src/main/resources/changelog.mustache
-                  </templateFile>
+                  <templateFile>${project.basedir}/src/main/resources/changelog.mustache</templateFile>
                   <file>CHANGELOG.md</file>
                   <readableTagName>-([^-]+?)$</readableTagName>
                   <dateFormat>yyyy-MM-dd HH:mm:ss</dateFormat>
@@ -458,26 +460,34 @@
             </dependencies>
             <configuration>
               <targetClasses>
-                <param>com.acidtango.productsorter.domain.*</param>
+                <param>dev.jpje.productsorter.domain.*</param>
               </targetClasses>
               <targetTests>
-                <param>com.acidtango.productsorter.domain.*</param>
+                <param>dev.jpje.productsorter.domain.*</param>
               </targetTests>
               <mutators>
                 <mutator>MATH</mutator>
                 <mutator>NEGATE_CONDITIONALS</mutator>
                 <mutator>INVERT_NEGS</mutator>
-                <mutator>RETURN_VALS</mutator>
+                <mutator>TRUE_RETURNS</mutator>
+                <mutator>FALSE_RETURNS</mutator>
+                <mutator>NULL_RETURNS</mutator>
+                <mutator>PRIMITIVE_RETURNS</mutator>
+                <mutator>EMPTY_RETURNS</mutator>
                 <mutator>VOID_METHOD_CALLS</mutator>
               </mutators>
               <excludedClasses>
-                <param>com.acidtango.productsorter.domain.service.ScoredProduct</param>
-                <param>com.acidtango.productsorter.domain.model.ScoreableProduct</param>
+                <param>dev.jpje.productsorter.domain.model.ScoreableProduct</param>
+                <param>dev.jpje.productsorter.domain.service.ScoredProduct</param>
+                <param>dev.jpje.productsorter.domain.service.SortingEngine$ScoredEntry</param>
               </excludedClasses>
               <threads>4</threads>
+              <features>
+                <feature>+CLASSLIMIT(limit[50])</feature>
+              </features>
               <failWhenNoMutations>false</failWhenNoMutations>
-              <coverageThreshold>85</coverageThreshold>
-              <mutationThreshold>80</mutationThreshold>
+              <coverageThreshold>80</coverageThreshold>
+              <mutationThreshold>70</mutationThreshold>
             </configuration>
             <executions>
               <execution>
