@@ -40,11 +40,11 @@
 | Module | Description |
 |--------|-------------|
 | `api-spec` | OpenAPI 3.1 contract to generated Spring interfaces via openapi-generator |
-| `domain` | Pure Java. Zero framework dependencies. VOs, Aggregate, Domain Services, Ports |
-| `application` | Use case implementations orchestrating domain logic through ports |
+| `domain` | Pure Java. Zero framework dependencies. VOs, Aggregate, Domain Services, Outbound Ports |
+| `application` | Input Ports + use case implementations orchestrating domain logic |
 | `adapter-rest` | REST controller, DTO mapping, OAuth2 security, OpenAPI docs, exception handling |
-| `infrastructure` | MongoDB persistence adapter, L1 Caffeine + L2 Redis caching |
-| `infrastructure-observability` | Metrics decorator, Micrometer business metrics, MdcFilter (traceId, requestUri, X-Request-Id) |
+| `adapter-persistence` | MongoDB persistence adapter, L1 Caffeine + L2 Redis caching |
+| `adapter-observability` | Metrics decorator, Micrometer business metrics, MdcFilter (traceId, requestUri, X-Request-Id) |
 | `bootstrap` | Spring Boot composition root. Wires modules, application config |
 | `coverage-jacoco` | JaCoCo aggregated coverage + ArchUnit hexagonal architecture tests (12 rules) |
 
@@ -52,21 +52,20 @@
 
 ```mermaid
 flowchart LR
-    api-spec --> adapter-rest
-    domain --> application
-    domain --> adapter-rest
-    domain --> infrastructure
-    domain --> infrastructure-observability
-  domain & application & adapter-rest & infrastructure & infrastructure-observability --> bootstrap
+    adapter-rest --> api-spec & application & domain
+    application --> domain
+    adapter-persistence --> domain
+    adapter-observability --> application & domain
+    bootstrap --> adapter-rest & application & adapter-persistence & adapter-observability
 ```
 
 ### Layer Constraints
 
 - `domain` is pure Java — zero Spring imports. Enforced by ArchUnit.
-- `application` depends only on `domain` (no framework, no infrastructure).
-- `infrastructure` depends only on `domain` (outbound adapters: persistence, cache).
-- `infrastructure-observability` depends on `domain` (metrics decorator, MDC filter).
-- `adapter-rest` depends on `api-spec`, and `domain` (inbound adapter).
+- `application` depends only on `domain` (no framework, no adapter-persistence).
+- `adapter-persistence` depends only on `domain` (outbound adapters: persistence, cache).
+- `adapter-observability` depends on `domain` and `application` (metrics decorator wrapping application input ports).
+- `adapter-rest` depends on `api-spec`, `application`, and `domain` (inbound adapter).
 - `bootstrap` is the composition root.
 
 ### Sorting Strategy
@@ -108,7 +107,6 @@ flowchart LR
     subgraph Application
         SUC[SortProductsUseCase]
         LUC[ListProductsUseCase]
-        MM[MetricsSortProductsUseCase ★ Decorator]
     end
     subgraph Domain
         SE2[SortingEngine]
@@ -118,7 +116,8 @@ flowchart LR
         MONGO[(MongoDB<br/>MongoProductRepositoryAdapter)]
         CACHE[("Redis L2 + Caffeine L1")]
     end
-    subgraph Observability
+    subgraph adapter-observability
+        MM[MetricsSortProductsUseCase ★ Decorator]
         SM[SortingMetrics]
         OT[OpenTelemetry] --> TEMPO
         PROM[Prometheus]
@@ -127,8 +126,9 @@ flowchart LR
 
     POST & GET --> MDC
     MDC --> C --> M
-    C --> SUC & LUC
-    SUC -.->|decorated by| MM --> SE2 --> PS2
+    C -.->|SortProductsUseCase| MM
+    C --> LUC
+    MM -.->|delegates to| SUC --> SE2 --> PS2
     SUC & LUC --> MONGO -.->|cache-aside| CACHE
     MM -.->|records| SM
     C -.->|traces & metrics| OT & PROM
@@ -165,6 +165,60 @@ This reduces total sort time from ~540ms to ~165ms for 250k products. Results ar
 
 ---
 
+## Scoring Algorithm
+
+Products are sorted by a weighted sum of criterion scores. Each criterion produces a raw score in [0, 1], weighted by the user-provided weight, then summed for the final score. Products are returned in descending score order.
+
+### Criterion: Sales Units
+
+```
+rawScore(product) = product.salesUnits / maxSalesUnits(catalog)
+```
+
+Normalises each product's sales against the best-selling product in the catalog.
+
+### Criterion: Stock Ratio
+
+```
+rawScore(product) = count(sizes where stock.quantity > 0) / 3
+```
+
+Measures availability: how many sizes (S, M, L) have positive stock.
+
+### Weighted Sum
+
+```
+finalScore(product) = w_sales × rawScore_sales(product) + w_stock × rawScore_stock(product)
+```
+
+Where `w_sales + w_stock = 1` and both are in [0, 1].
+
+### Step-by-step Example
+
+Using the ITX dataset with `weights = { salesUnits: 0.7, stockRatio: 0.3 }`:
+
+| # | Name | Sales | S | M | L | Raw Sales | Raw Stock | Score |
+|---|------|-------|----|----|----|-----------|-----------|-------|
+| 1 | V-NECH BASIC SHIRT | 100 | 4 | 9 | 0 | 100/650 ≈ 0.154 | 2/3 ≈ 0.667 | 0.7×0.154 + 0.3×0.667 = **0.308** |
+| 2 | CONTRASTING FABRIC T-SHIRT | 50 | 35 | 9 | 9 | 50/650 ≈ 0.077 | 3/3 = 1.000 | 0.7×0.077 + 0.3×1.000 = **0.354** |
+| 3 | RAISED PRINT T-SHIRT | 80 | 20 | 2 | 20 | 80/650 ≈ 0.123 | 3/3 = 1.000 | 0.7×0.123 + 0.3×1.000 = **0.386** |
+| 4 | PLEATED T-SHIRT | 3 | 25 | 30 | 10 | 3/650 ≈ 0.005 | 3/3 = 1.000 | 0.7×0.005 + 0.3×1.000 = **0.303** |
+| 5 | CONTRASTING LACE T-SHIRT | 650 | 0 | 1 | 0 | 650/650 = 1.000 | 1/3 ≈ 0.333 | 0.7×1.000 + 0.3×0.333 = **0.800** |
+| 6 | SLOGAN T-SHIRT | 20 | 9 | 2 | 5 | 20/650 ≈ 0.031 | 3/3 = 1.000 | 0.7×0.031 + 0.3×1.000 = **0.322** |
+
+**Sorted result (descending score):**
+
+| Position | ID | Name | Score |
+|----------|----|------|-------|
+| 1 | 5 | CONTRASTING LACE T-SHIRT | **0.800** |
+| 2 | 3 | RAISED PRINT T-SHIRT | **0.386** |
+| 3 | 2 | CONTRASTING FABRIC T-SHIRT | **0.354** |
+| 4 | 6 | SLOGAN T-SHIRT | **0.322** |
+| 5 | 1 | V-NECH BASIC SHIRT | **0.308** |
+| 6 | 4 | PLEATED T-SHIRT | **0.303** |
+
+---
+
 ## Quick Start
 
 ```bash
@@ -180,7 +234,7 @@ mvn clean verify                     # Full CI: test + coverage + checkstyle + e
 mvn test -pl domain                  # Domain unit tests
 mvn test -pl application -am         # Application tests
 mvn test -pl adapter-rest -am        # Adapter tests
-mvn test -pl infrastructure -am      # Integration tests (MongoDB via Testcontainers)
+mvn test -pl adapter-persistence -am      # Integration tests (MongoDB via Testcontainers)
 mvn test -pl coverage-jacoco -am     # ArchUnit architecture tests
 mvn clean verify -Psecurity          # With OWASP Dependency-Check
 mvn clean verify -Ppitest            # With PIT mutation testing (domain module)
@@ -208,16 +262,16 @@ docker compose --profile app up --build
 ### Generate test data
 
 ```txt
-mvn test-compile exec:java -pl infrastructure \
-  -Dexec.mainClass="com.acidtango.productsorter.infrastructure.datagen.ProductDataGenerator" \
+mvn test-compile exec:java -pl adapter-persistence \
+  -Dexec.mainClass="dev.jpje.productsorter.adapter-persistence.datagen.ProductDataGenerator" \
   -Dexec.classpathScope=test \
   -Dexec.args="<count> <output.json>"
 ```
 
 ```bash
 # Example: 250000 products
-mvn test-compile exec:java -pl infrastructure \
-  -Dexec.mainClass="com.acidtango.productsorter.infrastructure.datagen.ProductDataGenerator" \
+mvn test-compile exec:java -pl adapter-persistence \
+  -Dexec.mainClass="dev.jpje.productsorter.adapter-persistence.datagen.ProductDataGenerator" \
   -Dexec.classpathScope=test \
   -Dexec.args="250000 /tmp/products.json"
 ```
@@ -356,45 +410,20 @@ curl -s "http://localhost:8880/api/v1/products?page=1&size=10" \
 
 ---
 
-## Design Decisions
+## Architecture Decision Records
 
-### POST vs GET for sorting
+All significant design decisions are documented as ADRs in [`docs/adr/`](docs/adr/):
 
-`POST /api/v1/products/sort` uses POST because sorting is a computational operation (scoring + ordering), not a resource retrieval. The weights map would be fragile as query parameters and would not scale with additional criteria.
-
-### Pagination (offset-based)
-
-Offset-based pagination with `page` (1-indexed, default 1) and `size` (max 100). Chosen over cursor-based because products are stable (no insertions/deletions during navigation). `total` and `totalPages` are omitted from responses to avoid the COUNT query on MongoDB — the client knows the page is exhausted when the returned page has fewer items than `size`.
-
-### UUID as `_id`
-
-MongoDB `_id` uses UUID strings (e.g. `"550e8400-e29b-41d4-a716-446655440000"`). Reasons:
-- IDs are globally unique across systems without a central coordinator
-- Clients can generate IDs client-side (useful for offline-capable or event-driven architectures)
-- Avoids sequential ID enumeration by external consumers
-- Stored as plain strings, not `BinData` UUID, so Spring Data MongoDB maps directly to `String` without custom converters
-
-### ScoredProduct composition
-
-`ScoredProduct` composes `ProductResponse` rather than duplicating its fields:
-- **DRY** — `ProductResponse` is the single schema for product data across all endpoints
-- **Semantic** — scoring is a projection *over* a product, not a flattened version of it
-- **Evolution** — adding a field to `ProductResponse` (e.g. `category`) automatically enriches the sort response without schema changes
-
-### MultiTierCache (L1 + L2)
-
-`CompositeCacheManager` wraps both `CaffeineCacheManager` (L1) and `RedisCacheManager` (L2). When both managers declare the same cache name, a `MultiTierCache` is created that:
-- **Reads** → L1 → miss → L2 → miss → null. Populates L1 on L2 hit.
-- **Writes** → writes to both L1 and L2.
-- **Evictions** → evicts from both tiers.
-
-### Hexagonal architecture with decorators
-
-`MetricsSortProductsUseCase` decorates `SortProductsUseCase` without modifying domain or application code. Metrics are an infrastructure concern that wraps the use case transparently.
-
-### MDC correlation
-
-`MdcFilter` injects `traceId` (from OTel or generated), `requestUri`, and `X-Request-Id` header into SLF4J MDC. Logs are shipped to Loki (via Loki4j appender) and correlated with Tempo traces via `traceId`.
+| ADR | Title |
+|-----|-------|
+| [ADR-0001](docs/adr/0001-use-mongodb.md) | MongoDB as primary database + UUID as `_id` |
+| [ADR-0002](docs/adr/0002-use-multi-tier-cache.md) | Caffeine L1 + Redis L2 multi-tier cache |
+| [ADR-0003](docs/adr/0003-use-oauth2-oidc.md) | OAuth 2.0 / OIDC for API authentication |
+| [ADR-0004](docs/adr/0004-use-virtual-threads.md) | Virtual threads (Project Loom) |
+| [ADR-0005](docs/adr/0005-api-design-post-vs-get-and-pagination.md) | POST for sorting + offset-based pagination |
+| [ADR-0006](docs/adr/0006-scored-product-composition.md) | ScoredProduct composition over field duplication |
+| [ADR-0007](docs/adr/0007-observability-decorator-and-mdc.md) | Decorator pattern for metrics + MDC correlation |
+| [ADR-0008](docs/adr/0008-pure-hexagonal-adapter-naming.md) | Pure hexagonal adapter naming convention |
 
 ---
 
@@ -404,7 +433,7 @@ MongoDB `_id` uses UUID strings (e.g. `"550e8400-e29b-41d4-a716-446655440000"`).
 <type>(<scope>): <lowercase subject>
 
 Types: feat | fix | docs | style | refactor | perf | test | build | ci | chore | revert
-Scopes: api-spec | domain | application | infrastructure | infrastructure-observability | adapter-rest | bootstrap | coverage | docker | ci | config
+Scopes: api-spec | domain | application | adapter-persistence | adapter-observability | adapter-rest | bootstrap | coverage | docker | ci | config
 
 Examples:
   feat(domain): add stock ratio scoring criterion

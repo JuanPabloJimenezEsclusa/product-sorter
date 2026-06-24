@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>com.acidtango</groupId>
+    <groupId>dev.jpje</groupId>
     <artifactId>product-sorter</artifactId>
     <version>1.0.0</version>
   </parent>
@@ -14,14 +14,26 @@
   <name>Adapter REST</name>
   <description>REST adapter: controllers, DTOs, exception handling, and security</description>
 
+  <licenses>
+    <license>
+      <name>GPL-3.0-only</name>
+      <url>https://opensource.org/license/GPL-3.0</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
   <dependencies>
     <dependency>
-      <groupId>com.acidtango</groupId>
+      <groupId>dev.jpje</groupId>
       <artifactId>api-spec</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.acidtango</groupId>
+      <groupId>dev.jpje</groupId>
       <artifactId>domain</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>dev.jpje</groupId>
+      <artifactId>application</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -41,4 +53,20 @@
       <version>${springdoc.version}</version>
     </dependency>
   </dependencies>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-project-info-reports-plugin</artifactId>
+        <reportSets>
+          <reportSet>
+            <reports>
+              <report>summary</report>
+            </reports>
+          </reportSet>
+        </reportSets>
+      </plugin>
+    </plugins>
+  </reporting>
 </project>

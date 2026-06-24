@@ -38,7 +38,7 @@ server:
 logging:
   level:
     root: WARN
-    com.acidtango.productsorter: INFO
+    dev.jpje.productsorter: INFO
     org.springframework.boot: INFO
 
 ---

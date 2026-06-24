@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>com.acidtango</groupId>
+    <groupId>dev.jpje</groupId>
     <artifactId>product-sorter</artifactId>
     <version>1.0.0</version>
   </parent>
@@ -13,6 +13,14 @@
   <artifactId>api-spec</artifactId>
   <name>API Spec</name>
   <description>OpenAPI contract and generated Spring interfaces</description>
+
+  <licenses>
+    <license>
+      <name>GPL-3.0-only</name>
+      <url>https://opensource.org/license/GPL-3.0</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
 
   <dependencies>
     <dependency>
@@ -50,8 +58,8 @@
               </inputSpec>
               <generatorName>spring</generatorName>
               <library>spring-boot</library>
-              <apiPackage>com.acidtango.productsorter.api.v1</apiPackage>
-              <modelPackage>com.acidtango.productsorter.api.v1.dto</modelPackage>
+              <apiPackage>dev.jpje.productsorter.api.v1</apiPackage>
+              <modelPackage>dev.jpje.productsorter.api.v1.dto</modelPackage>
               <ignoreFileOverride>${project.basedir}/.openapi-generator-ignore</ignoreFileOverride>
               <configOptions>
                 <useSpringBoot3>true</useSpringBoot3>
@@ -67,4 +75,20 @@
       </plugin>
     </plugins>
   </build>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-project-info-reports-plugin</artifactId>
+        <reportSets>
+          <reportSet>
+            <reports>
+              <report>summary</report>
+            </reports>
+          </reportSet>
+        </reportSets>
+      </plugin>
+    </plugins>
+  </reporting>
 </project>
