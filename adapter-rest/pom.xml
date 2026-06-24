@@ -62,6 +62,7 @@
         <reportSets>
           <reportSet>
             <reports>
+              <report>index</report>
               <report>summary</report>
             </reports>
           </reportSet>
