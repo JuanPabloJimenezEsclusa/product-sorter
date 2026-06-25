@@ -4,7 +4,7 @@
 
 ## Context
 
-Sorting 250k+ products involves two MongoDB queries (`findAllScoreable`, `findMaxSalesUnits`) that are read-heavy and compute-intensive. The same catalog data is sorted repeatedly with different weight combinations. Caching is required to reduce database load and latency.
+The two core operations — `findPage` (pagination query + full-collection count) and `sortByWeights` (aggregation pipeline with scoring) — are read-heavy and execute on every request. The same catalog data is sorted repeatedly with different weight combinations. Caching is required to reduce database load and latency.
 
 ## Decision
 
@@ -13,7 +13,7 @@ Use a two-tier cache pattern with a `CompositeCacheManager` wrapping both `Caffe
 ### Cache configuration
 
 - **L1:** Caffeine (in-process, 30s TTL, max 100 entries)
-- **L2:** Redis (external, 120s TTL)
+- **L2:** Redis (external, 300s TTL)
 
 ### Read/Write behaviour
 
@@ -24,7 +24,7 @@ Use a two-tier cache pattern with a `CompositeCacheManager` wrapping both `Caffe
 ## Rationale
 
 - **L1 (Caffeine)** — Eliminates serialization overhead for hot keys; 30s TTL keeps cache fresh without manual invalidation
-- **L2 (Redis)** — Shared across instances; survives restarts; 120s TTL balances freshness with cache-hit ratio
+- **L2 (Redis)** — Shared across instances; survives restarts; 300s TTL balances freshness with cache-hit ratio
 - **Read-through** — L1 → L2 → MongoDB cascade, populating L1 on L2 hit and L2 on DB hit
 - **Cache-aside** — Application controls population; no write-through complexity
 - **Spring Cache abstraction** — Swappable without changing business code (`@Cacheable` annotations)

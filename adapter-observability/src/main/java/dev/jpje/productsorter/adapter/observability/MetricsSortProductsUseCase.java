@@ -1,11 +1,10 @@
 package dev.jpje.productsorter.adapter.observability;
 
 import java.time.Duration;
-import java.util.List;
 
 import dev.jpje.productsorter.application.port.SortProductsRequest;
 import dev.jpje.productsorter.application.port.SortProductsUseCase;
-import dev.jpje.productsorter.domain.service.ScoredProduct;
+import dev.jpje.productsorter.domain.port.ProductRepository.PagedResult;
 
 public class MetricsSortProductsUseCase implements SortProductsUseCase {
 
@@ -18,11 +17,11 @@ public class MetricsSortProductsUseCase implements SortProductsUseCase {
   }
 
   @Override
-  public List<ScoredProduct> execute(final SortProductsRequest request, final int page, final int size) {
+  public PagedResult execute(final SortProductsRequest request, final String cursor, final Integer size) {
     final var start = System.nanoTime();
-    final var result = delegate.execute(request, page, size);
+    final var result = delegate.execute(request, cursor, size);
     final var elapsed = Duration.ofNanos(System.nanoTime() - start);
-    metrics.recordSort(result.size(), elapsed, request.weights());
+    metrics.recordSort(result.products().size(), elapsed, request.weights());
     return result;
   }
 }

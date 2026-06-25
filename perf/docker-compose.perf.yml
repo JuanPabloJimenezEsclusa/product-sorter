@@ -1,0 +1,21 @@
+services:
+  k6:
+    image: grafana/k6:2.1.0
+    container_name: product-sorter-perf-k6
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    networks: [product-sorter]
+    volumes:
+      - ./perf/k6:/scripts:ro
+      - ./perf/report/results:/results
+    environment:
+      APP_URL: http://product-sorter-app:8880
+      KEYCLOAK_URL: http://keycloak:8080
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: ["version"]
+    profiles: ["perf"]
+
+networks:
+  product-sorter:
+    name: product-sorter-net
+    external: true

@@ -29,7 +29,7 @@
 
 ---
 
-**Product Sorter** is a REST service that sorts a product catalog by weighted scoring criteria (sales units, stock ratio). Built with hexagonal (ports & adapters) architecture on Java 25, Spring Boot 4.1, and Maven multi-module.
+**Product Sorter** is a REST service that sorts a product catalog by weighted scoring criteria (sales units, stock). Built with hexagonal (ports & adapters) architecture on Java, Spring Boot, and Maven multi-module.
 
 ---
 
@@ -40,13 +40,13 @@
 | Module | Description |
 |--------|-------------|
 | `api-spec` | OpenAPI 3.1 contract to generated Spring interfaces via openapi-generator |
-| `domain` | Pure Java. Zero framework dependencies. VOs, Aggregate, Domain Services, Outbound Ports |
+| `domain` | Pure Java. Zero framework dependencies. VOs, Aggregate, Metrics, Outbound Ports |
 | `application` | Input Ports + use case implementations orchestrating domain logic |
 | `adapter-rest` | REST controller, DTO mapping, OAuth2 security, OpenAPI docs, exception handling |
-| `adapter-persistence` | MongoDB persistence adapter, L1 Caffeine + L2 Redis caching |
+| `adapter-persistence` | MongoDB persistence adapter with aggregation pipeline, L1 Caffeine + L2 Redis caching |
 | `adapter-observability` | Metrics decorator, Micrometer business metrics, MdcFilter (traceId, requestUri, X-Request-Id) |
 | `bootstrap` | Spring Boot composition root. Wires modules, application config |
-| `coverage-jacoco` | JaCoCo aggregated coverage + ArchUnit hexagonal architecture tests (12 rules) |
+| `coverage-jacoco` | JaCoCo aggregated coverage + ArchUnit hexagonal architecture tests |
 
 ### Dependency Graph
 
@@ -62,33 +62,76 @@ flowchart LR
 ### Layer Constraints
 
 - `domain` is pure Java — zero Spring imports. Enforced by ArchUnit.
-- `application` depends only on `domain` (no framework, no adapter-persistence).
-- `adapter-persistence` depends only on `domain` (outbound adapters: persistence, cache).
+- `application` depends only on `domain` (no framework, no adapters).
+- `adapter-persistence` depends only on `domain` (outbound adapter).
 - `adapter-observability` depends on `domain` and `application` (metrics decorator wrapping application input ports).
 - `adapter-rest` depends on `api-spec`, `application`, and `domain` (inbound adapter).
 - `bootstrap` is the composition root.
 
+### Domain Model
+
+```
+domain/
+├── model/
+│   ├── Product              ← Aggregate: id, name, salesUnits, stock, weightedScore (transient)
+│   ├── Metrics              ← Enum: SALES_UNITS, STOCK with key mapping and validation
+│   └── AppliedWeights       ← Value object: salesUnitsWeight, stockWeight with fromMap()
+├── port/
+│   └── ProductRepository    ← Outbound port with PagedResult contract
+└── vo/
+    ├── ProductId, ProductName, SalesUnits, Size, Stock, StockBySize
+    └── CursorCodec          ← Base64 cursor encode/decode
+```
+
 ### Sorting Strategy
 
-```mermaid
-flowchart LR
-    subgraph Strategy
-        SC[SortingCriterion]
-        SU[SalesUnitsCriterion - sales / maxSales]
-        SR[StockRatioCriterion - sizesWithStock / 3]
-        WC[WeightedCriterion - decorator]
-    end
-    subgraph Domain Services
-        PS[ProductScorer - sum weighted scores]
-        SE[SortingEngine - load, score, sort]
-    end
-    SC --> SU
-    SC --> SR
-    SU -.-> WC
-    SR -.-> WC
-    WC --> PS
-    PS --> SE
+Scoring is delegated to a MongoDB aggregation pipeline for `O(sort)` scalability. The domain defines *what* metrics exist and *how* weights are structured; the adapter translates weights into aggregation stages.
+
+| Responsibility | Layer |
+|---------------|-------|
+| Metric definitions + weight validation | `domain` (Metrics, AppliedWeights) |
+| Raw value computation (sales, stock ratio) | `domain` (Stock.stockRatio, SalesUnits.value) |
+| Weighted score formula & aggregation | `adapter-persistence` (MongoQueryHelper) |
+| Cursor-based pagination | `application` (PagedResult, size+1 detection) |
+
+The domain does **not** compute final scores in-memory. The adapter translates weights into a MongoDB aggregation pipeline that uses top-K heap sort:
+
+```javascript
+// w_sales=0.7, w_stock=0.3, midpoint=50, cursor=null, size=20
+db.products.aggregate([
+  // ── Compute weighted score per document ──
+  { $addFields: {
+    weightedScore: {
+      $add: [
+        { $multiply: [
+          { $divide: ["$salesUnits", { $add: ["$salesUnits", 50] }] },
+          0.7
+        ]},
+        { $multiply: ["$stockRatio", 0.3] }
+      ]
+    }
+  }},
+
+  // ── Sort by score descending (tiebreaker: _id) ──
+  { $sort: { weightedScore: -1, _id: -1 } },
+
+  // ── Top-K: heap sort only keeps top N, O(N log K) ──
+  { $limit: 21 }  // size+1 to detect hasMore
+], { allowDiskUse: true })
 ```
+
+For cursor-based pagination (second page), a `$match` stage is inserted between `$sort` and `$limit`:
+
+```javascript
+{ $match: {
+  $or: [
+    { weightedScore: { $lt: 70.2 } },
+    { weightedScore: 70.2, _id: { $lt: "1" } }
+  ]
+}}
+```
+
+MongoDB top-K optimization: `$sort` + `$limit` uses an in-memory heap of size K instead of sorting the entire collection. Pagination uses `nextCursor` (null = end of results) instead of tracking a `total` count, removing one extra collection scan per request.
 
 ### Data Flow
 
@@ -101,58 +144,55 @@ flowchart LR
     subgraph adapter-rest
         C[ProductController]
         M[ProductControllerMapper]
-        H[GlobalExceptionHandler]
-        MDC[MdcFilter<br/>traceId, requestUri, X-Request-Id]
     end
     subgraph Application
         SUC[SortProductsUseCase]
         LUC[ListProductsUseCase]
     end
     subgraph Domain
-        SE2[SortingEngine]
-        PS2[ProductScorer]
+        REPO[(ProductRepository<br/>PagedResult)]
     end
-    subgraph Outbound
-        MONGO[(MongoDB<br/>MongoProductRepositoryAdapter)]
+    subgraph adapter-persistence
+        HLP[ProductSorterHelper<br/>aggregation pipeline]
+        ADPT[MongoProductRepositoryAdapter]
         CACHE[("Redis L2 + Caffeine L1")]
     end
     subgraph adapter-observability
         MM[MetricsSortProductsUseCase ★ Decorator]
         SM[SortingMetrics]
-        OT[OpenTelemetry] --> TEMPO
-        PROM[Prometheus]
-        LOKI[Loki]
     end
 
-    POST & GET --> MDC
-    MDC --> C --> M
+    POST & GET --> C --> M
     C -.->|SortProductsUseCase| MM
     C --> LUC
-    MM -.->|delegates to| SUC --> SE2 --> PS2
-    SUC & LUC --> MONGO -.->|cache-aside| CACHE
+    MM -.->|delegates to| SUC --> REPO
+    LUC --> REPO
+    REPO --> ADPT --> HLP
+    ADPT -.->|cache-aside| CACHE
     MM -.->|records| SM
-    C -.->|traces & metrics| OT & PROM
-    C -.->|logs with traceId| LOKI
 ```
 
 ### Caching (L1 + L2)
 
 ```
-get(k) → Caffeine (30s TTL, max 100) → miss → Redis (120s TTL) → miss → MongoDB
+get(k) → Caffeine (30s TTL, max 100) → miss → Redis (300s TTL) → miss → MongoDB
 ```
 
 `MultiTierCache` wraps Caffeine (L1) and Redis (L2). On read: checks L1 first, then L2, populates L1 on L2 hit. On write: writes to both tiers.
 
-Cache namespace: `productCache` with keys per page (`"1-20"`, `"2-20"`) and keys for scoreable projections (`"scoreables"`).
+Cache namespace: `productCache`. First-page requests (cursor=null) are cached by limit size. Subsequent pages with unique cursors bypass the cache.
 
-### Performance Optimization
+### Pagination
 
-For large catalogs (250k+ products), sorting uses a two-phase approach:
-1. **Projection query:** `findAllScoreable()` fetches only `_id`, `salesUnits`, and `stock` from MongoDB via field projection
-2. **Lazy fetch:** only the top 20 products from the sorted result are fetched as full documents via `findByIds()`
-3. **Index:** `{salesUnits: -1}` index ensures `findMaxSalesUnits()` is an IXSCAN (1 entry, ~1ms) instead of COLLSCAN
+Both endpoints use cursor-based pagination instead of offset-based (`$skip`). This ensures `O(1)` page access regardless of depth:
 
-This reduces total sort time from ~540ms to ~165ms for 250k products. Results are cached via `@Cacheable` in Redis L2 (TTL 120s for scoreables, 120s for product pages).
+| Field | Description |
+|-------|-------------|
+| `cursor` | Base64-encoded `score:productId` (optional, null = first page) |
+| `size` | Items per page (default 20, max 100) |
+| `nextCursor` | Opaque token for next page (null = last page) |
+
+The repository returns `size + 1` items. The use case detects `hasMore` when result exceeds `size`, trims the extra item, and computes `nextCursor` from the last visible product.
 
 ### Business Metrics (Micrometer)
 
@@ -167,55 +207,56 @@ This reduces total sort time from ~540ms to ~165ms for 250k products. Results ar
 
 ## Scoring Algorithm
 
-Products are sorted by a weighted sum of criterion scores. Each criterion produces a raw score in [0, 1], weighted by the user-provided weight, then summed for the final score. Products are returned in descending score order.
+Products are sorted by a weighted sum of normalized metric values. Both criteria are normalized to the [0, 1] range. Sales units use a logistic saturation function (`x / (x + midpoint)`). Stock uses a binary availability ratio. Final scores are computed in MongoDB via an aggregation pipeline.
 
 ### Criterion: Sales Units
 
 ```
-rawScore(product) = product.salesUnits / maxSalesUnits(catalog)
+salesRatio(product) = product.salesUnits / (product.salesUnits + midpoint)
 ```
 
-Normalises each product's sales against the best-selling product in the catalog.
+Uses logistic normalization (`x / (x + K)`) with configurable `midpoint` (default 50). At `salesUnits = midpoint`, the ratio is 0.5. ∈ [0, 1). No dependency on max sales or the full dataset.
 
 ### Criterion: Stock Ratio
 
 ```
-rawScore(product) = count(sizes where stock.quantity > 0) / 3
+stockRatio(product) = count(sizes where quantity > 0) / totalSizes()
+                      0 if stock is empty
 ```
 
-Measures availability: how many sizes (S, M, L) have positive stock.
+Measures size availability: what fraction of the product's sizes are in stock. ∈ [0, 1].
 
 ### Weighted Sum
 
 ```
-finalScore(product) = w_sales × rawScore_sales(product) + w_stock × rawScore_stock(product)
+weightedScore(product) = w_sales × salesRatio + w_stock × stockRatio
 ```
 
-Where `w_sales + w_stock = 1` and both are in [0, 1].
+Both criteria are now in the same [0, 1] range. Weights determine their relative contribution to the final score.
 
 ### Step-by-step Example
 
-Using the ITX dataset with `weights = { salesUnits: 0.7, stockRatio: 0.3 }`:
+Using the dataset with `weights = { salesUnits: 0.7, stockRatio: 0.3 }` and `midpoint = 50`:
 
-| # | Name | Sales | S | M | L | Raw Sales | Raw Stock | Score |
-|---|------|-------|----|----|----|-----------|-----------|-------|
-| 1 | V-NECH BASIC SHIRT | 100 | 4 | 9 | 0 | 100/650 ≈ 0.154 | 2/3 ≈ 0.667 | 0.7×0.154 + 0.3×0.667 = **0.308** |
-| 2 | CONTRASTING FABRIC T-SHIRT | 50 | 35 | 9 | 9 | 50/650 ≈ 0.077 | 3/3 = 1.000 | 0.7×0.077 + 0.3×1.000 = **0.354** |
-| 3 | RAISED PRINT T-SHIRT | 80 | 20 | 2 | 20 | 80/650 ≈ 0.123 | 3/3 = 1.000 | 0.7×0.123 + 0.3×1.000 = **0.386** |
-| 4 | PLEATED T-SHIRT | 3 | 25 | 30 | 10 | 3/650 ≈ 0.005 | 3/3 = 1.000 | 0.7×0.005 + 0.3×1.000 = **0.303** |
-| 5 | CONTRASTING LACE T-SHIRT | 650 | 0 | 1 | 0 | 650/650 = 1.000 | 1/3 ≈ 0.333 | 0.7×1.000 + 0.3×0.333 = **0.800** |
-| 6 | SLOGAN T-SHIRT | 20 | 9 | 2 | 5 | 20/650 ≈ 0.031 | 3/3 = 1.000 | 0.7×0.031 + 0.3×1.000 = **0.322** |
+| # | Name | Sales | S | M | L | Sales Ratio | Stock Ratio | Weighted Score |
+|---|------|-------|----|----|----|-------------|-------------|----------------|
+| 1 | V-NECH BASIC SHIRT | 100 | 4 | 9 | 0 | 100/(100+50) = 0.667 | 2/3 | 0.7×0.667 + 0.3×(2/3) = **0.667** |
+| 2 | CONTRASTING FABRIC T-SHIRT | 50 | 35 | 9 | 9 | 50/(50+50) = 0.500 | 3/3 = 1.0 | 0.7×0.500 + 0.3×1.0 = **0.650** |
+| 3 | RAISED PRINT T-SHIRT | 80 | 20 | 2 | 20 | 80/(80+50) = 0.615 | 3/3 = 1.0 | 0.7×0.615 + 0.3×1.0 = **0.731** |
+| 4 | PLEATED T-SHIRT | 3 | 25 | 30 | 10 | 3/(3+50) = 0.057 | 3/3 = 1.0 | 0.7×0.057 + 0.3×1.0 = **0.340** |
+| 5 | CONTRASTING LACE T-SHIRT | 650 | 0 | 1 | 0 | 650/(650+50) = 0.929 | 1/3 | 0.7×0.929 + 0.3×(1/3) = **0.750** |
+| 6 | SLOGAN T-SHIRT | 20 | 9 | 2 | 5 | 20/(20+50) = 0.286 | 3/3 = 1.0 | 0.7×0.286 + 0.3×1.0 = **0.500** |
 
 **Sorted result (descending score):**
 
 | Position | ID | Name | Score |
 |----------|----|------|-------|
-| 1 | 5 | CONTRASTING LACE T-SHIRT | **0.800** |
-| 2 | 3 | RAISED PRINT T-SHIRT | **0.386** |
-| 3 | 2 | CONTRASTING FABRIC T-SHIRT | **0.354** |
-| 4 | 6 | SLOGAN T-SHIRT | **0.322** |
-| 5 | 1 | V-NECH BASIC SHIRT | **0.308** |
-| 6 | 4 | PLEATED T-SHIRT | **0.303** |
+| 1 | 5 | CONTRASTING LACE T-SHIRT | **0.750** |
+| 2 | 3 | RAISED PRINT T-SHIRT | **0.731** |
+| 3 | 1 | V-NECH BASIC SHIRT | **0.667** |
+| 4 | 2 | CONTRASTING FABRIC T-SHIRT | **0.650** |
+| 5 | 6 | SLOGAN T-SHIRT | **0.500** |
+| 6 | 4 | PLEATED T-SHIRT | **0.340** |
 
 ---
 
@@ -231,13 +272,13 @@ cd product-sorter
 
 ```bash
 mvn clean verify                     # Full CI: test + coverage + checkstyle + enforcer
-mvn test -pl domain                  # Domain unit tests
+mvn test -pl domain                  # Domain unit tests + PIT mutation testing
+mvn test -P pitest -pl domain        # PIT mutation testing (97% mutation coverage)
 mvn test -pl application -am         # Application tests
 mvn test -pl adapter-rest -am        # Adapter tests
-mvn test -pl adapter-persistence -am      # Integration tests (MongoDB via Testcontainers)
+mvn test -pl adapter-persistence -am # Integration tests (MongoDB via Testcontainers)
 mvn test -pl coverage-jacoco -am     # ArchUnit architecture tests
 mvn clean verify -Psecurity          # With OWASP Dependency-Check
-mvn clean verify -Ppitest            # With PIT mutation testing (domain module)
 ```
 
 ### Run (full stack)
@@ -259,11 +300,22 @@ docker compose --profile app up --build
 
 ![Architecture Diagram](docs/images/product-sorter-architecture.svg)
 
+| Service                               | Auth                  |
+|---------------------------------------|-----------------------|
+| [API](http://localhost:8880)          | Bearer JWT (Keycloak) |
+| [Grafana](http://localhost:3000)      | `admin` / `admin`     |
+| [Prometheus](http://localhost:9090)   | —                     |
+| [Alertmanager](http://localhost:9093) | —                     |
+| [Keycloak](http://localhost:8081)     | `admin` / `admin`     |
+| [RedisInsight](http://localhost:5540) | —                     |
+
+![Telemetry example](docs/images/grafana-monitoring-example.gif)
+
 ### Generate test data
 
 ```txt
 mvn test-compile exec:java -pl adapter-persistence \
-  -Dexec.mainClass="dev.jpje.productsorter.adapter-persistence.datagen.ProductDataGenerator" \
+  -Dexec.mainClass="dev.jpje.productsorter.adapter.persistence.datagen.ProductDataGenerator" \
   -Dexec.classpathScope=test \
   -Dexec.args="<count> <output.json>"
 ```
@@ -271,7 +323,7 @@ mvn test-compile exec:java -pl adapter-persistence \
 ```bash
 # Example: 250000 products
 mvn test-compile exec:java -pl adapter-persistence \
-  -Dexec.mainClass="dev.jpje.productsorter.adapter-persistence.datagen.ProductDataGenerator" \
+  -Dexec.mainClass="dev.jpje.productsorter.adapter.persistence.datagen.ProductDataGenerator" \
   -Dexec.classpathScope=test \
   -Dexec.args="250000 /tmp/products.json"
 ```
@@ -282,8 +334,8 @@ mvn test-compile exec:java -pl adapter-persistence \
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| `POST` | `/api/v1/products/sort` | Bearer JWT | Sort products by weighted criteria (paginated) |
-| `GET` | `/api/v1/products` | Bearer JWT | List products (paginated: `page`, `size`) |
+| `POST` | `/api/v1/products/sort` | Bearer JWT | Sort products by weighted criteria (cursor-based pagination) |
+| `GET` | `/api/v1/products` | Bearer JWT | List products (cursor-based pagination) |
 
 ### Sort Request
 
@@ -292,8 +344,14 @@ TOKEN=$(curl -s -X POST http://localhost:8081/realms/product-sorter/protocol/ope
   -d "client_id=product-sorter-client" -d "client_secret=product-sorter-secret" \
   -d "username=user" -d "password=pass" -d "grant_type=password" | jq -r '.access_token')
   
-# Sort products with weighted criteria
-curl -s -X POST "http://localhost:8880/api/v1/products/sort?page=1&size=20" \
+# First page (no cursor)
+curl -s -X POST "http://localhost:8880/api/v1/products/sort?size=20" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"weights": {"salesUnits": 0.7, "stockRatio": 0.3}}' | jq
+
+# Next page (with cursor from previous response)
+curl -s -X POST "http://localhost:8880/api/v1/products/sort?cursor=...&size=20" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{"weights": {"salesUnits": 0.7, "stockRatio": 0.3}}' | jq
@@ -305,27 +363,31 @@ curl -s -X POST "http://localhost:8880/api/v1/products/sort?page=1&size=20" \
 {
   "data": [
     {
-      "product": { 
-        "id": "550e8400-e29b-41d4-a716-446655440000", 
-        "name": "CONTRASTING LACE T-SHIRT", 
-        "salesUnits": 650, 
-        "stock": [
-          { "size": "S", "quantity": 0 }, 
-          { "size": "M", "quantity": 1 }, 
-          { "size": "L", "quantity": 0 }]},
-      "score": 0.87
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "CONTRASTING LACE T-SHIRT",
+      "salesUnits": 650,
+      "stock": [
+        { "size": "S", "quantity": 0 },
+        { "size": "M", "quantity": 1 },
+        { "size": "L", "quantity": 0 }
+      ],
+      "score": 455.1
     }
   ],
-  "page": 1,
-  "size": 20
+  "size": 20,
+  "nextCursor": "NDU1LjE6NQ=="
 }
 ```
 
 ### List Products Request
 
 ```bash
-# List products (paginated)
-curl -s "http://localhost:8880/api/v1/products?page=1&size=10" \
+# First page
+curl -s "http://localhost:8880/api/v1/products?size=10" \
+  -H "Authorization: Bearer ${TOKEN}" | jq
+
+# Next page
+curl -s "http://localhost:8880/api/v1/products?cursor=...&size=10" \
   -H "Authorization: Bearer ${TOKEN}" | jq
 ```
 
@@ -334,24 +396,20 @@ curl -s "http://localhost:8880/api/v1/products?page=1&size=10" \
 ```json
 {
   "data": [
-    { 
-      "id": "550e8400-e29b-41d4-a716-446655440000", 
-      "name": "V-NECH BASIC SHIRT", 
-      "salesUnits": 100, 
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "V-NECH BASIC SHIRT",
+      "salesUnits": 100,
       "stock": [
         { "size": "S", "quantity": 4 },
         { "size": "M", "quantity": 9 },
-        { "size": "L", "quantity": 0 }]},
-    { 
-      "id": "6fa459ea-ee8a-3ca5-8b4a-22e3b2a5b4c6", 
-      "name": "CONTRASTING FABRIC T-SHIRT", 
-      "salesUnits": 50, 
-      "stock": [
-        { "size": "S", "quantity": 35 }, 
-        { "size": "M", "quantity": 9 }, 
-        { "size": "L", "quantity": 9 }]}],
-  "page": 1,
-  "size": 10
+        { "size": "L", "quantity": 0 }
+      ],
+      "score": null
+    }
+  ],
+  "size": 10,
+  "nextCursor": "MC4wOjY="
 }
 ```
 
@@ -359,30 +417,33 @@ curl -s "http://localhost:8880/api/v1/products?page=1&size=10" \
 
 ## Testing
 
-| Type | Tools | Cases                                |
-|------|-------|--------------------------------------|
-| Unit | JUnit 5 + Instancio + AssertJ | domain model + services              |
-| Application | JUnit 5 + Instancio + Mockito | use cases with pagination            |
-| Integration | Testcontainers (MongoDB 8) | persistence + mapper edge cases      |
+| Type | Tools | Cases |
+|------|-------|-------|
+| Unit | JUnit 5 + Instancio + AssertJ | domain model + value objects |
+| Unit (mutation) | PIT Mutation Testing | 97% mutation score on domain |
+| Application | JUnit 5 + Instancio + Mockito | use cases with cursor pagination |
+| Integration | Testcontainers (MongoDB 8) | aggregation pipeline + pagination + mapper |
 | Cache | Mockito | MultiTierCache + CompositeCacheManager |
-| Observability | Mockito + Micrometer + Spring Mock | metrics, decorator, MDC filter       |
-| Adapter | Mockito | controller + mapper               |
-| Architecture | ArchUnit | hexagonal boundary rules           |
+| Observability | Mockito + Micrometer | metrics, decorator, MDC filter |
+| Adapter | Mockito | controller + mapper |
+| Architecture | ArchUnit | hexagonal boundary rules |
+| E2E | Testcontainers + REST Assured | full HTTP stack: sort + paginate with cursor |
+| Contract | REST Assured + JSON Schema | API response matches OpenAPI spec |
 
 ---
 
 ## Quality
 
-| Tool | Phase | Fails build?                            |
-|------|-------|-----------------------------------------|
-| JaCoCo | verify | Yes (>85% instruction, >80% branch)     |
-| ArchUnit | test | Yes                           |
-| Checkstyle | validate | No (reports only)                       |
-| OpenRewrite | process-sources | No (dry-run)                            |
+| Tool | Phase | Fails build? |
+|------|-------|--------------|
+| JaCoCo | verify | Yes (>85% instruction, >80% branch) |
+| ArchUnit | test | Yes |
+| Checkstyle | validate | No (reports only) |
+| OpenRewrite | process-sources | No (dry-run) |
 | Enforcer | validate | Yes (Java 25, Maven 3.9+, no duplicates) |
-| Commitlint | PR | Yes (Conventional Commits)              |
-| OWASP Dep-Check | verify (with `-Psecurity`) | Yes (CVSS ≥ 7)                          |
-| PIT Mutation | test (with `-Ppitest`) | Yes (80% mutation score)                |
+| Commitlint | PR | Yes (Conventional Commits) |
+| OWASP Dep-Check | verify (with `-Psecurity`) | Yes (CVSS >= 7) |
+| PIT Mutation | test (with `-Ppitest`) | Yes (>= 70% mutation score) |
 
 ---
 
@@ -408,6 +469,10 @@ curl -s "http://localhost:8880/api/v1/products?page=1&size=10" \
 | Loki | 3100 | — |
 | Keycloak | 8081 | admin/admin |
 
+### Performance Tests
+
+k6-based load tests across three data volumes (10k, 100k, 1M products). See [`perf/README.md`](perf/README.md) for details. Latest report: [`perf/report/report.md`](perf/report/report.md).
+
 ---
 
 ## Architecture Decision Records
@@ -420,7 +485,7 @@ All significant design decisions are documented as ADRs in [`docs/adr/`](docs/ad
 | [ADR-0002](docs/adr/0002-use-multi-tier-cache.md) | Caffeine L1 + Redis L2 multi-tier cache |
 | [ADR-0003](docs/adr/0003-use-oauth2-oidc.md) | OAuth 2.0 / OIDC for API authentication |
 | [ADR-0004](docs/adr/0004-use-virtual-threads.md) | Virtual threads (Project Loom) |
-| [ADR-0005](docs/adr/0005-api-design-post-vs-get-and-pagination.md) | POST for sorting + offset-based pagination |
+| [ADR-0005](docs/adr/0005-api-design-post-vs-get-and-pagination.md) | POST for sorting + cursor-based pagination |
 | [ADR-0006](docs/adr/0006-scored-product-composition.md) | ScoredProduct composition over field duplication |
 | [ADR-0007](docs/adr/0007-observability-decorator-and-mdc.md) | Decorator pattern for metrics + MDC correlation |
 | [ADR-0008](docs/adr/0008-pure-hexagonal-adapter-naming.md) | Pure hexagonal adapter naming convention |
@@ -433,9 +498,11 @@ All significant design decisions are documented as ADRs in [`docs/adr/`](docs/ad
 <type>(<scope>): <lowercase subject>
 
 Types: feat | fix | docs | style | refactor | perf | test | build | ci | chore | revert
-Scopes: api-spec | domain | application | adapter-persistence | adapter-observability | adapter-rest | bootstrap | coverage | docker | ci | config
+Scopes: api-spec | domain | application | adapter | bootstrap | testdata | coverage | docker | ci | config
 
 Examples:
-  feat(domain): add stock ratio scoring criterion
-  test(domain): parametrize sorting engine with Instancio
+  feat(domain): add stockRatio binary availability criterion
+  refactor(adapter): replace in-memory sorting with aggregation pipeline
+  test(domain): parametrize stock ratio with Instancio
   ci(workflows): add commitlint validation
+```

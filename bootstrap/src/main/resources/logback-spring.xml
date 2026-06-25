@@ -8,22 +8,28 @@
 
   <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
-      <pattern>%d{HH:mm:ss.SSS} [%t] [traceId=%mdc{traceId}%replace(,requestId=%mdc{requestId}){'requestId=',''}] [%mdc{requestUri}] %-5level %logger{36} - %msg%n</pattern>
+      <pattern>%d{HH:mm:ss.SSS} [%t] %replace([traceId=%mdc{traceId}]){'\[traceId=\]',''} %replace([requestId=%mdc{requestId}]){'\[requestId=\]',''} %replace([requestUri=%mdc{requestUri}]){'\[requestUri=\]',''} %-5level %logger{36} - %msg%n</pattern>
     </encoder>
   </appender>
 
+  <!-- https://loki4j.github.io/loki-logback-appender/docs/configuration -->
   <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
     <http>
       <url>${lokiUrl}</url>
     </http>
-    <format>
-      <label>
-        <pattern>service=${appName},level=%level,logger=%logger{36}</pattern>
-      </label>
-      <message>
-        <pattern>%d{HH:mm:ss.SSS} [%t] [traceId=%mdc{traceId}%replace(,requestId=%mdc{requestId}){'requestId=',''}] [%mdc{requestUri}] %msg%n</pattern>
-      </message>
-    </format>
+    <labels>
+      service=${appName}
+      level=%level
+      logger=%logger{36}
+    </labels>
+    <batch>
+      <maxItems>100</maxItems>
+      <timeoutMs>10000</timeoutMs>
+    </batch>
+    <verbose>true</verbose>
+    <message>
+      <pattern>%d{HH:mm:ss.SSS} [%t] %replace([traceId=%mdc{traceId}]){'\[traceId=\]',''} %replace([requestId=%mdc{requestId}]){'\[requestId=\]',''} %replace([requestUri=%mdc{requestUri}]){'\[requestUri=\]',''} %msg%n</pattern>
+    </message>
   </appender>
 
   <root level="INFO">

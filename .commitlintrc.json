@@ -2,7 +2,7 @@
   "extends": ["@commitlint/config-conventional"],
   "rules": {
     "scope-enum": [2, "always", [
-      "api-spec", "domain", "application", "infrastructure",
+      "api-spec", "domain", "application", "adapter",
       "bootstrap", "testdata", "coverage",
       "docker", "ci", "config"
     ]],

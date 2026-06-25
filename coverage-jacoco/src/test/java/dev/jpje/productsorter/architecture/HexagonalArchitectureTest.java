@@ -132,7 +132,9 @@ class HexagonalArchitectureTest {
       "org.springframework..",
       "org.springframework.boot..",
       "io.micrometer..",
+      "io.opentelemetry..",
       "jakarta..",
+      "jdk.jfr.consumer..",
       "org.slf4j.."))
     .as("Observability adapter dependencies must be whitelisted")
     .because("observability adapter configures Micrometer, OpenTelemetry, and MDC logging");
@@ -150,6 +152,7 @@ class HexagonalArchitectureTest {
       "com.mongodb..",
       "org.springframework.beans..",
       "org.bson..",
+      "io.lettuce..",
       "io.micrometer.."))
     .as("Persistence adapter dependencies must be whitelisted")
     .because("persistence adapter implements MongoDB repository with caching");

@@ -11,7 +11,7 @@
   </parent>
 
   <artifactId>adapter-persistence</artifactId>
-  <name>Infrastructure</name>
+  <name>adapter-persistence</name>
   <description>Outbound adapters: persistence and caching</description>
 
   <licenses>
@@ -42,6 +42,10 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-redis</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-core</artifactId>
     </dependency>
     <dependency>
       <groupId>org.testcontainers</groupId>

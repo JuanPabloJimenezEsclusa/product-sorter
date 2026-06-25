@@ -1,37 +1,38 @@
-# ADR 0005: API Design — POST vs GET and Offset Pagination
+# ADR 0005: API Design — POST for Sorting and Cursor-Based Pagination
 
 **Date:** 2026-06-24
 
 ## Context
 
-The product sorting API exposes two operations: sorting products by weighted criteria and listing products. We needed to choose the correct HTTP verb for sorting and the pagination strategy for both endpoints.
+The API exposes two operations: product listing (`GET /products`) and weighted product sorting (`POST /products/sort`). The sort operation accepts a `weights` object (e.g. `{"salesUnits": 0.7, "stockRatio": 0.3}`) as structured input. Both endpoints need pagination to handle catalog sizes beyond what fits in a single response.
 
 ## Decision
 
 ### POST for sorting
 
-`POST /api/v1/products/sort` uses POST rather than GET because sorting is a computational operation (scoring + ordering), not a resource retrieval.
+`POST /products/sort` uses POST rather than GET because the weights map is structured data that belongs in the request body, not query parameters.
 
-### Offset-based pagination
+### Cursor-based pagination
 
-Use offset-based pagination with `page` (1-indexed, default 1) and `size` (max 100). Omit `total` and `totalPages` from responses.
+Both endpoints use `cursor` (opaque string) and `size` (1–100, default 20) as query parameters. The response includes `data`, `size`, and `nextCursor`. `nextCursor` is `null` when there are no more pages — no `total` count is tracked.
 
 ## Rationale
 
 ### POST vs GET
 
-- **Semantic** — Sorting computes a new ordering based on weights; it is not fetching an existing resource. POST is the correct verb for computational operations
-- **Request body** — The weights map is complex structured data. Encoding it as query parameters would be fragile (`?salesUnits=0.7&stockRatio=0.3`) and would not scale as new criteria are added
-- **Idempotency** — Not required; the same weights may produce different results as product data changes
+- **Structured input** — Encoding nested weight objects as query parameters is fragile and does not scale as new sorting criteria are added
+- **Body semantics** — POST with a JSON body is the standard pattern for operations that accept complex structured data
+- **Cache implications** — POST responses are not cached by HTTP intermediaries; application-level caching handles this in the persistence adapter
 
-### Pagination
+### Cursor-based pagination
 
-- **Product stability** — Products are stable during navigation (no insertions or deletions mid-session), so offset-based pagination is safe and simpler than cursor-based
-- **No COUNT query** — Omitting `total`/`totalPages` avoids the MongoDB `COLLSCAN` needed for count aggregation. The client detects the end of the result set when the returned page has fewer items than `size`
-- **Simplicity** — Offset pagination is intuitive for API consumers: `page=1&size=20` is self-explanatory
+- **Stability under mutation** — Cursors are resilient to insertions and deletions between page requests; unlike offset pagination, new items don't shift the window
+- **No `skip()` performance penalty** — MongoDB's `skip()` degrades linearly with offset; cursor-based pagination uses indexed `_id` traversal at constant cost
+- **Opaque cursors** — `nextCursor` is an encoded string that hides implementation details (`score:id` for sort, `0:id` for list) from API consumers
 
 ## Consequences
 
-- Sorting cannot be cached by URL alone (POST requests are not cached by HTTP intermediaries)
-- Large offset values (e.g., page 1000) become progressively slower on MongoDB due to `skip()` performance
-- Clients must handle pagination state manually (no `total` field for progress bars)
+- Sorting weights must be sent in the request body; empty or missing body returns 400
+- POST verb prevents URL-based caching by HTTP intermediaries; `@Cacheable` on the repository adapter compensates for first-page requests
+- The sort endpoint uses MongoDB aggregation with top-K optimization (`$sort` + `$limit`), which enables a heap-based sort of O(N log K) instead of a full collection sort
+- Cursor format is stable but opaque — clients cannot decode or construct cursors independently
