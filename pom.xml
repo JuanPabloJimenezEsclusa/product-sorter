@@ -476,11 +476,6 @@
                 <mutator>EMPTY_RETURNS</mutator>
                 <mutator>VOID_METHOD_CALLS</mutator>
               </mutators>
-              <excludedClasses>
-                <param>dev.jpje.productsorter.domain.model.ScoreableProduct</param>
-                <param>dev.jpje.productsorter.domain.service.ScoredProduct</param>
-                <param>dev.jpje.productsorter.domain.service.SortingEngine$ScoredEntry</param>
-              </excludedClasses>
               <threads>4</threads>
               <features>
                 <feature>+CLASSLIMIT(limit[50])</feature>

@@ -1,9 +1,7 @@
 package dev.jpje.productsorter.application.port;
 
-import java.util.List;
-
-import dev.jpje.productsorter.domain.model.Product;
+import dev.jpje.productsorter.domain.port.ProductRepository.PagedResult;
 
 public interface ListProductsUseCase {
-  List<Product> execute(int page, int size);
+  PagedResult execute(String cursor, Integer size);
 }

@@ -22,6 +22,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import dev.jpje.productsorter.adapter.persistence.mongo.entity.ProductDocument;
 import dev.jpje.productsorter.adapter.persistence.mongo.entity.StockEntry;
+import dev.jpje.productsorter.domain.vo.CursorCodec;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -88,9 +89,9 @@ class ProductApiContractTest {
     template.dropCollection("products");
 
     template.save(new ProductDocument("1", "V-NECH BASIC SHIRT", 100,
-      List.of(new StockEntry("S", 4), new StockEntry("M", 9), new StockEntry("L", 0))));
+      List.of(new StockEntry("S", 4), new StockEntry("M", 9), new StockEntry("L", 0)), null));
     template.save(new ProductDocument("5", "CONTRASTING LACE T-SHIRT", 650,
-      List.of(new StockEntry("S", 0), new StockEntry("M", 1), new StockEntry("L", 0))));
+      List.of(new StockEntry("S", 0), new StockEntry("M", 1), new StockEntry("L", 0)), null));
 
     client.close();
   }
@@ -115,10 +116,10 @@ class ProductApiContractTest {
       .port(port).auth().oauth2(jwt).contentType("application/json")
       .body(Map.of("weights", Map.of("salesUnits", 0.7, "stockRatio", 0.3)))
     .when()
-      .post("/api/v1/products/sort?page=1&size=20")
+      .post("/api/v1/products/sort?size=20")
     .then()
       .statusCode(200)
-      .body(matchesJsonSchemaInClasspath("schema/sort-response.json"))
+      .body(matchesJsonSchemaInClasspath("schema/product-page.json"))
       .body("data", not(empty()));
   }
 
@@ -127,7 +128,7 @@ class ProductApiContractTest {
     given()
       .port(port).auth().oauth2(jwt).contentType("application/json")
     .when()
-      .get("/api/v1/products?page=1&size=20")
+      .get("/api/v1/products?size=20")
     .then()
       .statusCode(200)
       .body(matchesJsonSchemaInClasspath("schema/product-page.json"))
@@ -151,7 +152,7 @@ class ProductApiContractTest {
     given()
       .port(port).auth().oauth2(jwt).contentType("application/json")
     .when()
-      .get("/api/v1/products?page=99&size=20")
+      .get("/api/v1/products?cursor=" + CursorCodec.encode(0, "z") + "&size=20")
     .then()
       .statusCode(200)
       .body(matchesJsonSchemaInClasspath("schema/product-page.json"))

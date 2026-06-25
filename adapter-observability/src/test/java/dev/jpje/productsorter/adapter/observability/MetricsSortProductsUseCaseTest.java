@@ -1,6 +1,5 @@
 package dev.jpje.productsorter.adapter.observability;
 
-import static dev.jpje.productsorter.domain.vo.CriterionType.SALES_UNITS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.instancio.Select.field;
 import static org.junit.jupiter.api.Named.named;
@@ -17,8 +16,9 @@ import java.util.stream.Stream;
 
 import dev.jpje.productsorter.application.port.SortProductsRequest;
 import dev.jpje.productsorter.application.port.SortProductsUseCase;
+import dev.jpje.productsorter.domain.model.Metrics;
 import dev.jpje.productsorter.domain.model.Product;
-import dev.jpje.productsorter.domain.service.ScoredProduct;
+import dev.jpje.productsorter.domain.port.ProductRepository.PagedResult;
 import dev.jpje.productsorter.domain.vo.SalesUnits;
 import dev.jpje.productsorter.domain.vo.Stock;
 import org.instancio.Instancio;
@@ -44,31 +44,42 @@ class MetricsSortProductsUseCaseTest {
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("executeCases")
-  void shouldDelegateAndRecordMetrics(final List<ScoredProduct> delegateResult, final SortProductsRequest request) {
-    when(delegate.execute(request, 1, 20)).thenReturn(delegateResult);
+  void shouldDelegateAndRecordMetrics(final PagedResult delegateResult, final SortProductsRequest request) {
+    when(delegate.execute(request, null, 20)).thenReturn(delegateResult);
 
-    final var result = useCase.execute(request, 1, 20);
+    final var result = useCase.execute(request, null, 20);
 
     assertThat(result)
       .as("Should return delegate result")
       .isSameAs(delegateResult);
-    verify(metrics).recordSort(eq(delegateResult.size()), any(Duration.class), eq(request.weights()));
+    verify(metrics).recordSort(eq(delegateResult.products().size()), any(Duration.class), eq(request.weights()));
   }
 
   private static Stream<Arguments> executeCases() {
     return Stream.of(
-      arguments(named("empty result", List.of()), new SortProductsRequest(Map.of(SALES_UNITS.key(), 0.7, "stockRatio", 0.3))),
+      arguments(named("empty result", new PagedResult(List.of(), 0, null)),
+        new SortProductsRequest(Map.of(Metrics.SALES_UNITS.key(), 0.7, Metrics.STOCK.key(), 0.3))),
       arguments(named("with products",
-        List.of(
-          new ScoredProduct(instancioProduct(100), 0.9),
-          new ScoredProduct(instancioProduct(50), 0.5))),
-        new SortProductsRequest(Map.of(SALES_UNITS.key(), 0.7, "stockRatio", 0.3))));
+        new PagedResult(List.of(
+          instancioProduct(100, 0.9),
+          instancioProduct(50, 0.5)), 2, null)),
+        new SortProductsRequest(Map.of(Metrics.SALES_UNITS.key(), 0.7, Metrics.STOCK.key(), 0.3))));
   }
 
-  private static Product instancioProduct(final int salesUnits) {
-    return Instancio.of(Product.class)
-      .set(field(Product::salesUnits), SalesUnits.of(salesUnits))
-      .set(field(Product::stock), Stock.of(List.of()))
-      .create();
+  private static Product instancioProduct(final int salesUnits, final double score) {
+    return new Product(
+      Instancio.of(Product.class)
+        .set(field(Product::salesUnits), SalesUnits.of(salesUnits))
+        .set(field(Product::stock), Stock.of(List.of()))
+        .create()
+        .productId(),
+      Instancio.of(Product.class)
+        .set(field(Product::salesUnits), SalesUnits.of(salesUnits))
+        .set(field(Product::stock), Stock.of(List.of()))
+        .create()
+        .productName(),
+      SalesUnits.of(salesUnits),
+      Stock.of(List.of()),
+      score);
   }
 }

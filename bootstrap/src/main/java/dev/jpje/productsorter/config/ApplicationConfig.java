@@ -7,7 +7,6 @@ import dev.jpje.productsorter.application.port.SortProductsUseCase;
 import dev.jpje.productsorter.application.service.ListProductsUseCaseImpl;
 import dev.jpje.productsorter.application.service.SortProductsUseCaseImpl;
 import dev.jpje.productsorter.domain.port.ProductRepository;
-import dev.jpje.productsorter.domain.service.SortingEngine;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -15,15 +14,9 @@ import org.springframework.context.annotation.Configuration;
 public class ApplicationConfig {
 
   @Bean
-  public SortingEngine sortingEngine() {
-    return new SortingEngine();
-  }
-
-  @Bean
   public SortProductsUseCase sortProductsUseCase(final ProductRepository repository,
-                                                 final SortingEngine engine,
                                                  final SortingMetrics metrics) {
-    final var impl = new SortProductsUseCaseImpl(repository, engine);
+    final var impl = new SortProductsUseCaseImpl(repository);
     return new MetricsSortProductsUseCase(impl, metrics);
   }
 

@@ -1,0 +1,102 @@
+package dev.jpje.productsorter.adapter.persistence.mongo;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import dev.jpje.productsorter.domain.model.AppliedWeights;
+import dev.jpje.productsorter.domain.vo.CursorCodec;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.aggregation.AccumulatorOperators;
+import org.springframework.data.mongodb.core.aggregation.AddFieldsOperation;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationExpression;
+import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
+import org.springframework.data.mongodb.core.aggregation.AggregationOptions;
+import org.springframework.data.mongodb.core.aggregation.ArithmeticOperators;
+import org.springframework.data.mongodb.core.aggregation.ArrayOperators;
+import org.springframework.data.mongodb.core.aggregation.ComparisonOperators;
+import org.springframework.data.mongodb.core.aggregation.ConditionalOperators;
+import org.springframework.data.mongodb.core.aggregation.MatchOperation;
+import org.springframework.data.mongodb.core.aggregation.SortOperation;
+import org.springframework.data.mongodb.core.query.Criteria;
+
+final class ProductSorterHelper {
+
+  private static final String WEIGHTED_SCORE = "weightedScore";
+
+  private ProductSorterHelper() {
+  }
+
+  static Aggregation buildAggregation(final AppliedWeights appliedWeights, final String encodedCursor, final int limit) {
+    final List<AggregationOperation> stages = new ArrayList<>();
+
+    stages.add(buildWeightedScoreField(appliedWeights));
+    stages.add(buildSortOperation());
+
+    final var cursor = encodedCursor != null ? CursorCodec.decode(encodedCursor) : null;
+
+    if (cursor == null) {
+      stages.add(buildFacetOperation(limit));
+    } else {
+      stages.add(buildCursorFacetOperation(cursor, limit));
+    }
+
+    return Aggregation.newAggregation(stages)
+      .withOptions(AggregationOptions.builder().allowDiskUse(true).build());
+  }
+
+  private static AddFieldsOperation buildWeightedScoreField(final AppliedWeights appliedWeights) {
+    final var expressions = new ArrayList<AggregationExpression>();
+
+    if (appliedWeights.salesUnitsWeight() > 0) {
+      expressions.add(ArithmeticOperators.Multiply.valueOf("$salesUnits")
+        .multiplyBy(appliedWeights.salesUnitsWeight()));
+    }
+
+    if (appliedWeights.stockWeight() > 0) {
+      final var stockAvg = ConditionalOperators.Cond
+        .when(ComparisonOperators.valueOf(ArrayOperators.Size.lengthOfArray("$stock"))
+          .greaterThanValue(0))
+        .then(ArithmeticOperators.Divide.valueOf(
+          AccumulatorOperators.Sum.sumOf("$stock.quantity")
+        ).divideBy(
+          ArrayOperators.Size.lengthOfArray("$stock")
+        ))
+        .otherwise(0);
+      expressions.add(ArithmeticOperators.Multiply.valueOf(stockAvg)
+        .multiplyBy(appliedWeights.stockWeight()));
+    }
+
+    final var weightedScore = expressions.stream()
+      .reduce((a, b) -> ArithmeticOperators.Add.valueOf(a).add(b))
+      .orElse(ArithmeticOperators.Multiply.valueOf("$salesUnits").multiplyBy(1.0));
+
+    return Aggregation.addFields()
+      .addFieldWithValue(WEIGHTED_SCORE, weightedScore)
+      .build();
+  }
+
+  private static SortOperation buildSortOperation() {
+    return Aggregation.sort(Sort.Direction.DESC, WEIGHTED_SCORE, "_id");
+  }
+
+  private static MatchOperation buildCursorMatch(final CursorCodec.DecodedCursor cursor) {
+    final var criteria = new Criteria().orOperator(
+      Criteria.where(WEIGHTED_SCORE).lt(cursor.score()),
+      Criteria.where(WEIGHTED_SCORE).is(cursor.score()).and("_id").lt(cursor.productId())
+    );
+    return Aggregation.match(criteria);
+  }
+
+  private static AggregationOperation buildFacetOperation(final int limit) {
+    return Aggregation.facet()
+      .and(Aggregation.count().as("total")).as("metadata")
+      .and(Aggregation.limit(limit)).as("data");
+  }
+
+  private static AggregationOperation buildCursorFacetOperation(final CursorCodec.DecodedCursor cursor, final int limit) {
+    return Aggregation.facet()
+      .and(Aggregation.count().as("total")).as("metadata")
+      .and(buildSortOperation(), buildCursorMatch(cursor), Aggregation.limit(limit)).as("data");
+  }
+}
