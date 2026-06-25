@@ -1,0 +1,4 @@
+${AnsiColor.GREEN}..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..
+  ${AnsiColor.BRIGHT_GREEN}:: ${spring.application.name} (v${spring.application.version}) :: Spring-boot: ${spring-boot.formatted-version} :: Wake up, Neo...
+${AnsiColor.GREEN}..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..
+${AnsiColor.DEFAULT}

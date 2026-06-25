@@ -20,13 +20,14 @@
               },
               "required": ["size", "quantity"]
             }
-          }
+          },
+          "score": { "type": ["number", "null"] }
         },
         "required": ["id", "name", "salesUnits", "stock"]
       }
     },
-    "page": { "type": "integer" },
-    "size": { "type": "integer" }
+    "size": { "type": "integer" },
+    "nextCursor": { "type": ["string", "null"] }
   },
-  "required": ["data", "page", "size"]
+  "required": ["data", "size"]
 }

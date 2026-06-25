@@ -30,7 +30,7 @@ public class MdcFilter extends OncePerRequestFilter {
     try {
       final var traceId = MDC.get(TRACE_ID);
       if (traceId == null) {
-        MDC.put(TRACE_ID, UUID.randomUUID().toString());
+        MDC.put(TRACE_ID, UUID.randomUUID().toString().substring(0, 6));
       }
       MDC.put(REQUEST_URI, request.getRequestURI());
       putRequestId(request);

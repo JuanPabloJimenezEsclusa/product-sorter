@@ -1,15 +1,25 @@
 package dev.jpje.productsorter.domain.port;
 
+import java.io.Serializable;
 import java.util.List;
-import java.util.OptionalInt;
 
+import dev.jpje.productsorter.domain.model.AppliedWeights;
 import dev.jpje.productsorter.domain.model.Product;
-import dev.jpje.productsorter.domain.model.ScoreableProduct;
-import dev.jpje.productsorter.domain.vo.ProductId;
 
 public interface ProductRepository {
-  List<Product> findPage(int page, int size);
-  OptionalInt findMaxSalesUnits();
-  List<ScoreableProduct> findAllScoreable();
-  List<Product> findByIds(List<ProductId> ids);
+
+  PagedResult findPage(String cursor, int limit);
+
+  PagedResult sortByWeights(AppliedWeights weights, String cursor, int limit);
+
+  record PagedResult(List<Product> products, String nextCursor) implements Serializable {
+    public PagedResult {
+      products = List.copyOf(products);
+    }
+
+    public boolean hasMore() {
+      return nextCursor != null;
+    }
+  }
 }
+

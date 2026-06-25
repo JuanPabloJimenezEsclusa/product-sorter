@@ -9,6 +9,18 @@
   "resetPasswordAllowed": false,
   "editUsernameAllowed": false,
   "bruteForceProtected": false,
+  "roles": {
+    "realm": [
+      {
+        "name": "admin",
+        "description": "Global role for administrators of the system"
+      },
+      {
+        "name": "operator",
+        "description": "Global role for operators of the system"
+      }
+    ]
+  },
   "users": [
     {
       "username": "user",
@@ -24,7 +36,20 @@
           "temporary": false
         }
       ],
+      "realmRoles": [
+        "admin",
+        "operator"
+      ],
       "requiredActions": []
+    },
+    {
+      "username": "service-account-product-sorter-client",
+      "enabled": true,
+      "serviceAccountClientId": "product-sorter-client",
+      "realmRoles": [
+        "operator",
+        "admin"
+      ]
     }
   ],
   "clients": [

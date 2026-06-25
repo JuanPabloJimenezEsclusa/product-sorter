@@ -1,12 +1,17 @@
 spring:
   application:
     name: product-sorter
+    version: @project.version@
+  jackson:
+    default-property-inclusion: non_null
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
       - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+  main:
+    banner-mode: console
   mongodb:
-    uri: "${MONGODB_URI:mongodb://localhost:27017/productsorter?maxPoolSize=200&connectTimeoutMS=120000&timeoutMS=120000&serverSelectionTimeoutMS=90000}"
+    uri: "${MONGODB_URI:mongodb://localhost:27017/productsorter?maxPoolSize=500&connectTimeoutMS=2000&serverSelectionTimeoutMS=2000&timeoutMS=5000}"
     ssl:
       enabled: false
   docker:
@@ -17,6 +22,7 @@ spring:
       enabled: true
 
 springdoc:
+  show-actuator: true
   api-docs:
     path: /v3/api-docs
   swagger-ui:
@@ -25,21 +31,58 @@ springdoc:
       client-id: app
       use-pkce-with-authorization-code-grant: true
 
+resilience:
+  retry:
+    max-attempts: 3
+    initial-backoff-millis: 100
+  circuitbreaker:
+    failure-rate-threshold: 50
+    slow-call-rate-threshold: 100
+    slow-call-duration-seconds: 6
+    sliding-window-type: TIME_BASED
+    sliding-window-size: 30
+    minimum-number-of-calls: 50
+    wait-open-seconds: 10
+  bulkhead:
+    max-concurrent-calls: 128
+    max-wait-millis: 100
+  ratelimiter:
+    limit-for-period: 200
+    refresh-period-seconds: 1
+  jwks:
+    max-attempts: 2
+    connect-timeout-seconds: 2
+    read-timeout-seconds: 3
+
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus,metrics
+        include: health,env,prometheus,metrics
+  endpoint:
+    health:
+      show-details: ALWAYS
+      show-components: ALWAYS
+      access: unrestricted
+    env:
+      show-values: ALWAYS
+      access: unrestricted
+    prometheus:
+      access: unrestricted
 
 server:
   application-display-name: application
-  port: ${PORT:8880}
+  port: ${SERVER_PORT:8880}
+  tomcat:
+    threads:
+      max: 10000
 
 logging:
   level:
     root: WARN
     dev.jpje.productsorter: INFO
     org.springframework.boot: INFO
+    org.springdoc.core.events: ERROR
 
 ---
 
@@ -76,16 +119,58 @@ spring:
           jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8081/realms/product-sorter/protocol/openid-connect/certs}
 
 management:
-  tracing:
-    sampling:
-      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
-  otlp:
-    tracing:
-      endpoint: ${OTLP_ENDPOINT:http://localhost:4318/v1/traces}
   metrics:
+    distribution:
+      percentiles-histogram:
+        http:
+          server:
+            requests: true
+        mongodb:
+          driver:
+            commands: true
+    mongo:
+      command:
+        enabled: true
+      connectionpool:
+        enabled: true
     tags:
       application: ${spring.application.name}
+
+otel:
+  enabled: true
+  service-name: ${spring.application.name}
+  endpoint: ${OTLP_ENDPOINT:http://localhost:4318/v1/traces}
+
+logging:
+  level:
+    dev.jpje.productsorter.adapter.rest: DEBUG
 
 cache:
   redis:
     enabled: true
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: aws
+  mongodb:
+    uri: ${MONGODB_URI}
+    ssl:
+      enabled: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${JWT_JWK_SET_URI}
+
+management:
+  health:
+    mongodb:
+      enabled: false
+    redis:
+      enabled: false
+
+otel:
+  enabled: false

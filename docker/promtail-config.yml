@@ -21,3 +21,12 @@ scrape_configs:
         regex: "/?product-sorter-(.+)"
         target_label: service
         replacement: "$1"
+      - source_labels: [service]
+        regex: "app"
+        action: drop
+    pipeline_stages:
+      - match:
+          selector: '{service="mongodb-exporter"}'
+          stages:
+            - drop:
+                expression: '.*was collected before with the same name and label values.*'

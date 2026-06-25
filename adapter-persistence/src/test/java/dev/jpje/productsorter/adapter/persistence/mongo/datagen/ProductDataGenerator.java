@@ -47,6 +47,9 @@ public class ProductDataGenerator {
         });
         product.set("stock", stockEntries);
 
+        final var withStock = alloc.values().stream().filter(q -> q > 0).count();
+        product.put("stockRatio", alloc.isEmpty() ? 0.0 : (double) withStock / alloc.size());
+
         writer.println(mapper.writeValueAsString(product));
       }
     }

@@ -1,0 +1,48 @@
+groups:
+  - name: product-sorter
+    rules:
+
+      - alert: AppDown
+        expr: up{job="product-sorter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.instance }}: product-sorter is down"
+          description: "product-sorter has been unreachable for 1 minute."
+
+      - alert: MongoDBDown
+        expr: up{job="mongodb-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MongoDB exporter is unreachable"
+          description: "mongodb-exporter has been down for 1 minute."
+
+      - alert: RedisDown
+        expr: up{job="redis-exporter"} == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis exporter is unreachable"
+          description: "redis-exporter has been down for 1 minute."
+
+      - alert: HighSortLatency
+        expr: histogram_quantile(0.99, rate(sorting_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P99 sort latency > 2s"
+          description: "P99 sort duration is {{ $value }}s over the last 5 minutes."
+
+      - alert: RedisHighMemory
+        expr: redis_memory_used_bytes / redis_maxmemory_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis memory usage > 90%"
+          description: "Redis instance {{ $labels.instance }} is using {{ $value | humanizePercentage }} of max memory."

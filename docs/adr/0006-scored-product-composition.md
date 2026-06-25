@@ -1,29 +1,23 @@
-# ADR 0006: ScoredProduct Composition Over Field Duplication
+# ADR 0006: Score as Nullable Field on ProductResponse
 
 **Date:** 2026-06-24
 
 ## Context
 
-The sort endpoint returns scored products: each product has its fields (id, name, salesUnits, stock) plus a computed `score`. We needed to decide whether to flatten the score into the product or compose the product with a score.
+The sort endpoint returns products with a computed score. The product listing endpoint returns products without a score. Both share the same response schema. We needed to decide how to represent the score in the API contract.
 
 ## Decision
 
-`ScoredProduct` composes `ProductResponse` rather than duplicating its fields:
-
-```json
-{
-  "product": { "id": "...", "name": "...", "salesUnits": 100, "stock": [...] },
-  "score": 0.87
-}
-```
+`ProductResponse` includes a nullable `score` field (`Double`, `nullable: true`). The same schema is reused across both endpoints — the sort endpoint populates `score`, the listing endpoint omits it or returns `null`.
 
 ## Rationale
 
-- **DRY** — `ProductResponse` is the single schema for product data across all endpoints. Composing it avoids maintaining a parallel schema with all product fields plus `score`
-- **Semantic** — Scoring is a projection *over* a product, not a flattened version of it. Composition expresses this relationship explicitly
-- **Evolution** — Adding a field to `ProductResponse` (e.g. `category`) automatically enriches the sort response without schema changes
+- **Single schema** — One `ProductResponse` type serves both endpoints; consumers can ignore `score` when it is `null`
+- **OpenAPI-native** — `nullable: true` is a standard OpenAPI 3.1 feature; client generators handle it without custom templates
+- **Minimal surface** — No wrapper type, no extra nesting in the response payload
 
 ## Consequences
 
-- API consumers must navigate an extra nesting level (`data[0].product.id` instead of `data[0].id`)
-- Response payload is slightly larger due to the nested structure (marginal for typical page sizes of 20)
+- API consumers must check `score != null` before interpreting its value
+- Adding score to additional endpoints requires no schema changes
+- The contract does not distinguish "no score" from "score of zero"; `0.0` and `null` are different values

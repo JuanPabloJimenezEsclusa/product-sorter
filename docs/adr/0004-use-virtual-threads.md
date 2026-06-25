@@ -20,6 +20,6 @@ Use Java 25 virtual threads (Project Loom) enabled by Spring Boot 4.1's virtual 
 
 ## Consequences
 
-- Requires JDK 25 (not available on older adapter-persistence)
+- Requires JDK 25+
 - Pinned thread scenarios (synchronized blocks, native frames) can still block carrier threads
 - Monitoring must track virtual thread metrics, not just OS thread count

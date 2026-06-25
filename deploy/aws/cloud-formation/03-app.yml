@@ -1,0 +1,502 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Product Sorter — VPC + ECS Fargate + ALB + ACM + Route53 + CloudWatch
+
+Parameters:
+  ImageUri:
+    Type: String
+    Description: ECR image URI
+  MongoUriSecretArn:
+    Type: String
+    Description: Secrets Manager ARN for MongoDB URI
+  JwksUri:
+    Type: String
+    Description: Cognito JWKS endpoint URI
+  HostedZoneId:
+    Type: String
+    Description: Route53 hosted zone ID
+  DomainName:
+    Type: String
+    Description: Custom domain for the API
+
+Resources:
+  ###########################################################################
+  # VPC
+  ###########################################################################
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.10.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: product-sorter-vpc
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: product-sorter-igw
+
+  VpcGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: product-sorter-public-rt
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VpcGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.10.1.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: product-sorter-public-subnet-a
+
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.10.2.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: product-sorter-public-subnet-b
+
+  PublicSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetB
+      RouteTableId: !Ref PublicRouteTable
+
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.10.16.0/20
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: product-sorter-private-subnet-a
+
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.10.32.0/20
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: product-sorter-private-subnet-b
+
+  NatGatewayEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGatewayEIP.AllocationId
+      SubnetId: !Ref PublicSubnetA
+      Tags:
+        - Key: Name
+          Value: product-sorter-nat-gw
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: product-sorter-private-rt
+
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+
+  PrivateSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetA
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetB
+      RouteTableId: !Ref PrivateRouteTable
+
+  ###########################################################################
+  # Network ACL (private subnets — deny SSH)
+  ###########################################################################
+  NetworkACL:
+    Type: AWS::EC2::NetworkAcl
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: product-sorter-nacl
+
+  SshDenyInbound:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref NetworkACL
+      RuleNumber: 100
+      Protocol: 6
+      RuleAction: deny
+      Egress: false
+      CidrBlock: 0.0.0.0/0
+      PortRange:
+        From: 22
+        To: 22
+
+  AlbInbound:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref NetworkACL
+      RuleNumber: 200
+      Protocol: 6
+      RuleAction: allow
+      Egress: false
+      CidrBlock: 10.10.0.0/16
+      PortRange:
+        From: 8880
+        To: 8880
+
+  EphemeralInbound:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref NetworkACL
+      RuleNumber: 300
+      Protocol: 6
+      RuleAction: allow
+      Egress: false
+      CidrBlock: 0.0.0.0/0
+      PortRange:
+        From: 1024
+        To: 65535
+
+  SshDenyOutbound:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref NetworkACL
+      RuleNumber: 100
+      Protocol: 6
+      RuleAction: deny
+      Egress: true
+      CidrBlock: 0.0.0.0/0
+      PortRange:
+        From: 22
+        To: 22
+
+  AllowAllOutbound:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref NetworkACL
+      RuleNumber: 200
+      Protocol: -1
+      RuleAction: allow
+      Egress: true
+      CidrBlock: 0.0.0.0/0
+      PortRange:
+        From: 0
+        To: 65535
+
+  PrivateSubnetANACLAssociation:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetA
+      NetworkAclId: !Ref NetworkACL
+
+  PrivateSubnetBNACLAssociation:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetB
+      NetworkAclId: !Ref NetworkACL
+
+  ###########################################################################
+  # IAM
+  ###########################################################################
+  TaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: product-sorter-task-execution-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: secrets-manager-read
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref MongoUriSecretArn
+
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: product-sorter-task-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+
+  ###########################################################################
+  # ECS Cluster
+  ###########################################################################
+  EcsCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: product-sorter
+      CapacityProviders:
+        - FARGATE
+        - FARGATE_SPOT
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: FARGATE_SPOT
+          Weight: 1
+      Configuration:
+        ExecuteCommandConfiguration:
+          Logging: DEFAULT
+
+  ###########################################################################
+  # CloudWatch
+  ###########################################################################
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/product-sorter
+      RetentionInDays: 1
+
+  ###########################################################################
+  # Security Groups
+  ###########################################################################
+  AlbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: product-sorter-alb-sg
+      GroupDescription: Allow HTTPS from internet
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+  EcsSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: product-sorter-ecs-sg
+      GroupDescription: Allow traffic from ALB to ECS tasks
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8880
+          ToPort: 8880
+          SourceSecurityGroupId: !Ref AlbSecurityGroup
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+  ###########################################################################
+  # ALB
+  ###########################################################################
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: product-sorter-alb
+      Scheme: internet-facing
+      Type: application
+      SecurityGroups:
+        - !Ref AlbSecurityGroup
+      Subnets:
+        - !Ref PublicSubnetA
+        - !Ref PublicSubnetB
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: product-sorter-tg
+      Port: 8880
+      Protocol: HTTP
+      TargetType: ip
+      VpcId: !Ref VPC
+      HealthCheckPath: /actuator/health/readiness
+      HealthCheckProtocol: HTTP
+      HealthCheckIntervalSeconds: 30
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+
+  Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref Certificate
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+  HttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: redirect
+          RedirectConfig:
+            Protocol: HTTPS
+            Port: "443"
+            StatusCode: HTTP_301
+
+  ###########################################################################
+  # ACM Certificate
+  ###########################################################################
+  Certificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref DomainName
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: !Ref DomainName
+          HostedZoneId: !Ref HostedZoneId
+
+  ###########################################################################
+  # Route53
+  ###########################################################################
+  RecordSet:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt LoadBalancer.DNSName
+        HostedZoneId: !GetAtt LoadBalancer.CanonicalHostedZoneID
+
+  ###########################################################################
+  # ECS Task Definition + Service
+  ###########################################################################
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: product-sorter
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: "1024"
+      Memory: "2048"
+      ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      ContainerDefinitions:
+        - Name: product-sorter
+          Image: !Ref ImageUri
+          PortMappings:
+            - ContainerPort: 8880
+          Essential: true
+          LinuxParameters:
+            InitProcessEnabled: true
+          Secrets:
+            - Name: MONGODB_URI
+              ValueFrom: !Join
+                - ":"
+                - - !ImportValue MongoUriSecretArn
+                  - "uri::"
+          Environment:
+            - Name: JWT_JWK_SET_URI
+              Value: !Ref JwksUri
+            - Name: SPRING_PROFILES_ACTIVE
+              Value: aws
+            - Name: SERVER_PORT
+              Value: "8880"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: app
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - curl -sf http://localhost:8880/actuator/health/liveness || exit 1
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 60
+
+  EcsService:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - Listener
+    Properties:
+      Cluster: !Ref EcsCluster
+      TaskDefinition: !Ref TaskDefinition
+      DesiredCount: 1
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets:
+            - !Ref PrivateSubnetA
+            - !Ref PrivateSubnetB
+          SecurityGroups:
+            - !Ref EcsSecurityGroup
+      LoadBalancers:
+        - ContainerName: product-sorter
+          ContainerPort: 8880
+          TargetGroupArn: !Ref TargetGroup
+
+Outputs:
+  AlbDnsName:
+    Value: !GetAtt LoadBalancer.DNSName
+    Description: ALB DNS name
+  ServiceUrl:
+    Value: !Sub "https://${DomainName}"
+    Description: Production URL
+  LogGroupName:
+    Value: !Ref LogGroup
+    Description: CloudWatch log group

@@ -1,30 +1,49 @@
 package dev.jpje.productsorter.adapter.rest.config;
 
+import java.util.Map;
+
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springdoc.core.customizers.GlobalOpenApiCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class OpenApiConfig {
 
+  private static final String BEARER_AUTH = "bearerAuth";
+
   @Bean
   public OpenAPI customOpenAPI() {
-    final var schemeName = "bearerAuth";
     return new OpenAPI()
       .info(new Info()
         .title("Product Sorter API")
         .description("REST service that sorts a product catalog by weighted scoring criteria")
         .version("1.0.0"))
-      .addSecurityItem(new SecurityRequirement().addList(schemeName))
+      .addSecurityItem(new SecurityRequirement().addList(BEARER_AUTH))
       .components(new Components()
-        .addSecuritySchemes(schemeName, new SecurityScheme()
-          .name(schemeName)
+        .addSecuritySchemes(BEARER_AUTH, new SecurityScheme()
+          .name(BEARER_AUTH)
           .type(SecurityScheme.Type.HTTP)
           .scheme("bearer")
           .bearerFormat("JWT")));
+  }
+
+  @Bean
+  public GlobalOpenApiCustomizer sortRequestExampleCustomizer() {
+    return openApi -> openApi.getPaths().values().stream()
+      .flatMap(pathItem -> pathItem.readOperations().stream())
+      .filter(op -> "sortProducts".equals(op.getOperationId()))
+      .findFirst()
+      .ifPresent(op -> {
+        var mediaType = op.getRequestBody().getContent().get("application/json");
+        if (mediaType != null) {
+          mediaType.setExample(Map.of("weights",
+            Map.of("salesUnits", 0.9, "stockRatio", 0.1)));
+        }
+      });
   }
 }

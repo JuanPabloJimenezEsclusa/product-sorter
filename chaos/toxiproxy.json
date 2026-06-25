@@ -1,0 +1,5 @@
+[
+  { "name": "mongo",    "listen": "0.0.0.0:21017", "upstream": "mongodb:27017", "enabled": true },
+  { "name": "redis",    "listen": "0.0.0.0:21379", "upstream": "redis:6379",    "enabled": true },
+  { "name": "keycloak", "listen": "0.0.0.0:21080", "upstream": "keycloak:8080", "enabled": true }
+]

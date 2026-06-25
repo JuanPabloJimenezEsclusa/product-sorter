@@ -24,7 +24,7 @@ public record Stock(List<StockBySize> entries) implements Serializable {
       .count();
   }
 
-  public double ratio() {
+  public double stockRatio() {
     if (entries().isEmpty()) {
       return 0.0;
     }

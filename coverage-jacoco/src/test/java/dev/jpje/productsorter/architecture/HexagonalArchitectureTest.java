@@ -18,13 +18,10 @@ class HexagonalArchitectureTest {
   private static final String ADAPTER_OBSERVABILITY = "dev.jpje.productsorter.adapter.observability..";
 
   private static final String[] COMMON = {
-    "java..",
-    "com.tngtech.archunit..",
-    "org.junit..",
-    "org.assertj..",
-    "org.mockito..",
-    "org.springframework.boot..",
-    "org.springframework.test.."
+    "java.io..",
+    "java.lang..",
+    "java.time..",
+    "java.util.."
   };
 
   @ArchTest
@@ -67,10 +64,10 @@ class HexagonalArchitectureTest {
     .because("outbound adapters implement domain ports, not application ports");
 
   @ArchTest
-  static final ArchRule adapterRestMustNotDependOnPersistenceAdapter = noClasses()
+  static final ArchRule restAdapterMustNotDependOnPersistenceAdapter = noClasses()
     .that().resideInAPackage(ADAPTER_REST)
     .should().dependOnClassesThat().resideInAnyPackage("..adapter.persistence..")
-    .as("Adapter-rest must not depend on persistence adapter")
+    .as("REST adapter must not depend on persistence adapter")
     .because("inbound adapters don't need outbound adapter details");
 
   @ArchTest
@@ -88,24 +85,27 @@ class HexagonalArchitectureTest {
     .because("application depends on domain types and standard libraries");
 
   @ArchTest
-  static final ArchRule adapterRestDependencies = classes()
+  static final ArchRule restAdapterDependencies = classes()
     .that().resideInAPackage(ADAPTER_REST)
     .should().onlyDependOnClassesThat().resideInAnyPackage(concat(
-      DOMAIN, APPLICATION, ADAPTER_REST,
+      DOMAIN, APPLICATION, API_SPEC, ADAPTER_REST,
+      "org.springframework.beans..",
       "org.springframework.context..",
+      "org.springframework.core.convert..",
       "org.springframework.http..",
       "org.springframework.security..",
       "org.springframework.stereotype..",
       "org.springframework.web..",
       "org.springdoc..",
       "io.swagger..",
-      "jakarta..",
+      "io.micrometer..",
+      "io.github.resilience4j..",
+      "jakarta.servlet..",
       "org.slf4j..",
       "com.fasterxml.jackson.databind..",
-      "com.fasterxml.jackson.datatype..",
-      "dev.jpje.productsorter.api.."))
-    .as("Adapter-rest dependencies must be whitelisted")
-    .because("adapter-rest translates HTTP to use case calls via Spring MVC and OAuth2");
+      "com.fasterxml.jackson.datatype.."))
+    .as("REST adapter dependencies must be whitelisted")
+    .because("REST adapter translates HTTP to use case calls via Spring MVC and OAuth2");
 
   @ArchTest
   static final ArchRule apiSpecDependencies = classes()
@@ -118,7 +118,8 @@ class HexagonalArchitectureTest {
       "org.springframework.lang..",
       "org.springframework.validation..",
       "io.swagger..",
-      "jakarta..",
+      "jakarta.annotation..",
+      "jakarta.validation..",
       "com.fasterxml.jackson..",
       "org.openapitools.."))
     .as("API Spec dependencies must be whitelisted")
@@ -129,11 +130,17 @@ class HexagonalArchitectureTest {
     .that().resideInAPackage(ADAPTER_OBSERVABILITY)
     .should().onlyDependOnClassesThat().resideInAnyPackage(concat(
       DOMAIN, APPLICATION, ADAPTER_OBSERVABILITY,
-      "org.springframework..",
+      "org.springframework.beans..",
       "org.springframework.boot..",
+      "org.springframework.context..",
+      "org.springframework.core..",
+      "org.springframework.stereotype..",
+      "org.springframework.web..",
+      "org.slf4j..",
       "io.micrometer..",
-      "jakarta..",
-      "org.slf4j.."))
+      "io.opentelemetry..",
+      "jakarta.servlet..",
+      "jdk.jfr.consumer.."))
     .as("Observability adapter dependencies must be whitelisted")
     .because("observability adapter configures Micrometer, OpenTelemetry, and MDC logging");
 
@@ -142,15 +149,20 @@ class HexagonalArchitectureTest {
     .that().resideInAPackage(ADAPTER_PERSISTENCE)
     .should().onlyDependOnClassesThat().resideInAnyPackage(concat(
       DOMAIN, ADAPTER_PERSISTENCE,
+      "org.springframework.boot..",
       "org.springframework.cache..",
       "org.springframework.context..",
+      "org.springframework.dao..",
       "org.springframework.data..",
       "org.springframework.stereotype..",
+      "org.springframework.beans..",
       "com.github.benmanes.caffeine..",
       "com.mongodb..",
-      "org.springframework.beans..",
       "org.bson..",
-      "io.micrometer.."))
+      "io.lettuce..",
+      "io.micrometer..",
+      "io.github.resilience4j..",
+      "org.slf4j.."))
     .as("Persistence adapter dependencies must be whitelisted")
     .because("persistence adapter implements MongoDB repository with caching");
 
