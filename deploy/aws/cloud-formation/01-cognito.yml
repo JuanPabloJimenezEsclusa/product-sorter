@@ -1,0 +1,124 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Product Sorter — Cognito User Pool + Client
+
+Parameters:
+  ProductSorterUsername:
+    Type: String
+    Default: "juan.pablo.jimenez.esclusa@gmail.com"
+    Description: Product Sorter Username
+
+Resources:
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Description: "Product Sorter User Pool"
+    Properties:
+      UserPoolName: product-sorter-realm
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Required: true
+          Mutable: true
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 6
+          RequireLowercase: false
+          RequireUppercase: false
+          RequireNumbers: false
+          RequireSymbols: false
+          TemporaryPasswordValidityDays: 10
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Description: "Product Sorter User Pool Client"
+    DependsOn: UserPoolResourceServer
+    Properties:
+      UserPoolId: !Ref UserPool
+      ClientName: product-sorter-app
+      GenerateSecret: true
+      AllowedOAuthFlows:
+        - client_credentials
+      AllowedOAuthScopes:
+        - product-sorter-api/read
+      SupportedIdentityProviders:
+        - COGNITO
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_ADMIN_USER_PASSWORD_AUTH
+      TokenValidityUnits:
+        AccessToken: minutes
+        IdToken: minutes
+        RefreshToken: days
+      AccessTokenValidity: 60
+      IdTokenValidity: 60
+      RefreshTokenValidity: 30
+
+  UserPoolDomain:
+    Type: "AWS::Cognito::UserPoolDomain"
+    Description: "Product Sorter User Pool Domain"
+    Properties:
+      Domain: "product-sorter-realm"
+      UserPoolId: !Ref UserPool
+
+  UserPoolResourceServer:
+    Type: "AWS::Cognito::UserPoolResourceServer"
+    Description: "Product Sorter Resource Server"
+    Properties:
+      UserPoolId: !Ref UserPool
+      Identifier: product-sorter-api
+      Name: product-sorter-api
+      Scopes:
+        - ScopeName: read
+          ScopeDescription: Read access to product-sorter API
+
+  ProductSorterUser:
+    Type: "AWS::Cognito::UserPoolUser"
+    Description: "Product Sorter User Pool User"
+    Properties:
+      UserPoolId: !Ref UserPool
+      Username: !Ref ProductSorterUsername
+      ClientMetadata:
+        email: !Ref ProductSorterUsername
+        email_verified: "true"
+        name: "Product User"
+      DesiredDeliveryMediums:
+        - "EMAIL"
+      UserAttributes:
+        - Name: "email"
+          Value: !Ref ProductSorterUsername
+        - Name: 'email_verified'
+          Value: 'true'
+
+  OperatorGroup:
+    Type: "AWS::Cognito::UserPoolGroup"
+    Properties:
+      UserPoolId: !Ref UserPool
+      GroupName: operator
+      Precedence: 1
+
+  AdminGroup:
+    Type: "AWS::Cognito::UserPoolGroup"
+    Properties:
+      UserPoolId: !Ref UserPool
+      GroupName: admin
+      Precedence: 0
+
+Outputs:
+  UserPoolId:
+    Value: !Ref UserPool
+    Description: Cognito User Pool ID
+  UserPoolClientId:
+    Value: !Ref UserPoolClient
+    Description: Cognito User Pool Client ID
+  JwksUri:
+    Value: !Sub "https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}/.well-known/jwks.json"
+    Description: Cognito JWKS endpoint URI
+  TokenEndpoint:
+    Value: !Sub "https://${UserPoolDomain}.auth.${AWS::Region}.amazoncognito.com/oauth2/token"
+    Description: Cognito OAuth2 token endpoint

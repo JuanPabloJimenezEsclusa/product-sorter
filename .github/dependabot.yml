@@ -19,6 +19,12 @@ updates:
     labels: [infrastructure, automated]
     groups: { compose-deps: { patterns: ["*"] } }
 
+  - package-ecosystem: docker-compose
+    directory: "/perf"
+    schedule: { interval: weekly }
+    labels: [infrastructure, automated]
+    groups: { compose-deps: { patterns: ["*"] } }
+
   - package-ecosystem: github-actions
     directory: "/"
     schedule: { interval: weekly }

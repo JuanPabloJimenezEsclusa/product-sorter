@@ -1,7 +1,7 @@
 {
   "title": "Product Sorter",
   "uid": null,
-  "version": 1,
+  "version": 2,
   "tags": ["product-sorter", "java", "spring-boot"],
   "schemaVersion": 40,
   "timezone": "browser",
@@ -176,11 +176,11 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "jvm_memory_used_bytes{application='product-sorter', area='heap'}",
+          "expr": "sum by(area) (jvm_memory_used_bytes{application='product-sorter', area='heap'})",
           "legendFormat": "heap"
         },
         {
-          "expr": "jvm_memory_used_bytes{application='product-sorter', area='nonheap'}",
+          "expr": "sum by(area) (jvm_memory_used_bytes{application='product-sorter', area='nonheap'})",
           "legendFormat": "non-heap"
         }
       ],
@@ -198,7 +198,7 @@
       "targets": [
         {
           "expr": "rate(jvm_gc_pause_seconds_count{application='product-sorter'}[1m])",
-          "legendFormat": "{{action}}"
+          "legendFormat": "{{action}} - {{cause}}"
         }
       ],
       "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "right" } },
@@ -233,16 +233,32 @@
       "description": "HTTP request rate grouped by outcome"
     },
     {
-      "title": "Traces (Tempo)",
-      "type": "traces",
+      "title": "Recent Traces",
+      "type": "table",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
       "datasource": { "type": "tempo", "uid": "Tempo" },
       "targets": [
         {
-          "query": "{service.name=\"product-sorter\"}",
-          "queryType": "serviceMap"
+          "query": "{}",
+          "queryType": "traceql",
+          "refId": "A",
+          "limit": 20
         }
       ],
+      "options": {
+        "showTypeIcon": true,
+        "sortBy": [{"displayName": "startTime", "desc": true}]
+      },
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "inspect": false } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "traceID" }, "properties": [{ "id": "custom.width", "value": 160 }] },
+          { "matcher": { "id": "byName", "options": "traceName" }, "properties": [{ "id": "custom.width", "value": 300 }] },
+          { "matcher": { "id": "byName", "options": "traceService" }, "properties": [{ "id": "custom.width", "value": 150 }] },
+          { "matcher": { "id": "byName", "options": "traceDuration" }, "properties": [{ "id": "unit", "value": "ms" }] },
+          { "matcher": { "id": "byName", "options": "startTime" }, "properties": [{ "id": "unit", "value": "dateTimeAsIso" }] }
+        ]
+      },
       "description": "Recent traces from the product-sorter service"
     },
     {
@@ -253,11 +269,197 @@
       "targets": [
         {
           "expr": "{service=\"product-sorter\"} |= ``",
-          "legendFormat": ""
+          "legendFormat": "",
+          "maxLines": 1000
         }
       ],
-      "options": { "showTime": true, "showLabels": true, "wrapLogMessage": true, "sortOrder": "Descending" },
+      "options": { "showTime": true, "showLabels": true, "wrapLogMessage": true, "sortOrder": "Descending", "showLogsVolume": true },
       "description": "Live logs from the product-sorter application"
+    },
+    {
+      "title": "Circuit Breaker State",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 32
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "targets": [
+        {
+          "expr": "resilience4j_circuitbreaker_state{application='product-sorter'}",
+          "legendFormat": "{{name}} - {{state}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineInterpolation": "stepAfter",
+            "spanNulls": true
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "max": 1
+        }
+      },
+      "description": "Circuit breaker state per instance (1 = active). Watch for open/half_open on mongo and redis."
+    },
+    {
+      "title": "Retry Calls",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 32
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "targets": [
+        {
+          "expr": "rate(resilience4j_retry_calls_total{application='product-sorter'}[$__rate_interval])",
+          "legendFormat": "{{name}} - {{kind}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineInterpolation": "smooth",
+            "spanNulls": true
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        }
+      },
+      "description": "Retry outcomes per second (successful/failed, with/without retry)"
+    },
+    {
+      "title": "Rate Limiter Available Permissions",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 40
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "targets": [
+        {
+          "expr": "resilience4j_ratelimiter_available_permissions{application='product-sorter'}",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineInterpolation": "smooth",
+            "spanNulls": true
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        }
+      },
+      "description": "Remaining permits this period; 0 means requests are rejected with HTTP 429"
+    },
+    {
+      "title": "Bulkhead Available Concurrent Calls",
+      "type": "stat",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 40
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "targets": [
+        {
+          "expr": "resilience4j_bulkhead_available_concurrent_calls{application='product-sorter'}",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "green",
+                "value": 8
+              }
+            ]
+          }
+        }
+      },
+      "description": "Free concurrency slots on the mongo bulkhead; near 0 means saturation"
     }
   ],
   "rows": [],

@@ -15,9 +15,9 @@ class StockTest {
     "'S:4,M:9,L:0', 0.6667",
     "'S:0,M:1,L:0', 0.3333"
   })
-  void shouldCalculateRatioFromStockEntries(final String raw, final double expected) {
+  void shouldCalculateStockRatio(final String raw, final double expected) {
     final var stock = StockMother.from(raw);
-    assertThat(stock.ratio())
+    assertThat(stock.stockRatio())
       .as("Stock ratio should match expected")
       .isEqualTo(expected, offset(0.001));
   }

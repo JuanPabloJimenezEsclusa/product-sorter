@@ -1,72 +1,66 @@
 package dev.jpje.productsorter.adapter.persistence.mongo;
 
-import static org.springframework.data.mongodb.core.query.Criteria.where;
-
 import java.util.List;
-import java.util.OptionalInt;
 
 import dev.jpje.productsorter.adapter.persistence.mongo.entity.ProductDocument;
+import dev.jpje.productsorter.domain.model.AppliedWeights;
 import dev.jpje.productsorter.domain.model.Product;
-import dev.jpje.productsorter.domain.model.ScoreableProduct;
 import dev.jpje.productsorter.domain.port.ProductRepository;
-import dev.jpje.productsorter.domain.vo.ProductId;
+import dev.jpje.productsorter.domain.vo.CursorCodec;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class MongoProductRepositoryAdapter implements ProductRepository {
 
+  private static final String COLLECTION_NAME = "products";
   private final MongoTemplate mongoTemplate;
-  private final ProductDocumentMapper mapper;
+  private final double midpoint;
 
-  public MongoProductRepositoryAdapter(final MongoTemplate mongoTemplate, final ProductDocumentMapper mapper) {
+  public MongoProductRepositoryAdapter(final MongoTemplate mongoTemplate,
+                                        @Value("${sales.midpoint:50}") final double midpoint) {
     this.mongoTemplate = mongoTemplate;
-    this.mapper = mapper;
+    this.midpoint = midpoint;
   }
 
   @Override
-  @Cacheable(cacheNames = "productCache", key = "#page + '-' + #size")
-  public List<Product> findPage(final int page, final int size) {
-    if (page < 1 || size < 1) {
-      return List.of();
+  @Cacheable(
+    cacheNames = "productCache",
+    key = "'page-' + #limit",
+    condition = "#encodedCursor == null")
+  public PagedResult findPage(final String encodedCursor, final int limit) {
+    final var query = MongoQueryHelper.buildPageQuery(encodedCursor, limit);
+    final var products = mongoTemplate.find(query, ProductDocument.class, COLLECTION_NAME).stream()
+      .map(ProductDocumentMapper::toDomain)
+      .toList();
+
+    return pageCursor(products);
+  }
+
+  @Override
+  @Cacheable(
+    cacheNames = "productCache",
+    key = "#weights.salesUnitsWeight() + '-' + #weights.stockWeight() + '-' + #limit",
+    condition = "#encodedCursor == null")
+  public PagedResult sortByWeights(final AppliedWeights weights, final String encodedCursor, final int limit) {
+    final var aggregation = MongoQueryHelper.buildSortAggregation(weights, encodedCursor, limit, midpoint);
+    final var products = mongoTemplate.aggregate(aggregation, COLLECTION_NAME, ProductDocument.class)
+      .getMappedResults().stream()
+      .map(ProductDocumentMapper::toDomain)
+      .toList();
+
+    return pageCursor(products);
+  }
+
+  private static PagedResult pageCursor(final List<Product> products) {
+    String nextCursor = null;
+    if (!products.isEmpty()) {
+      final var lastProduct = products.getLast();
+      final var score = lastProduct.weightedScore() == null ? 0 : lastProduct.weightedScore();
+      nextCursor = CursorCodec.encode(score, lastProduct.productId().value());
     }
-    final var skip = ((long) page - 1) * size;
-    return mongoTemplate.find(
-      new Query().with(Sort.by(Sort.Direction.ASC, "_id")).skip(skip).limit(size),
-      ProductDocument.class, "products").stream()
-      .map(mapper::toDomain)
-      .toList();
-  }
-
-  @Override
-  public OptionalInt findMaxSalesUnits() {
-    final var doc = mongoTemplate.findOne(
-      new Query().with(Sort.by(Sort.Direction.DESC, "salesUnits"))
-        .limit(1),
-      ProductDocument.class);
-    return doc != null ? OptionalInt.of(doc.salesUnits()) : OptionalInt.empty();
-  }
-
-  @Override
-  @Cacheable(cacheNames = "productCache", key = "'scoreables'")
-  public List<ScoreableProduct> findAllScoreable() {
-    final var query = new Query();
-    query.fields().include("_id", "salesUnits", "stock");
-    final var docs = mongoTemplate.find(query, org.bson.Document.class, "products");
-    return docs.stream().map(mapper::toScoreable).toList();
-  }
-
-  @Override
-  public List<Product> findByIds(final List<ProductId> ids) {
-    final var stringIds = ids.stream().map(ProductId::value).toList();
-    return mongoTemplate.find(
-      Query.query(where("_id").in(stringIds)),
-      ProductDocument.class
-    ).stream()
-      .map(mapper::toDomain)
-      .toList();
+    return new PagedResult(products, nextCursor);
   }
 }

@@ -7,19 +7,33 @@ receivers:
         endpoint: 0.0.0.0:4318
 
 processors:
+  filter/drop_actuator:
+    error_mode: ignore
+    traces:
+      span:
+        - name == "GET /actuator/health"
+        - name == "GET /actuator/prometheus"
+        - IsMatch(name, ".*actuator.*")
+        - attributes["http.target"] == "/actuator/health"
+        - attributes["http.target"] == "/actuator/prometheus"
+        - attributes["url.path"] == "/actuator/health"
+        - attributes["url.path"] == "/actuator/prometheus"
+        - attributes["http.route"] == "/actuator/health"
+        - attributes["http.route"] == "/actuator/prometheus"
   batch:
 
 exporters:
   otlp:
     endpoint: tempo:4317
-    tls:
-      insecure: true
-  debug:
-    verbosity: basic
+    tls: { insecure: true }
+
+extensions:
+  health_check: { }
 
 service:
+  extensions: [ health_check ]
   pipelines:
     traces:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [otlp, debug]
+      receivers: [ otlp ]
+      processors: [ filter/drop_actuator,batch ]
+      exporters: [ otlp ]

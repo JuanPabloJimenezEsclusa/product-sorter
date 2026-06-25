@@ -92,13 +92,17 @@ class HexagonalArchitectureTest {
     .that().resideInAPackage(ADAPTER_REST)
     .should().onlyDependOnClassesThat().resideInAnyPackage(concat(
       DOMAIN, APPLICATION, ADAPTER_REST,
+      "org.springframework.beans..",
       "org.springframework.context..",
+      "org.springframework.core.convert..",
       "org.springframework.http..",
       "org.springframework.security..",
       "org.springframework.stereotype..",
       "org.springframework.web..",
       "org.springdoc..",
       "io.swagger..",
+      "io.micrometer..",
+      "io.github.resilience4j..",
       "jakarta..",
       "org.slf4j..",
       "com.fasterxml.jackson.databind..",
@@ -132,7 +136,9 @@ class HexagonalArchitectureTest {
       "org.springframework..",
       "org.springframework.boot..",
       "io.micrometer..",
+      "io.opentelemetry..",
       "jakarta..",
+      "jdk.jfr.consumer..",
       "org.slf4j.."))
     .as("Observability adapter dependencies must be whitelisted")
     .because("observability adapter configures Micrometer, OpenTelemetry, and MDC logging");
@@ -144,13 +150,17 @@ class HexagonalArchitectureTest {
       DOMAIN, ADAPTER_PERSISTENCE,
       "org.springframework.cache..",
       "org.springframework.context..",
+      "org.springframework.dao..",
       "org.springframework.data..",
       "org.springframework.stereotype..",
       "com.github.benmanes.caffeine..",
       "com.mongodb..",
       "org.springframework.beans..",
       "org.bson..",
-      "io.micrometer.."))
+      "io.lettuce..",
+      "io.micrometer..",
+      "io.github.resilience4j..",
+      "org.slf4j.."))
     .as("Persistence adapter dependencies must be whitelisted")
     .because("persistence adapter implements MongoDB repository with caching");
 

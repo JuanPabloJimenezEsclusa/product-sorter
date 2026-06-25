@@ -68,26 +68,30 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
+    <openapi-generator.version>7.23.0</openapi-generator.version>
+    <springdoc.version>3.0.3</springdoc.version>
+    <swagger-annotations.version>2.2.52</swagger-annotations.version>
+    <loki-logback-appender.version>2.0.3</loki-logback-appender.version>
+    <jackson-databind-nullable.version>0.2.10</jackson-databind-nullable.version>
+    <resilience4j.version>2.4.0</resilience4j.version>
+
     <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
-    <checkstyle.version>13.6.0</checkstyle.version>
+    <checkstyle.version>13.8.0</checkstyle.version>
     <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
-    <rewrite-maven-plugin.version>6.42.0</rewrite-maven-plugin.version>
+    <rewrite-maven-plugin.version>6.44.0</rewrite-maven-plugin.version>
     <sonar-maven-plugin.version>5.7.0.6970</sonar-maven-plugin.version>
     <git-changelog-maven-plugin.version>2.2.11</git-changelog-maven-plugin.version>
     <maven-site-plugin.version>3.22.0</maven-site-plugin.version>
     <maven-jxr-plugin.version>3.6.0</maven-jxr-plugin.version>
     <maven-surefire-report-plugin.version>3.5.6</maven-surefire-report-plugin.version>
-    <jackson-databind-nullable.version>0.2.10</jackson-databind-nullable.version>
     <dependency-check-maven.version>12.2.2</dependency-check-maven.version>
-    <pitest-maven.version>1.25.5</pitest-maven.version>
 
     <instancio.version>5.6.0</instancio.version>
     <archunit.version>1.4.2</archunit.version>
-    <rest-assured.version>6.0.0</rest-assured.version>
-    <openapi-generator.version>7.23.0</openapi-generator.version>
-    <springdoc.version>3.0.3</springdoc.version>
-    <swagger-annotations.version>2.2.52</swagger-annotations.version>
-    <loki-logback-appender.version>2.0.3</loki-logback-appender.version>
+    <rest-assured.version>6.0.1</rest-assured.version>
+    <pitest-maven.version>1.25.7</pitest-maven.version>
+    <mockwebserver.version>5.4.0</mockwebserver.version>
+    <surefire.excludedGroups>chaos</surefire.excludedGroups>
 
     <sonar.organization>juanpablojimenezesclusa</sonar.organization>
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>
@@ -98,8 +102,9 @@
     </sonar.coverage.jacoco.xmlReportPaths>
     <sonar.scm.exclusions.disabled>true</sonar.scm.exclusions.disabled>
     <sonar.branch.name>develop</sonar.branch.name>
+    <sonar.exclusions>perf/**</sonar.exclusions>
     <sonar.coverage.exclusions>
-      **/config/OpenApiConfig.java,**/config/VersioningConfig.java,**/config/CacheConfig.java,**/config/ApplicationConfig.java,**/*Application.java,**/*Exception.java,**/dto/**
+      **/config/OpenApiConfig.java,**/config/VersioningConfig.java,**/config/CacheConfig.java,**/config/ApplicationConfig.java,**/resilience/*Config.java,**/*Application.java,**/*Exception.java,**/dto/**
     </sonar.coverage.exclusions>
 
     <inceptionYear>2026</inceptionYear>
@@ -109,6 +114,13 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>io.github.resilience4j</groupId>
+        <artifactId>resilience4j-bom</artifactId>
+        <version>${resilience4j.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <dependency>
         <groupId>dev.jpje</groupId>
         <artifactId>api-spec</artifactId>
@@ -175,13 +187,11 @@
           <version>${jacoco-maven-plugin.version}</version>
           <configuration>
             <excludes>
-              <exclude>**/config/OpenApiConfig.class</exclude>
-              <exclude>**/config/VersioningConfig.class</exclude>
-              <exclude>**/config/CacheConfig.class</exclude>
-              <exclude>**/config/ApplicationConfig.class</exclude>
-              <exclude>**/*Application.class</exclude>
-              <exclude>**/*Exception.class</exclude>
+              <exclude>**/config/*Config.class</exclude>
+              <exclude>**/resilience/*Config.class</exclude>
               <exclude>**/dto/*.class</exclude>
+              <exclude>**/*ProductsApi.class</exclude>
+              <exclude>**/*Application.class</exclude>
             </excludes>
           </configuration>
           <executions>
@@ -353,6 +363,13 @@
 
     <plugins>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <excludedGroups>${surefire.excludedGroups}</excludedGroups>
+        </configuration>
+      </plugin>
+      <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
       </plugin>
@@ -372,6 +389,13 @@
   </build>
 
   <profiles>
+    <profile>
+      <id>chaos</id>
+      <properties>
+        <surefire.groups>chaos</surefire.groups>
+        <surefire.excludedGroups/>
+      </properties>
+    </profile>
     <profile>
       <id>sonar</id>
       <build>
@@ -476,11 +500,6 @@
                 <mutator>EMPTY_RETURNS</mutator>
                 <mutator>VOID_METHOD_CALLS</mutator>
               </mutators>
-              <excludedClasses>
-                <param>dev.jpje.productsorter.domain.model.ScoreableProduct</param>
-                <param>dev.jpje.productsorter.domain.service.ScoredProduct</param>
-                <param>dev.jpje.productsorter.domain.service.SortingEngine$ScoredEntry</param>
-              </excludedClasses>
               <threads>4</threads>
               <features>
                 <feature>+CLASSLIMIT(limit[50])</feature>

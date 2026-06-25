@@ -3,6 +3,8 @@ package dev.jpje.productsorter.adapter.rest.config;
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -12,12 +14,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.convert.converter.Converter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -38,20 +46,43 @@ public class SecurityConfig {
       .authorizeHttpRequests(auth -> auth
         .requestMatchers(
           "/swagger-ui/**",
-          "/swagger-ui.html",
-          "/v3/api-docs/**",
-          "/v3/api-docs",
+          "/api/v1/swagger-ui/**",
+          "/api/v1/v3/api-docs/**",
+          "/favicon.ico",
           "/actuator/health",
-          "/actuator/info",
-          "/actuator/prometheus"
+          "/actuator/health/**",
+          "/actuator/prometheus",
+          "/actuator/metrics",
+          "/actuator/metrics/**"
         ).permitAll()
         .requestMatchers("/api/**").authenticated()
         .anyRequest().authenticated()
       )
       .oauth2ResourceServer(oauth2 -> oauth2
-        .jwt(_ -> {})
+        .jwt(jwt -> jwt.jwtAuthenticationConverter(keycloakJwtAuthenticationConverter()))
         .authenticationEntryPoint(jwtErrorEntryPoint()));
     return http.build();
+  }
+
+  private Converter<Jwt, AbstractAuthenticationToken> keycloakJwtAuthenticationConverter() {
+    return jwt -> {
+
+      final var defaultConverter = new JwtGrantedAuthoritiesConverter();
+      final var authorities = new ArrayList<>(defaultConverter.convert(jwt));
+      final var realmAccess = jwt.getClaimAsMap("realm_access");
+      if (realmAccess != null && realmAccess.containsKey("roles")) {
+        @SuppressWarnings("unchecked")
+        final var roles = (List<String>) realmAccess.get("roles");
+        roles.forEach(role -> authorities.add(new SimpleGrantedAuthority("ROLE_" + role)));
+      }
+
+      final var cognitoGroups = jwt.getClaimAsStringList("cognito:groups");
+      if (cognitoGroups != null) {
+        cognitoGroups.forEach(group -> authorities.add(new SimpleGrantedAuthority("ROLE_" + group)));
+      }
+
+      return new JwtAuthenticationToken(jwt, authorities);
+    };
   }
 
   private static AuthenticationEntryPoint jwtErrorEntryPoint() {

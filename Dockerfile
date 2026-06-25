@@ -5,9 +5,9 @@ COPY pom.xml ./
 COPY api-spec/pom.xml api-spec/
 COPY domain/pom.xml domain/
 COPY application/pom.xml application/
-COPY infrastructure/pom.xml infrastructure/
-COPY infrastructure-observability/pom.xml infrastructure-observability/
 COPY adapter-rest/pom.xml adapter-rest/
+COPY adapter-persistence/pom.xml adapter-persistence/
+COPY adapter-observability/pom.xml adapter-observability/
 COPY bootstrap/pom.xml bootstrap/
 COPY coverage-jacoco/pom.xml coverage-jacoco/
 

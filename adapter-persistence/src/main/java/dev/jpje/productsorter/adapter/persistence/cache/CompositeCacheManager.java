@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.springframework.cache.Cache;
@@ -14,9 +15,16 @@ import org.springframework.cache.CacheManager;
 public class CompositeCacheManager implements CacheManager {
 
   private final List<CacheManager> cacheManagers;
+  private final CircuitBreaker l2CircuitBreaker;
 
   public CompositeCacheManager(final List<CacheManager> cacheManagers) {
+    this(cacheManagers, null);
+  }
+
+  public CompositeCacheManager(final List<CacheManager> cacheManagers,
+                               final CircuitBreaker l2CircuitBreaker) {
     this.cacheManagers = Objects.requireNonNull(cacheManagers);
+    this.l2CircuitBreaker = l2CircuitBreaker;
   }
 
   @Override
@@ -34,7 +42,10 @@ public class CompositeCacheManager implements CacheManager {
     if (caches.size() == 1) {
       return caches.getFirst();
     }
-    return new MultiTierCache(name, caches.getFirst(), caches.getLast());
+    final var l2 = l2CircuitBreaker == null
+      ? caches.getLast()
+      : new ResilientCache(caches.getLast(), l2CircuitBreaker);
+    return new MultiTierCache(name, caches.getFirst(), l2);
   }
 
   @Override
