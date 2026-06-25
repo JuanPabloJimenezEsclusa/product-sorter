@@ -8,9 +8,10 @@ import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import dev.jpje.productsorter.domain.model.AppliedWeights;
 import dev.jpje.productsorter.domain.model.Product;
-import dev.jpje.productsorter.domain.model.ScoreableProduct;
 import dev.jpje.productsorter.domain.port.ProductRepository;
+import dev.jpje.productsorter.domain.vo.CursorCodec;
 import dev.jpje.productsorter.domain.vo.ProductId;
 import dev.jpje.productsorter.domain.vo.ProductName;
 import dev.jpje.productsorter.domain.vo.SalesUnits;
@@ -35,25 +36,31 @@ class ListProductsUseCaseImplTest {
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("paginationScenarios")
-  void shouldReturnPage(final int totalProducts, final int page, final int size,
-                        final int expectedCount, final String firstId) {
+  void shouldReturnPageCursorBased(final int totalProducts, final int size,
+                                   final int expectedCount) {
     repository.products = products(totalProducts);
 
-    final var result = useCase.execute(page, size);
-    assertThat(result)
+    final var result = useCase.execute(null, size);
+    assertThat(result.products())
       .as("Should have %d products", expectedCount)
       .hasSize(expectedCount);
-    if (!result.isEmpty()) {
-      assertThat(result.getFirst().productId().value())
-        .as("First product ID should match")
-        .isEqualTo(firstId);
-    }
+    assertThat(result.nextCursor())
+      .as("Should have nextCursor")
+      .isNotNull();
   }
 
-  private static Stream<Arguments> paginationScenarios() {
-    return Stream.of(
-      arguments(named("first page", 3), 1, 2, 2, "1"),
-      arguments(named("page out of range", 1), 99, 20, 0, null));
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("cursorScenarios")
+  void shouldPaginateWithCursor(final int totalProducts, final int size,
+                                final int expectedFirst, final int expectedSecond) {
+    repository.products = products(totalProducts);
+
+    final var page1 = useCase.execute(null, size);
+    assertThat(page1.products()).hasSize(expectedFirst);
+    assertThat(page1.nextCursor()).isNotNull();
+
+    final var page2 = useCase.execute(page1.nextCursor(), size);
+    assertThat(page2.products()).hasSize(expectedSecond);
   }
 
   private static Product product(final String id, final int salesUnits) {
@@ -68,31 +75,42 @@ class ListProductsUseCaseImplTest {
       .toList();
   }
 
+  private static Stream<Arguments> paginationScenarios() {
+    return Stream.of(
+      arguments(named("3 products page 2", 3), 2, 2));
+  }
+
+  private static Stream<Arguments> cursorScenarios() {
+    return Stream.of(
+      arguments(named("4 products page 2", 4), 2, 2, 2),
+      arguments(named("5 products page 3", 5), 3, 3, 2));
+  }
+
   private static class TestProductRepository implements ProductRepository {
     List<Product> products = List.of();
 
     @Override
-    public List<Product> findPage(final int page, final int size) {
-      if (page < 1 || size < 1) {
-        return List.of();
+    public PagedResult findPage(final String cursor, final int limit) {
+      var start = 0;
+      if (cursor != null) {
+        final var decoded = CursorCodec.decode(cursor);
+        for (int i = 0; i < products.size(); i++) {
+          if (products.get(i).productId().value().equals(decoded.productId())) {
+            start = i + 1;
+            break;
+          }
+        }
       }
-      final var skip = ((long) page - 1) * size;
-      return products.stream().skip(skip).limit(size).toList();
+      final var page = products.stream().skip(start).limit(limit).toList();
+      final var nextCursor = page.size() == limit && !page.isEmpty()
+        ? page.getLast().productId().value()
+        : null;
+      return new PagedResult(page, products.size(), nextCursor);
     }
 
     @Override
-    public java.util.OptionalInt findMaxSalesUnits() {
-      return java.util.OptionalInt.empty();
-    }
-
-    @Override
-    public List<ScoreableProduct> findAllScoreable() {
-      return List.of();
-    }
-
-    @Override
-    public List<Product> findByIds(final List<dev.jpje.productsorter.domain.vo.ProductId> ids) {
-      return List.of();
+    public PagedResult sortByWeights(final AppliedWeights weights, final String cursor, final int limit) {
+      return new PagedResult(List.of(), 0, null);
     }
   }
 }

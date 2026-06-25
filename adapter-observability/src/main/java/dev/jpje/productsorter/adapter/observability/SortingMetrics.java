@@ -3,7 +3,7 @@ package dev.jpje.productsorter.adapter.observability;
 import java.time.Duration;
 import java.util.Map;
 
-import dev.jpje.productsorter.domain.vo.CriterionType;
+import dev.jpje.productsorter.domain.model.Metrics;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -35,13 +35,13 @@ public class SortingMetrics {
       .register(registry);
 
     this.salesWeight = DistributionSummary.builder("sorting.weights")
-      .tag("criterion", CriterionType.SALES_UNITS.key())
+      .tag("criterion", Metrics.SALES_UNITS.key())
       .description("Sales units weight used in requests")
       .register(registry);
 
     this.stockWeight = DistributionSummary.builder("sorting.weights")
-      .tag("criterion", CriterionType.STOCK_RATIO.key())
-      .description("Stock ratio weight used in requests")
+      .tag("criterion", Metrics.STOCK.key())
+      .description("Stock weight used in requests")
       .register(registry);
   }
 
@@ -49,11 +49,11 @@ public class SortingMetrics {
     requests.increment();
     duration.record(elapsed);
     productsSummary.record(productCount);
-    if (weights.containsKey(CriterionType.SALES_UNITS.key())) {
-      salesWeight.record(weights.get(CriterionType.SALES_UNITS.key()));
+    if (weights.containsKey(Metrics.SALES_UNITS.key())) {
+      salesWeight.record(weights.get(Metrics.SALES_UNITS.key()));
     }
-    if (weights.containsKey(CriterionType.STOCK_RATIO.key())) {
-      stockWeight.record(weights.get(CriterionType.STOCK_RATIO.key()));
+    if (weights.containsKey(Metrics.STOCK.key())) {
+      stockWeight.record(weights.get(Metrics.STOCK.key()));
     }
   }
 }

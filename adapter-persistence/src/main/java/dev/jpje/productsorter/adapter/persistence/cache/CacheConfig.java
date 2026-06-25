@@ -61,9 +61,10 @@ public class CacheConfig {
 
   @Bean
   @ConditionalOnProperty(name = "cache.redis.enabled", havingValue = "true")
-  public CacheManager redisCacheManager(final RedisConnectionFactory connectionFactory) {
+  public CacheManager redisCacheManager(final RedisConnectionFactory connectionFactory,
+                                         @Value("${cache.redis.ttl:300}") final long ttlSeconds) {
     final var config = RedisCacheConfiguration.defaultCacheConfig()
-      .entryTtl(Duration.ofSeconds(120))
+      .entryTtl(Duration.ofSeconds(ttlSeconds))
       .disableCachingNullValues()
       .serializeValuesWith(
         RedisSerializationContext.SerializationPair.fromSerializer(

@@ -1,26 +1,33 @@
-package dev.jpje.productsorter.domain.vo;
+package dev.jpje.productsorter.domain.model;
 
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public enum CriterionType {
+public enum Metrics {
   SALES_UNITS("salesUnits"),
-  STOCK_RATIO("stockRatio");
+  STOCK("stockRatio");
 
   private static final Set<String> VALID_KEYS = Stream.of(values())
-    .map(CriterionType::key)
+    .map(Metrics::key)
     .collect(Collectors.toSet());
 
   private final String key;
 
-  CriterionType(final String key) {
+  Metrics(final String key) {
     this.key = key;
   }
 
   public String key() {
     return key;
+  }
+
+  public static Metrics fromKey(final String key) {
+    return Stream.of(values())
+      .filter(m -> m.key.equals(key))
+      .findFirst()
+      .orElseThrow(() -> new IllegalArgumentException("Unknown metric: " + key));
   }
 
   public static void validateWeights(final Map<String, Double> weights) {
@@ -32,8 +39,10 @@ public enum CriterionType {
         throw new IllegalArgumentException("Unknown criterion: " + key);
       }
     }
-    if (weights.values().stream().anyMatch(w -> w == null || w < 0 || w > 1)) {
-      throw new IllegalArgumentException("Each weight must be between 0 and 1");
+    for (final var weight : weights.values()) {
+      if (weight == null || weight < 0 || weight > 1) {
+        throw new IllegalArgumentException("Each weight must be between 0 and 1");
+      }
     }
   }
 }

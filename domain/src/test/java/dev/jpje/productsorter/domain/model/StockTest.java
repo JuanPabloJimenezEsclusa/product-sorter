@@ -34,4 +34,18 @@ class StockTest {
       .as("Sizes with stock should match expected")
       .isEqualTo(expected);
   }
+
+  @ParameterizedTest
+  @CsvSource({
+    "'S:4,M:9,L:0', 4.333",
+    "'S:35,M:9,L:9', 17.667",
+    "'S:0,M:0,L:0', 0.0",
+    "'S:0,M:1,L:0', 0.333"
+  })
+  void shouldCalculateAveragePerSize(final String raw, final double expected) {
+    final var stock = StockMother.from(raw);
+    assertThat(stock.averagePerSize())
+      .as("Average per size should match expected")
+      .isEqualTo(expected, offset(0.001));
+  }
 }

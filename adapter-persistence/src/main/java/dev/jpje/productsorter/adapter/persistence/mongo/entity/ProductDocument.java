@@ -10,6 +10,7 @@ public record ProductDocument(
     @Id String id,
     String name,
     int salesUnits,
-    List<StockEntry> stock
+    List<StockEntry> stock,
+    Double weightedScore
 ) {
 }
