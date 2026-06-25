@@ -11,7 +11,7 @@
   </parent>
 
   <artifactId>adapter-persistence</artifactId>
-  <name>Infrastructure</name>
+  <name>adapter-persistence</name>
   <description>Outbound adapters: persistence and caching</description>
 
   <licenses>

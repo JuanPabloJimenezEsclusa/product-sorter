@@ -6,7 +6,6 @@ import java.util.List;
 import dev.jpje.productsorter.domain.model.AppliedWeights;
 import dev.jpje.productsorter.domain.vo.CursorCodec;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.mongodb.core.aggregation.AccumulatorOperators;
 import org.springframework.data.mongodb.core.aggregation.AddFieldsOperation;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationExpression;
@@ -54,16 +53,18 @@ final class ProductSorterHelper {
     }
 
     if (appliedWeights.stockWeight() > 0) {
-      final var stockAvg = ConditionalOperators.Cond
+      final var condition = ComparisonOperators.valueOf("$$s.quantity").greaterThanValue(0);
+      final var sizesWithStock = ArrayOperators.Filter.filter("$stock").as("s").by(condition);
+      final var stockRatio = ConditionalOperators.Cond
         .when(ComparisonOperators.valueOf(ArrayOperators.Size.lengthOfArray("$stock"))
           .greaterThanValue(0))
         .then(ArithmeticOperators.Divide.valueOf(
-          AccumulatorOperators.Sum.sumOf("$stock.quantity")
+          ArrayOperators.Size.lengthOfArray(sizesWithStock)
         ).divideBy(
           ArrayOperators.Size.lengthOfArray("$stock")
         ))
         .otherwise(0);
-      expressions.add(ArithmeticOperators.Multiply.valueOf(stockAvg)
+      expressions.add(ArithmeticOperators.Multiply.valueOf(stockRatio)
         .multiplyBy(appliedWeights.stockWeight()));
     }
 

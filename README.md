@@ -29,7 +29,7 @@
 
 ---
 
-**Product Sorter** is a REST service that sorts a product catalog by weighted scoring criteria (sales units, stock). Built with hexagonal (ports & adapters) architecture on Java 25, Spring Boot 4.1, and Maven multi-module.
+**Product Sorter** is a REST service that sorts a product catalog by weighted scoring criteria (sales units, stock). Built with hexagonal (ports & adapters) architecture on Java, Spring Boot, and Maven multi-module.
 
 ---
 
@@ -90,7 +90,7 @@ Scoring is delegated to a MongoDB aggregation pipeline for `O(sort)` scalability
 | Responsibility | Layer |
 |---------------|-------|
 | Metric definitions + weight validation | `domain` (Metrics, AppliedWeights) |
-| Raw value computation (sales, stock avg) | `domain` (Stock.averagePerSize, SalesUnits.value) |
+| Raw value computation (sales, stock ratio) | `domain` (Stock.stockRatio, SalesUnits.value) |
 | Weighted score formula & aggregation | `adapter-persistence` (ProductSorterHelper) |
 | Cursor-based pagination | `application` (PagedResult, size+1 detection) |
 
@@ -107,7 +107,13 @@ db.products.aggregate([
         { $multiply: [
           { $cond: [
             { $gt: [{ $size: "$stock" }, 0] },
-            { $divide: [{ $sum: "$stock.quantity" }, { $size: "$stock" }] },
+            { $divide: [
+              { $size: { $filter: {
+                input: "$stock",
+                cond: { $gt: ["$$s.quantity", 0] }
+              }}},
+              { $size: "$stock" }
+            ]},
             0
           ]},
           0.3
@@ -132,7 +138,7 @@ db.products.aggregate([
     metadata: [{ total: 250000 }],
     data: [
       { _id: "5",  name: "LACE T-SHIRT",        weightedScore: 455.1, ... },
-      { _id: "1",  name: "V-NECH BASIC SHIRT",  weightedScore: 71.3,  ... },
+      { _id: "1",  name: "V-NECH BASIC SHIRT",  weightedScore: 70.2,  ... },
       ... // 21 documents (limit = size + 1)
     ]
   }
@@ -148,16 +154,14 @@ For cursor-based pagination (second page), a `$match` stage is added to the `dat
     { $sort: { weightedScore: -1, _id: -1 } },
     { $match: {
       $or: [
-        { weightedScore: { $lt: 71.3 } },
-        { weightedScore: 71.3, _id: { $lt: "1" } }
+        { weightedScore: { $lt: 70.2 } },
+        { weightedScore: 70.2, _id: { $lt: "1" } }
       ]
     }},
     { $limit: 21 }
   ]
 }}
 ```
-
-Stock average replaces the binary ratio: `sum(quantities) / count(sizes)` instead of `count(nonZero) / totalSizes`.
 
 ### Data Flow
 
@@ -201,12 +205,12 @@ flowchart LR
 ### Caching (L1 + L2)
 
 ```
-get(k) → Caffeine (30s TTL, max 100) → miss → Redis (120s TTL) → miss → MongoDB
+get(k) → Caffeine (30s TTL, max 100) → miss → Redis (300s TTL) → miss → MongoDB
 ```
 
 `MultiTierCache` wraps Caffeine (L1) and Redis (L2). On read: checks L1 first, then L2, populates L1 on L2 hit. On write: writes to both tiers.
 
-Cache namespace: `productCache` with keys per page (`"1-20"`) for `findPage`.
+Cache namespace: `productCache`. First-page requests (cursor=null) are cached by limit size. Subsequent pages with unique cursors bypass the cache.
 
 ### Pagination
 
@@ -234,7 +238,7 @@ The repository returns `size + 1` items. The use case detects `hasMore` when res
 
 ## Scoring Algorithm
 
-Products are sorted by a weighted sum of raw metric values. Unlike the original [0,1]-normalized approach, raw values (crude sales units, average stock per size) are multiplied directly by user-provided weights. No global normalization is required — MongoDB's `$sort` handles ordering regardless of value magnitude.
+Products are sorted by a weighted sum of raw metric values. The sales criterion uses raw sales units (no normalization). The stock criterion uses a binary availability ratio — the proportion of sizes that have any inventory. Final scores are computed in MongoDB via an aggregation pipeline.
 
 ### Criterion: Sales Units
 
@@ -244,46 +248,46 @@ rawScore(product) = product.salesUnits
 
 Uses raw sales units. No normalization against max sales.
 
-### Criterion: Stock
+### Criterion: Stock Ratio
 
 ```
-stockAvg(product) = sum(stock[].quantity) / count(stock[])
-                    0 if stock is empty
+stockRatio(product) = count(sizes where quantity > 0) / totalSizes()
+                      0 if stock is empty
 ```
 
-Measures real inventory depth per size rather than binary presence.
+Measures size availability: what fraction of the product's sizes are in stock. ∈ [0, 1].
 
 ### Weighted Sum
 
 ```
-weightedScore(product) = w_sales × salesUnits + w_stock × stockAvg
+weightedScore(product) = w_sales × salesUnits + w_stock × stockRatio
 ```
 
-Weights are multipliers in [0, 1]. They are NOT percentages — the score range depends on the raw metric magnitudes.
+Sales weights are raw multipliers. Stock weights apply to a ratio already in [0, 1].
 
 ### Step-by-step Example
 
-Using the ITX dataset with `weights = { salesUnits: 0.7, stockRatio: 0.3 }`:
+Using the dataset with `weights = { salesUnits: 0.7, stockRatio: 0.3 }`:
 
-| # | Name | Sales | S | M | L | Sales Score | Stock Avg | Weighted Score |
-|---|------|-------|----|----|----|-------------|-----------|----------------|
-| 1 | V-NECH BASIC SHIRT | 100 | 4 | 9 | 0 | 100 × 0.7 = 70.0 | (4+9+0)/3 = 4.33 | 70.0 + 4.33×0.3 = **71.3** |
-| 2 | CONTRASTING FABRIC T-SHIRT | 50 | 35 | 9 | 9 | 50 × 0.7 = 35.0 | (35+9+9)/3 = 17.67 | 35.0 + 17.67×0.3 = **40.3** |
-| 3 | RAISED PRINT T-SHIRT | 80 | 20 | 2 | 20 | 80 × 0.7 = 56.0 | (20+2+20)/3 = 14.0 | 56.0 + 14.0×0.3 = **60.2** |
-| 4 | PLEATED T-SHIRT | 3 | 25 | 30 | 10 | 3 × 0.7 = 2.1 | (25+30+10)/3 = 21.67 | 2.1 + 21.67×0.3 = **8.6** |
-| 5 | CONTRASTING LACE T-SHIRT | 650 | 0 | 1 | 0 | 650 × 0.7 = 455.0 | (0+1+0)/3 = 0.33 | 455.0 + 0.33×0.3 = **455.1** |
-| 6 | SLOGAN T-SHIRT | 20 | 9 | 2 | 5 | 20 × 0.7 = 14.0 | (9+2+5)/3 = 5.33 | 14.0 + 5.33×0.3 = **15.6** |
+| # | Name | Sales | S | M | L | Sales Score | Stock Ratio | Weighted Score |
+|---|------|-------|----|----|----|-------------|-------------|----------------|
+| 1 | V-NECH BASIC SHIRT | 100 | 4 | 9 | 0 | 100 × 0.7 = 70.0 | 2/3 = 0.667 | 70.0 + 0.667×0.3 = **70.2** |
+| 2 | CONTRASTING FABRIC T-SHIRT | 50 | 35 | 9 | 9 | 50 × 0.7 = 35.0 | 3/3 = 1.0 | 35.0 + 1.0×0.3 = **35.3** |
+| 3 | RAISED PRINT T-SHIRT | 80 | 20 | 2 | 20 | 80 × 0.7 = 56.0 | 3/3 = 1.0 | 56.0 + 1.0×0.3 = **56.3** |
+| 4 | PLEATED T-SHIRT | 3 | 25 | 30 | 10 | 3 × 0.7 = 2.1 | 3/3 = 1.0 | 2.1 + 1.0×0.3 = **2.4** |
+| 5 | CONTRASTING LACE T-SHIRT | 650 | 0 | 1 | 0 | 650 × 0.7 = 455.0 | 1/3 = 0.333 | 455.0 + 0.333×0.3 = **455.1** |
+| 6 | SLOGAN T-SHIRT | 20 | 9 | 2 | 5 | 20 × 0.7 = 14.0 | 3/3 = 1.0 | 14.0 + 1.0×0.3 = **14.3** |
 
 **Sorted result (descending score):**
 
 | Position | ID | Name | Score |
 |----------|----|------|-------|
 | 1 | 5 | CONTRASTING LACE T-SHIRT | **455.1** |
-| 2 | 1 | V-NECH BASIC SHIRT | **71.3** |
-| 3 | 3 | RAISED PRINT T-SHIRT | **60.2** |
-| 4 | 2 | CONTRASTING FABRIC T-SHIRT | **40.3** |
-| 5 | 6 | SLOGAN T-SHIRT | **15.6** |
-| 6 | 4 | PLEATED T-SHIRT | **8.6** |
+| 2 | 1 | V-NECH BASIC SHIRT | **70.2** |
+| 3 | 3 | RAISED PRINT T-SHIRT | **56.3** |
+| 4 | 2 | CONTRASTING FABRIC T-SHIRT | **35.3** |
+| 5 | 6 | SLOGAN T-SHIRT | **14.3** |
+| 6 | 4 | PLEATED T-SHIRT | **2.4** |
 
 ---
 
@@ -331,7 +335,7 @@ docker compose --profile app up --build
 
 ```txt
 mvn test-compile exec:java -pl adapter-persistence \
-  -Dexec.mainClass="dev.jpje.productsorter.adapter-persistence.datagen.ProductDataGenerator" \
+  -Dexec.mainClass="dev.jpje.productsorter.adapter.persistence.datagen.ProductDataGenerator" \
   -Dexec.classpathScope=test \
   -Dexec.args="<count> <output.json>"
 ```
@@ -339,7 +343,7 @@ mvn test-compile exec:java -pl adapter-persistence \
 ```bash
 # Example: 250000 products
 mvn test-compile exec:java -pl adapter-persistence \
-  -Dexec.mainClass="dev.jpje.productsorter.adapter-persistence.datagen.ProductDataGenerator" \
+  -Dexec.mainClass="dev.jpje.productsorter.adapter.persistence.datagen.ProductDataGenerator" \
   -Dexec.classpathScope=test \
   -Dexec.args="250000 /tmp/products.json"
 ```
@@ -500,7 +504,7 @@ All significant design decisions are documented as ADRs in [`docs/adr/`](docs/ad
 | [ADR-0003](docs/adr/0003-use-oauth2-oidc.md) | OAuth 2.0 / OIDC for API authentication |
 | [ADR-0004](docs/adr/0004-use-virtual-threads.md) | Virtual threads (Project Loom) |
 | [ADR-0005](docs/adr/0005-api-design-post-vs-get-and-pagination.md) | POST for sorting + cursor-based pagination |
-| [ADR-0006](docs/adr/0006-aggregation-based-scoring.md) | MongoDB aggregation pipeline for scoring |
+| [ADR-0006](docs/adr/0006-scored-product-composition.md) | ScoredProduct composition over field duplication |
 | [ADR-0007](docs/adr/0007-observability-decorator-and-mdc.md) | Decorator pattern for metrics + MDC correlation |
 | [ADR-0008](docs/adr/0008-pure-hexagonal-adapter-naming.md) | Pure hexagonal adapter naming convention |
 
@@ -515,7 +519,7 @@ Types: feat | fix | docs | style | refactor | perf | test | build | ci | chore |
 Scopes: api-spec | domain | application | adapter | bootstrap | testdata | coverage | docker | ci | config
 
 Examples:
-  feat(domain): add averagePerSize to stock value object
+  feat(domain): add stockRatio binary availability criterion
   refactor(adapter): replace in-memory sorting with aggregation pipeline
   test(domain): parametrize stock ratio with Instancio
   ci(workflows): add commitlint validation

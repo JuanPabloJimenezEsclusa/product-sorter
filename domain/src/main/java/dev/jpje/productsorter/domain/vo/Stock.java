@@ -24,20 +24,10 @@ public record Stock(List<StockBySize> entries) implements Serializable {
       .count();
   }
 
-  public double ratio() {
+  public double stockRatio() {
     if (entries().isEmpty()) {
       return 0.0;
     }
     return (double) sizesWithStock() / entries().size();
-  }
-
-  public double averagePerSize() {
-    if (entries().isEmpty()) {
-      return 0.0;
-    }
-    final var total = entries().stream()
-      .mapToInt(StockBySize::quantity)
-      .sum();
-    return (double) total / entries().size();
   }
 }

@@ -66,7 +66,7 @@ class ListProductsUseCaseImplTest {
   private static Product product(final String id, final int salesUnits) {
     return new Product(
       ProductId.of(id), ProductName.of("P" + id), SalesUnits.of(salesUnits),
-      Stock.of(List.of(StockBySize.of(Size.S, 1), StockBySize.of(Size.M, 1), StockBySize.of(Size.L, 1))));
+      Stock.of(List.of(StockBySize.of(Size.of("S"), 1), StockBySize.of(Size.of("M"), 1), StockBySize.of(Size.of("L"), 1))));
   }
 
   private static List<Product> products(final int count) {

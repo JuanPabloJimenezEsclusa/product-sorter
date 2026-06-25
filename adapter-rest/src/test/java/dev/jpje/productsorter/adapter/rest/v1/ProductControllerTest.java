@@ -68,7 +68,7 @@ class ProductControllerTest {
       .mapToObj(i -> new Product(
         ProductId.of(String.valueOf(i + 1)), ProductName.of("P" + (i + 1)),
         SalesUnits.of((i + 1) * 100),
-        Stock.of(List.of(StockBySize.of(Size.S, 1), StockBySize.of(Size.M, 1), StockBySize.of(Size.L, 1))),
+        Stock.of(List.of(StockBySize.of(Size.of("S"), 1), StockBySize.of(Size.of("M"), 1), StockBySize.of(Size.of("L"), 1))),
         (3 - i) * 0.1))
       .toList();
     when(sortUseCase.execute(any(), isNull(), any())).thenReturn(new PagedResult(scoredProducts, 3, null));
@@ -87,9 +87,9 @@ class ProductControllerTest {
   void shouldReturnProductsWithPagination() {
     final var products = List.of(
       new Product(ProductId.of("1"), ProductName.of("P1"), SalesUnits.of(100),
-        Stock.of(List.of(StockBySize.of(Size.S, 1), StockBySize.of(Size.M, 1), StockBySize.of(Size.L, 1)))),
+        Stock.of(List.of(StockBySize.of(Size.of("S"), 1), StockBySize.of(Size.of("M"), 1), StockBySize.of(Size.of("L"), 1)))),
       new Product(ProductId.of("2"), ProductName.of("P2"), SalesUnits.of(50),
-        Stock.of(List.of(StockBySize.of(Size.S, 0), StockBySize.of(Size.M, 0), StockBySize.of(Size.L, 0)))));
+        Stock.of(List.of(StockBySize.of(Size.of("S"), 0), StockBySize.of(Size.of("M"), 0), StockBySize.of(Size.of("L"), 0)))));
     when(listUseCase.execute(isNull(), eq(10))).thenReturn(new PagedResult(products, 2, null));
 
     final var response = controller.getProducts(null, 10);

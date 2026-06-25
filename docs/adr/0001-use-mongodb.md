@@ -4,35 +4,42 @@
 
 ## Context
 
-Product catalog data has a variable schema (new criteria may be added over time). The sorting use case requires fast projection queries (`findAllScoreable` fetches only 3 fields) and paginated access. The data is document-oriented: products have embedded stock entries per size.
+The product catalog stores products with embedded stock entries per size (a product has N `StockBySize` entries). The two core use cases are paginated product listing (`findPage`) and weighted product sorting (`sortByWeights`). The sorting use case computes a score from `salesUnits` and `stockRatio` using user-supplied weights and returns results in descending score order.
 
-Additionally, we need a strategy for document identifiers that works across systems and allows client-side generation.
+We also need an identifier strategy: identifiers must support lexicographic cursor-based pagination via `_id`.
 
 ## Decision
 
-Use MongoDB as the primary database store with UUID strings as document identifiers.
+Use MongoDB as the database with plain `String` document identifiers.
+
+The adapter accesses MongoDB through `MongoTemplate` (Spring Data MongoDB's low-level operations API) rather than `MongoRepository` (Spring Data's repository abstraction). This keeps `ProductRepository` as the single domain-facing interface defined in the domain layer, with the adapter implementing it directly.
 
 ## Rationale
 
 ### MongoDB
 
-- **Document model** — Product with nested stock entries maps naturally to a MongoDB document, avoiding JOINs or complex ORM mappings
-- **Projection queries** — `findAllScoreable()` with field projection (`_id`, `salesUnits`, `stock`) returns only the data needed for scoring, reducing data transfer by ~80%
-- **Index support** — `{salesUnits: -1}` index makes `findMaxSalesUnits()` an IXSCAN (~1ms) instead of COLLSCAN
-- **Schema flexibility** — new criteria fields can be added without migrations
-- **Testcontainers** — MongoDB 8 community server starts in <1s for integration tests
+- **Document model** — Product with embedded `StockBySize[]` maps directly to a MongoDB document, avoiding JOINs or ORM mappings
+- **Aggregation pipeline** — Weighted score computation (`$addFields`), sorting (`$sort`), and pagination (`$facet`) execute entirely within MongoDB, avoiding in-memory scoring of large result sets
+- **Cursor-based pagination** — `_id`-based cursor provides stable pagination without offset drift
+- **Schema simplicity** — The `ProductDocument` record maps to the `products` collection using only `@Document` and `@Id` annotations; no custom converters
+- **Testcontainers** — MongoDB container starts in under 1s for integration tests
 
-### UUID as `_id`
+### Plain string identifiers
 
-- **Global uniqueness** — IDs are unique across systems without a central coordinator
-- **Client-side generation** — Clients can generate IDs offline (useful for event-driven or offline-capable architectures)
-- **No enumeration** — Avoids sequential ID enumeration by external consumers
-- **String storage** — Stored as plain strings, not `BinData` UUID, so Spring Data MongoDB maps directly to `String` without custom converters
+- **Simplicity** — `@Id String id` maps directly to `_id` with no type conversion
+- **Compatibility** — External systems or data generators can insert documents without binary format concerns
+- **Cursor stability** — String `_id` provides lexicographic ordering for cursor-based pagination
+
+### MongoTemplate over MongoRepository
+
+- **Domain-first repository** — `ProductRepository` is defined in the domain module as the single contract; `MongoTemplate` is a private implementation detail of the adapter
+- **Aggregation control** — `sortByWeights` requires multi-stage aggregation pipelines (`$addFields`, `$sort`, `$facet`, `$match`) that `MongoTemplate.aggregate()` supports directly without annotation-driven query derivation
+- **No leaky abstractions** — `MongoRepository` would force Spring Data interfaces (`MongoRepository<ProductDocument, String>`) into our own adapter, blurring the boundary between the domain port and the persistence technology
 
 ## Consequences
 
-- Transactions are not used (the write path is single-document, no跨-document consistency needed)
-- MongoDB must be running for the application to function
-- No SQL-based analytics or reporting — all reporting goes through the REST API
-- UUIDs are less storage-efficient than auto-incrementing integers (36 bytes per string vs 4-8 bytes per int)
-- Human readability is reduced compared to sequential IDs
+- The `products` collection relies on the default `_id` index only; no additional indices are created at startup
+- The weighted score computation is coupled to MongoDB's aggregation pipeline (`ProductSorterHelper`); alternative database backends would require reimplementing the scoring in the query layer
+- `ProductId` is a plain `String` wrapper with no format validation — any string value is accepted as a valid identifier
+- No transactions are used; the application is read-only so multi-document consistency is not required
+- Spring Boot auto-configuration manages the `MongoTemplate` bean via `application.yml`; no manual client setup

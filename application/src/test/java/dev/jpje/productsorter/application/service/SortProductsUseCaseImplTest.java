@@ -49,9 +49,9 @@ class SortProductsUseCaseImplTest {
         ProductName.of("Product " + (i + 1)),
         SalesUnits.of((i + 1) * 100),
         Stock.of(List.of(
-          StockBySize.of(Size.S, 1),
-          StockBySize.of(Size.M, 1),
-          StockBySize.of(Size.L, 1))))
+          StockBySize.of(Size.of("S"), 1),
+          StockBySize.of(Size.of("M"), 1),
+          StockBySize.of(Size.of("L"), 1))))
       )
       .toList();
 
@@ -97,7 +97,7 @@ class SortProductsUseCaseImplTest {
         ProductName.of("P" + (i + 1)),
         SalesUnits.of((totalProducts - i) * 100),
         Stock.of(List.of(
-          StockBySize.of(Size.S, 1), StockBySize.of(Size.M, 1), StockBySize.of(Size.L, 1)))))
+          StockBySize.of(Size.of("S"), 1), StockBySize.of(Size.of("M"), 1), StockBySize.of(Size.of("L"), 1)))))
       .toList();
 
     final var firstPage = useCase.execute(
@@ -172,7 +172,7 @@ class SortProductsUseCaseImplTest {
       final var sorted = products.stream()
         .map(p -> {
           final var salesScore = weights.salesUnitsWeight() * p.salesUnits().value();
-          final var stockScore = weights.stockWeight() * p.stock().averagePerSize();
+          final var stockScore = weights.stockWeight() * p.stock().stockRatio();
           final var weightedScore = salesScore + stockScore;
           return new Product(p.productId(), p.productName(), p.salesUnits(), p.stock(), weightedScore);
         })
