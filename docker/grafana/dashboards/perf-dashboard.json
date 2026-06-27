@@ -1,0 +1,160 @@
+{
+  "title": "Performance Test",
+  "uid": "perf-test",
+  "version": 1,
+  "tags": ["perf", "product-sorter"],
+  "schemaVersion": 40,
+  "timezone": "browser",
+  "editable": true,
+  "refresh": "5s",
+  "panels": [
+    {
+      "title": "Sort Throughput",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "rate(sorting_requests_total{application='product-sorter'}[$__rate_interval])",
+          "legendFormat": "sort req/s"
+        }
+      ],
+      "options": { "colorMode": "background", "graphMode": "sparkline", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"], "values": false }, "textMode": "auto" },
+      "fieldConfig": { "defaults": { "unit": "rps", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 50 }, { "color": "red", "value": 100 }] }, "decimals": 1 } }
+    },
+    {
+      "title": "Sort p50",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [{ "expr": "sorting_duration_seconds{application='product-sorter', quantile='0.5'}", "legendFormat": "p50" }],
+      "options": { "colorMode": "background", "graphMode": "sparkline", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"], "values": false }, "textMode": "auto" },
+      "fieldConfig": { "defaults": { "unit": "s", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 0.5 }, { "color": "red", "value": 1.0 }] }, "decimals": 3 } }
+    },
+    {
+      "title": "Sort p95",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [{ "expr": "sorting_duration_seconds{application='product-sorter', quantile='0.95'}", "legendFormat": "p95" }],
+      "options": { "colorMode": "background", "graphMode": "sparkline", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"], "values": false }, "textMode": "auto" },
+      "fieldConfig": { "defaults": { "unit": "s", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 1.0 }, { "color": "red", "value": 2.0 }] }, "decimals": 3 } }
+    },
+    {
+      "title": "Sort p99",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [{ "expr": "sorting_duration_seconds{application='product-sorter', quantile='0.99'}", "legendFormat": "p99" }],
+      "options": { "colorMode": "background", "graphMode": "sparkline", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"], "values": false }, "textMode": "auto" },
+      "fieldConfig": { "defaults": { "unit": "s", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 2.0 }, { "color": "red", "value": 5.0 }] }, "decimals": 3 } }
+    },
+    {
+      "title": "HTTP p95 by Endpoint",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{application='product-sorter', uri=~'/products.*'}[$__rate_interval])) by (uri, method)",
+          "legendFormat": "{{method}} {{uri}} p95"
+        }
+      ],
+      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "right" } },
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "lineInterpolation": "smooth", "spanNulls": true, "fillOpacity": 15 }, "color": { "mode": "palette-classic" }, "decimals": 3 } }
+    },
+    {
+      "title": "HTTP Rate by Outcome",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "rate(http_server_requests_seconds_count{application='product-sorter', outcome='SUCCESS'}[$__rate_interval])", "legendFormat": "2xx" },
+        { "expr": "rate(http_server_requests_seconds_count{application='product-sorter', outcome='CLIENT_ERROR'}[$__rate_interval])", "legendFormat": "4xx" },
+        { "expr": "rate(http_server_requests_seconds_count{application='product-sorter', outcome='SERVER_ERROR'}[$__rate_interval])", "legendFormat": "5xx" }
+      ],
+      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "right" } },
+      "fieldConfig": { "defaults": { "unit": "rps", "custom": { "lineInterpolation": "smooth", "spanNulls": true, "fillOpacity": 20, "stacking": { "mode": "none" } }, "color": { "mode": "palette-classic" } } }
+    },
+    {
+      "title": "Sort Duration Percentiles",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "sorting_duration_seconds{application='product-sorter', quantile='0.5'}", "legendFormat": "p50" },
+        { "expr": "sorting_duration_seconds{application='product-sorter', quantile='0.95'}", "legendFormat": "p95" },
+        { "expr": "sorting_duration_seconds{application='product-sorter', quantile='0.99'}", "legendFormat": "p99" }
+      ],
+      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "right" } },
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "lineInterpolation": "smooth", "spanNulls": true }, "color": { "mode": "palette-classic" }, "decimals": 3, "min": 0 } }
+    },
+    {
+      "title": "JVM Heap",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "jvm_memory_used_bytes{application='product-sorter', area='heap'}", "legendFormat": "heap used" },
+        { "expr": "jvm_memory_max_bytes{application='product-sorter', area='heap'}", "legendFormat": "heap max" }
+      ],
+      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "right" } },
+      "fieldConfig": { "defaults": { "unit": "bytes", "custom": { "lineInterpolation": "smooth", "spanNulls": true, "fillOpacity": 20 }, "color": { "mode": "palette-classic" } } }
+    },
+    {
+      "title": "GC Pause Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "rate(jvm_gc_pause_seconds_sum{application='product-sorter'}[$__rate_interval])", "legendFormat": "{{action}} (rate)" }
+      ],
+      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "right" } },
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "lineInterpolation": "smooth", "spanNulls": true }, "color": { "mode": "palette-classic" }, "decimals": 4, "min": 0 } }
+    },
+    {
+      "title": "Virtual Threads",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "jvm_threads_live_threads{application='product-sorter'}", "legendFormat": "live threads" },
+        { "expr": "jvm_threads_peak_threads{application='product-sorter'}", "legendFormat": "peak" }
+      ],
+      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "right" } },
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "lineInterpolation": "smooth", "spanNulls": true }, "color": { "mode": "palette-classic" } } }
+    }
+  ],
+  "rows": [],
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": { "selected": true, "text": "Prometheus", "value": "Prometheus" },
+        "hide": 0,
+        "label": "Data Source"
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "name": "Test Start",
+        "type": "tags",
+        "datasource": { "type": "prometheus", "uid": "Prometheus" },
+        "tags": ["start"],
+        "iconColor": "green",
+        "enable": true,
+        "showIn": 0
+      }
+    ]
+  },
+  "links": [],
+  "time": { "from": "now-15m", "to": "now" },
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m"],
+    "time_options": ["5m", "15m", "1h"]
+  }
+}

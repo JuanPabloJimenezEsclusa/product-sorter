@@ -1,5 +1,6 @@
 package dev.jpje.productsorter.domain.port;
 
+import java.io.Serializable;
 import java.util.List;
 
 import dev.jpje.productsorter.domain.model.AppliedWeights;
@@ -11,7 +12,7 @@ public interface ProductRepository {
 
   PagedResult sortByWeights(AppliedWeights weights, String cursor, int limit);
 
-  record PagedResult(List<Product> products, int total, String nextCursor) {
+  record PagedResult(List<Product> products, int total, String nextCursor) implements Serializable {
     public PagedResult {
       products = List.copyOf(products);
     }

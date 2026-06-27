@@ -25,7 +25,7 @@ services:
       retries: 12
     deploy:
       resources:
-        limits: { cpus: "2", memory: "2048M" }
+        limits: { cpus: "4", memory: "4096M" }
         reservations: { cpus: "1", memory: "1024M" }
 
   redis:
@@ -153,6 +153,7 @@ services:
     <<: *default-resources
 
   product-sorter-app:
+    image: jpje/product-sorter-app:${APP_VERSION:-1.0.0}
     build: .
     container_name: product-sorter-app
     hostname: product-sorter-app
@@ -163,8 +164,8 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker-compose
       SPRING_DOCKER_COMPOSE_ENABLED: false
-      JAVA_TOOL_OPTIONS: "-Xms512m -Xmx1500m -XX:+UseContainerSupport -XX:+UseCompactObjectHeaders -Djava.security.egd=file:/dev/./urandom"
-      MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017/productsorter}
+      JAVA_TOOL_OPTIONS: "-Xms512m -XX:MaxRAMPercentage=75.0 -XX:MaxMetaspaceSize=256m -XX:ReservedCodeCacheSize=256m -XX:+UseCompactObjectHeaders -Djava.security.egd=file:/dev/./urandom"
+      MONGODB_URI: "${MONGODB_URI:-mongodb://mongodb:27017/productsorter?maxPoolSize=200&connectTimeoutMS=120000&timeoutMS=120000&serverSelectionTimeoutMS=90000}"
       REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_PASSWORD: ${REDIS_PASSWORD:-admin}

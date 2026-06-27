@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product Sorter — Performance Report</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 960px; margin: 0 auto; padding: 2rem; color: #1a1a2e; background: #f8f9fa; }
+  h1 { border-bottom: 2px solid #4a6cf7; padding-bottom: 0.5rem; }
+  h2 { color: #4a6cf7; margin-top: 2rem; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  th { background: #4a6cf7; color: #fff; padding: 0.75rem; text-align: left; font-weight: 600; }
+  td { padding: 0.75rem; border-bottom: 1px solid #e9ecef; }
+  tr:last-child td { border-bottom: none; }
+  .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+  .badge-pass { background: #d4edda; color: #155724; }
+  .badge-warn { background: #fff3cd; color: #856404; }
+  .badge-fail { background: #f8d7da; color: #721c24; }
+  .meta { color: #6c757d; font-size: 0.9rem; }
+  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 1rem 0; }
+  .summary-card { background: #fff; padding: 1rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
+  .summary-card .value { font-size: 1.8rem; font-weight: 700; color: #4a6cf7; }
+  .summary-card .label { font-size: 0.8rem; color: #6c757d; text-transform: uppercase; margin-top: 0.25rem; }
+  .chart-placeholder { background: #fff; border-radius: 8px; padding: 1rem; margin: 1rem 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; color: #6c757d; }
+  .chart-placeholder a { color: #4a6cf7; }
+</style>
+</head>
+<body>
+
+<h1>Product Sorter — Performance Test Report</h1>
+<p class="meta">Java 25 · Spring Boot 4.1 · Virtual Threads · MongoDB 8 · Redis 8</p>
+
+<h2>Test Configuration</h2>
+<table>
+  <tr><th>Parameter</th><th>Value</th></tr>
+  <tr><td>Workload</td><td>70% list (GET /products) + 30% sort (POST /products/sort)</td></tr>
+  <tr><td>Page size</td><td>20</td></tr>
+  <tr><td>Ramp profile</td><td>5 VU warmup → 10 VU (3m) → 50 VU (3m) → 100 VU (3m)</td></tr>
+  <tr><td>Think time</td><td>1s per iteration</td></tr>
+  <tr><td>Auth</td><td>OAuth2 client_credentials via Keycloak</td></tr>
+</table>
+
+<h2>Latency Summary</h2>
+<table>
+  <thead>
+    <tr><th>Products</th><th>p50</th><th>p95</th><th>p99</th><th>Avg Req/s</th><th>Fail Rate</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>10,000</td><td id="l10k-p50">--</td><td id="l10k-p95">--</td><td id="l10k-p99">--</td><td id="l10k-rps">--</td><td id="l10k-fail">--</td></tr>
+    <tr><td>100,000</td><td id="l100k-p50">--</td><td id="l100k-p95">--</td><td id="l100k-p99">--</td><td id="l100k-rps">--</td><td id="l100k-fail">--</td></tr>
+    <tr><td>1,000,000</td><td id="l1m-p50">--</td><td id="l1m-p95">--</td><td id="l1m-p99">--</td><td id="l1m-rps">--</td><td id="l1m-fail">--</td></tr>
+  </tbody>
+</table>
+
+<h2>Resource Usage</h2>
+<table>
+  <thead>
+    <tr><th>Products</th><th>App CPU (peak)</th><th>App RAM (peak)</th><th>MongoDB CPU</th><th>GC Pause Rate</th><th>Peak Threads</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>10,000</td><td id="cpu10k">--</td><td id="ram10k">--</td><td id="mongo10k">--</td><td id="gc10k">--</td><td id="threads10k">--</td></tr>
+    <tr><td>100,000</td><td id="cpu100k">--</td><td id="ram100k">--</td><td id="mongo100k">--</td><td id="gc100k">--</td><td id="threads100k">--</td></tr>
+    <tr><td>1,000,000</td><td id="cpu1m">--</td><td id="ram1m">--</td><td id="mongo1m">--</td><td id="gc1m">--</td><td id="threads1m">--</td></tr>
+  </tbody>
+</table>
+
+<div class="chart-placeholder">
+  <strong>Live Grafana Dashboard:</strong>
+  <a href="http://localhost:3000/d/perf-test" target="_blank">http://localhost:3000/d/perf-test</a>
+  (admin / admin)
+</div>
+
+<h2>Recommendations</h2>
+<table>
+  <thead><tr><th>Condition</th><th>Action</th></tr></thead>
+  <tbody>
+    <tr><td>p95 sort &gt; 2s at 100 VU with 1M products</td><td>Add MongoDB compound index. Increase cache TTL.</td></tr>
+    <tr><td>Fail rate &gt; 2%</td><td>Check MongoDB connection pool exhaustion (maxPoolSize=200). Increase if saturated.</td></tr>
+    <tr><td>GC pause rate &gt; 5/s</td><td>Increase heap from -Xmx1500m to -Xmx2500m.</td></tr>
+    <tr><td>Virtual threads &gt; 1000</td><td>Investigate thread pinning. Enable <code>-XX:+UnlockDiagnosticVMOptions -XX:DiagnoseSyncOnValueBasedClasses</code>.</td></tr>
+    <tr><td>MongoDB CPU &gt; 80% sustained</td><td>Add read replica. Move aggregation to precomputed collection.</td></tr>
+  </tbody>
+</table>
+
+<script>
+// Populated by report.sh via sed or by k6 summary JSON
+console.log('Load summary JSON files and populate cells');
+</script>
+</body>
+</html>
