@@ -1,42 +1,35 @@
-# ADR 0008: Pure Hexagonal Adapter Naming Convention
+# ADR 0008: Hexagonal Adapter Naming Convention
 
 **Date:** 2026-06-24
 
 ## Context
 
-The project initially used a mixed naming convention: `adapter-rest` for the inbound HTTP adapter, `infrastructure` for persistence and caching, and `infrastructure-observability` for metrics and logging. While common in Spring Boot projects, this naming is inconsistent with strict hexagonal (ports & adapters) architecture as defined by Alistair Cockburn.
+Hexagonal architecture (ports & adapters) distinguishes two types of code outside the application core: ports (interfaces defining the boundary) and adapters (implementations that translate between the core and the outside world). Module naming must make these roles immediately visible.
 
-In pure hexagonal architecture, there are only two types of code outside the application core:
-
-| Type | Role |
-|------|------|
-| **Ports** | Interfaces defining the boundary (inbound/outbound) |
-| **Adapters** | Implementations that translate between the core and the outside world |
-
-There is no "infrastructure" layer — everything that is not domain or application logic is an adapter.
+Spring Boot projects conventionally use layered names like `infrastructure`, `persistence`, or `web`. These names hide the hexagonal role of each module.
 
 ## Decision
 
-Rename modules to use a pure `adapter-*` prefix:
+Name every module outside `domain` and `application` with the `adapter-*` prefix, matching its hexagonal role:
 
-| Before | After | Hexagonal role |
-|--------|-------|----------------|
-| `adapter-rest` | `adapter-rest` (unchanged) | Driving (inbound) adapter — translates HTTP → use case calls |
-| `infrastructure` | `adapter-persistence` | Driven (outbound) adapter — translates `ProductRepository` port → MongoDB |
-| `infrastructure-observability` | `adapter-observability` | Driving adapter decorator — wraps `SortProductsUseCase` with metrics |
+| Module | Hexagonal role |
+|--------|----------------|
+| `adapter-rest` | Driving (inbound) adapter — translates HTTP requests into use case calls |
+| `adapter-persistence` | Driven (outbound) adapter — implements `ProductRepository` port with MongoDB and caching |
+| `adapter-observability` | Driving adapter decorator — wraps `SortProductsUseCase` with Micrometer metrics and MDC tracing |
 
 ### Sub-package organization within adapters
 
-Driven adapters are further organized by concrete technology:
+Driven adapters group implementation by concrete technology:
 
 ```
 adapter-persistence/
 └── src/main/java/dev/jpje/productsorter/adapter/persistence/
-    ├── mongo/          ← MongoDB-specific implementation of ProductRepository
+    ├── mongo/              ← MongoDB ProductRepository implementation
     │   ├── MongoProductRepositoryAdapter.java
     │   ├── ProductDocumentMapper.java
     │   └── entity/
-    └── cache/          ← Cross-cutting caching (supports multiple adapters)
+    └── cache/              ← Cross-cutting caching (supports any persistence adapter)
         ├── MultiTierCache.java
         ├── CompositeCacheManager.java
         └── CacheConfig.java
@@ -44,13 +37,12 @@ adapter-persistence/
 
 ## Rationale
 
-- **Conceptual purity** — Every module outside `domain` and `application` is an adapter. No ambiguity about layer responsibilities
-- **Discoverability** — New team members can immediately identify all adapters by the `adapter-*` prefix without reading pom.xml files
-- **Extensibility** — Adding a new database (e.g. PostgreSQL) means adding `adapter-persistence/src/main/java/.../persistence/postgres/` without restructuring existing code
-- **Testability** — Each adapter is independently testable with its own technology-specific mocks/containers
+- **Role visibility** — The `adapter-` prefix communicates hexagonal role at the module level without reading POM or source files
+- **Flat structure** — All adapters sit at the same level; no nested distinction between "infrastructure" and "adapters"
+- **Extensibility** — A new database backend (e.g. `adapter-persistence/.../postgres/`) fits within the existing module without restructuring
+- **Test isolation** — Each adapter is independently testable with its own technology-specific containers or mocks
 
 ## Consequences
 
-- Module names changed for 2 out of 3 adapters, requiring pom.xml and import updates
-- The adage "there is no infrastructure in hexagonal architecture" must be remembered during code review (no new `infrastructure` modules should be introduced)
-- Developers familiar with Spring Boot's layered architecture may initially find the flat adapter structure unfamiliar
+- Team members must distinguish between hexagonal adapters (this convention) and Spring-style `@Adapter` stereotypes — the two are unrelated
+- New modules that touch external systems must follow the `adapter-*` prefix; no `infrastructure` or `persistence` module names are permitted

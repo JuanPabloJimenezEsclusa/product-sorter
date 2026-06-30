@@ -216,7 +216,7 @@ class ProductSorterE2eTest {
       arguments(named("stock only", new SortCase(
         Map.of("salesUnits", 0.0, "stockRatio", 1.0), null, 20, 6,
         List.of(
-          new BodyAssertion("data[0].id", "4"),
-          new BodyAssertion("data[1].id", "2"))))));
+          new BodyAssertion("data[0].id", "6"),
+          new BodyAssertion("data[1].id", "4"))))));
   }
 }

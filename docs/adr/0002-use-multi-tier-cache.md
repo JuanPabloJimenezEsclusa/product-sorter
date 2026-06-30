@@ -4,7 +4,7 @@
 
 ## Context
 
-Sorting 250k+ products involves two MongoDB queries (`findAllScoreable`, `findMaxSalesUnits`) that are read-heavy and compute-intensive. The same catalog data is sorted repeatedly with different weight combinations. Caching is required to reduce database load and latency.
+The two core operations — `findPage` (pagination query + full-collection count) and `sortByWeights` (aggregation pipeline with scoring) — are read-heavy and execute on every request. The same catalog data is sorted repeatedly with different weight combinations. Caching is required to reduce database load and latency.
 
 ## Decision
 

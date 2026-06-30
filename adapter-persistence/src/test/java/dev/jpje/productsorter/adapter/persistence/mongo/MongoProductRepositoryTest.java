@@ -103,8 +103,8 @@ class MongoProductRepositoryTest {
       .as("Should return all 6 products")
       .hasSize(6);
     assertThat(result.products().getFirst().productId().value())
-      .as("Product 4 has highest stock average")
-      .isEqualTo("4");
+      .as("Product with highest stock ratio (tiebreaker _id desc)")
+      .isEqualTo("6");
   }
 
   @Test
@@ -154,23 +154,10 @@ class MongoProductRepositoryTest {
   @Test
   void shouldMapStockRatio() {
     final var doc = mongoTemplate.findById("1", ProductDocument.class, "products");
-    assertThat(doc)
-      .as("Document should exist")
-      .isNotNull();
-    assertThat(mapper.toDomain(doc).stock().ratio())
-      .as("Stock ratio should be computed correctly")
+    assertThat(doc).isNotNull();
+    assertThat(mapper.toDomain(doc).stock().stockRatio())
+      .as("Stock ratio should match expected")
       .isCloseTo(0.667, within(0.01));
-  }
-
-  @Test
-  void shouldMapStockAveragePerSize() {
-    final var doc = mongoTemplate.findById("1", ProductDocument.class, "products");
-    assertThat(doc)
-      .as("Document should exist")
-      .isNotNull();
-    assertThat(mapper.toDomain(doc).stock().averagePerSize())
-      .as("Stock average per size should match")
-      .isCloseTo(4.333, within(0.01));
   }
 
   private void seedProducts() {

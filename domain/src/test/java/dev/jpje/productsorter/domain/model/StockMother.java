@@ -15,7 +15,7 @@ public class StockMother {
     final var entries = Stream.of(raw.split(","))
       .map(part -> {
         final var split = part.split(":");
-        return StockBySize.of(Size.valueOf(split[0].trim()), Integer.parseInt(split[1].trim()));
+        return StockBySize.of(Size.of(split[0].trim()), Integer.parseInt(split[1].trim()));
       })
       .toList();
     return Stock.of(entries);

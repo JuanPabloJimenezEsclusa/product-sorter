@@ -19,7 +19,7 @@ public class ProductDocumentMapper {
       ProductName.of(doc.name()),
       SalesUnits.of(doc.salesUnits()),
       Stock.of(doc.stock().stream()
-        .map(e -> StockBySize.of(Size.valueOf(e.size()), e.quantity()))
+        .map(e -> StockBySize.of(Size.of(e.size()), e.quantity()))
         .toList()),
       doc.weightedScore()
     );
