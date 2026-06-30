@@ -15,6 +15,9 @@ k6-based load tests for the product-sorter API across three data volumes and thr
 
 # Aggregate report (after any run)
 ./perf/scripts/report.sh
+
+# Cleanup
+./perf/scripts/cleanup.sh
 ```
 
 **Live dashboard:** `http://localhost:3000/d/perf-test` (admin / admin)
@@ -46,17 +49,16 @@ perf/
 │   ├── sort-products.js         # POST /products/sort
 │   ├── mixed-workload.js        # 70/30 mixed (12 min, full)
 │   └── mixed-workload-quick.js  # 70/30 mixed (6 min, smoke)
-├── grafana/                    # (See docker/grafana/dashboards/perf-dashboard.json)
 ├── scripts/
 │   ├── generate-data.sh         # ProductDataGenerator → JSONL
 │   ├── import-data.sh           # mongoimport --drop
 │   ├── start.sh                 # Start app stack + perf container, wait for health
 │   ├── quick-test.sh            # Smoke suite: all 3 volumes, 6 min each
 │   ├── run-session.sh           # Full session orchestrator (6 steps)
+│   ├── cleanup.sh               # Stop services, remove volumes, delete app image
 │   └── report.sh                # Markdown report from k6 summaries
 └── report/
-    ├── template.html            # HTML report (populated post-run)
-    └── results/                 # k6 JSON output + Prometheus snapshots
+    └── results/                 # k6 JSON output
 ```
 
 ## Prerequisites

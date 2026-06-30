@@ -23,11 +23,11 @@ export const options = {
 function randomWeights() {
   const sales = (Math.random() * 0.6 + 0.2).toFixed(2);
   return JSON.stringify({
-    weights: { salesUnits: parseFloat(sales), stockRatio: parseFloat((1 - sales).toFixed(2)) },
+    weights: { salesUnits: Number.parseFloat(sales), stockRatio: Number.parseFloat((1 - sales).toFixed(2)) },
   });
 }
 
-export default function () {
+export default function executeWorkload() {
   const headers = authHeaders();
 
   if (Math.random() < 0.7) {

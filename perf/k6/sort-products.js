@@ -23,10 +23,10 @@ export const options = {
 function randomWeights() {
   const sales = (Math.random() * 0.6 + 0.2).toFixed(2);
   const stock = (1 - sales).toFixed(2);
-  return JSON.stringify({ weights: { salesUnits: parseFloat(sales), stockRatio: parseFloat(stock) } });
+  return JSON.stringify({ weights: { salesUnits: Number.parseFloat(sales), stockRatio: Number.parseFloat(stock) } });
 }
 
-export default function () {
+export default function listSortProducts() {
   const headers = authHeaders();
   const body = randomWeights();
 

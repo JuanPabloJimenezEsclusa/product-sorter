@@ -5,8 +5,8 @@ set -euo pipefail
 FILE=${1:?Usage: import-data.sh <jsonl_file>}
 MONGODB_URI=${MONGODB_URI:-mongodb://localhost:27017/productsorter}
 COLLECTION=${COLLECTION:-products}
-BATCH=${BATCH_SIZE:-250000}
-PAUSE=${BATCH_PAUSE:-3}
+BATCH=${BATCH_SIZE:-100000}
+PAUSE=${BATCH_PAUSE:-5}
 
 if [ ! -f "${FILE}" ]; then
   echo "File not found: ${FILE}"
@@ -26,10 +26,23 @@ split -l "${BATCH}" "${FILE}" "${chunks_dir}/chunk_"
 for chunk in "${chunks_dir}"/chunk_*; do
   count=$(wc -l < "${chunk}")
   echo "  importing ${count} docs ..."
-  mongoimport \
-    --uri="${MONGODB_URI}" \
-    --collection "${COLLECTION}" \
-    --file "${chunk}"
+  for attempt in 1 2 3; do
+    if mongoimport \
+      --uri="${MONGODB_URI}" \
+      --collection "${COLLECTION}" \
+      --file "${chunk}" \
+      --numInsertionWorkers 1 \
+      --batchSize 5000; then
+      break
+    fi
+    if [ "$attempt" -lt 3 ]; then
+      echo "    attempt ${attempt} failed, retrying ..."
+      sleep 2
+    else
+      echo "    mongoimport failed after 3 attempts"
+      exit 1
+    fi
+  done
   sleep "${PAUSE}"
 done
 rm -rf "${chunks_dir}"

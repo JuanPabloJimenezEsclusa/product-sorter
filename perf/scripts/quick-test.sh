@@ -32,8 +32,7 @@ for entry in "${sessions[@]}"; do
   "${SCRIPT_DIR}/generate-data.sh" "${count}" "${RESULTS_DIR}/${session}-data.jsonl"
 
   echo "[2/6] Importing into MongoDB..."
-  MONGO_URI="${MONGO_URI:-mongodb://localhost:27017/productsorter}" \
-    "${SCRIPT_DIR}/import-data.sh" "${RESULTS_DIR}/${session}-data.jsonl"
+  "${SCRIPT_DIR}/import-data.sh" "${RESULTS_DIR}/${session}-data.jsonl"
 
   echo "[3/6] MongoDB cache pre-warm ..."
   mongo_uri="${MONGO_URI:-mongodb://localhost:27017/productsorter}"

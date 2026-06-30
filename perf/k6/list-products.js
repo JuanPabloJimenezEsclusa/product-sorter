@@ -20,7 +20,7 @@ export const options = {
   },
 };
 
-export default function () {
+export default function listProducts() {
   const headers = authHeaders();
 
   const res = http.get(`${BASE}/api/v1/products?size=20`, {
