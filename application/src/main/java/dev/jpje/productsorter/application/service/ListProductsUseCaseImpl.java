@@ -18,7 +18,7 @@ public class ListProductsUseCaseImpl implements ListProductsUseCase {
   @Override
   public PagedResult execute(final String cursor, final Integer size) {
     if (size == null || size < 1 || size == Integer.MAX_VALUE) {
-      return new PagedResult(List.of(), 0, null);
+      return new PagedResult(List.of(), null);
     }
     final var limit = size + 1;
     final var page = repository.findPage(cursor, limit);
@@ -29,6 +29,6 @@ public class ListProductsUseCaseImpl implements ListProductsUseCase {
       ? CursorCodec.encode(0, trimmed.getLast().productId().value())
       : null;
 
-    return new PagedResult(trimmed, page.total(), nextCursor);
+    return new PagedResult(trimmed, nextCursor);
   }
 }

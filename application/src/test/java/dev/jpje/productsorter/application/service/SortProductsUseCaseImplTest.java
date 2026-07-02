@@ -84,7 +84,6 @@ class SortProductsUseCaseImplTest {
       Metrics.SALES_UNITS.key(), 0.7, Metrics.STOCK.key(), 0.3));
     final var result = useCase.execute(request, null, size);
     assertThat(result.products()).isEmpty();
-    assertThat(result.total()).isZero();
   }
 
   @ParameterizedTest(name = "{0}")
@@ -104,14 +103,12 @@ class SortProductsUseCaseImplTest {
       new SortProductsRequest(Map.of(Metrics.SALES_UNITS.key(), 1.0, Metrics.STOCK.key(), 0.0)),
       null, size);
     assertThat(firstPage.products()).hasSize(expectedFirstPage);
-    assertThat(firstPage.total()).isEqualTo(totalProducts);
 
     if (firstPage.hasMore()) {
       final var secondPage = useCase.execute(
         new SortProductsRequest(Map.of(Metrics.SALES_UNITS.key(), 1.0, Metrics.STOCK.key(), 0.0)),
         firstPage.nextCursor(), size);
       assertThat(secondPage.products()).hasSize(expectedSecondPage);
-      assertThat(secondPage.total()).isEqualTo(totalProducts);
     }
   }
 
@@ -164,7 +161,7 @@ class SortProductsUseCaseImplTest {
       final var nextCursor = page.size() == limit && !page.isEmpty()
         ? page.getLast().productId().value()
         : null;
-      return new PagedResult(page, products.size(), nextCursor);
+      return new PagedResult(page, nextCursor);
     }
 
     @Override
@@ -180,8 +177,6 @@ class SortProductsUseCaseImplTest {
           b.weightedScore() != null ? b.weightedScore() : 0,
           a.weightedScore() != null ? a.weightedScore() : 0))
         .toList();
-
-      final var total = sorted.size();
 
       var start = 0;
       if (cursor != null) {
@@ -201,7 +196,7 @@ class SortProductsUseCaseImplTest {
         ? page.get(pageSize - 1).productId().value()
         : null;
 
-      return new PagedResult(page, total, nextCursor);
+      return new PagedResult(page, nextCursor);
     }
   }
 }

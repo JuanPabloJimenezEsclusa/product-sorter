@@ -57,12 +57,12 @@ class MetricsSortProductsUseCaseTest {
 
   private static Stream<Arguments> executeCases() {
     return Stream.of(
-      arguments(named("empty result", new PagedResult(List.of(), 0, null)),
+      arguments(named("empty result", new PagedResult(List.of(), null)),
         new SortProductsRequest(Map.of(Metrics.SALES_UNITS.key(), 0.7, Metrics.STOCK.key(), 0.3))),
       arguments(named("with products",
         new PagedResult(List.of(
           instancioProduct(100, 0.9),
-          instancioProduct(50, 0.5)), 2, null)),
+          instancioProduct(50, 0.5)), null)),
         new SortProductsRequest(Map.of(Metrics.SALES_UNITS.key(), 0.7, Metrics.STOCK.key(), 0.3))));
   }
 

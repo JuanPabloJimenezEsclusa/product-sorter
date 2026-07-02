@@ -14,7 +14,7 @@ The API exposes two operations: product listing (`GET /products`) and weighted p
 
 ### Cursor-based pagination
 
-Both endpoints use `cursor` (opaque string) and `size` (1–100, default 20) as query parameters. The response includes `nextCursor` for page forward, plus `total` and `size`.
+Both endpoints use `cursor` (opaque string) and `size` (1–100, default 20) as query parameters. The response includes `data`, `size`, and `nextCursor`. `nextCursor` is `null` when there are no more pages — no `total` count is tracked.
 
 ## Rationale
 
@@ -34,5 +34,5 @@ Both endpoints use `cursor` (opaque string) and `size` (1–100, default 20) as 
 
 - Sorting weights must be sent in the request body; empty or missing body returns 400
 - POST verb prevents URL-based caching by HTTP intermediaries; `@Cacheable` on the repository adapter compensates for first-page requests
-- `total` requires a full-collection count query on each `findPage` call; on `sortByWeights`, total comes from the aggregation `$facet` metadata stage
+- The sort endpoint uses MongoDB aggregation with top-K optimization (`$sort` + `$limit`), which enables a heap-based sort of O(N log K) instead of a full collection sort
 - Cursor format is stable but opaque — clients cannot decode or construct cursors independently

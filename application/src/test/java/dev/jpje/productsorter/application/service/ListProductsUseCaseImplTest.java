@@ -105,12 +105,12 @@ class ListProductsUseCaseImplTest {
       final var nextCursor = page.size() == limit && !page.isEmpty()
         ? page.getLast().productId().value()
         : null;
-      return new PagedResult(page, products.size(), nextCursor);
+      return new PagedResult(page, nextCursor);
     }
 
     @Override
     public PagedResult sortByWeights(final AppliedWeights weights, final String cursor, final int limit) {
-      return new PagedResult(List.of(), 0, null);
+      return new PagedResult(List.of(), null);
     }
   }
 }

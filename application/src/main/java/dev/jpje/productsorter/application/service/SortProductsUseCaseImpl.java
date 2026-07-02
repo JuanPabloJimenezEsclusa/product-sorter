@@ -20,7 +20,7 @@ public class SortProductsUseCaseImpl implements SortProductsUseCase {
   @Override
   public PagedResult execute(final SortProductsRequest request, final String cursor, final Integer size) {
     if (size == null || size < 1) {
-      return new PagedResult(List.of(), 0, null);
+      return new PagedResult(List.of(), null);
     }
     final var weights = AppliedWeights.fromMap(request.weights());
     final var limit = size + 1;
@@ -34,6 +34,6 @@ public class SortProductsUseCaseImpl implements SortProductsUseCase {
           trimmed.getLast().productId().value())
       : null;
 
-    return new PagedResult(List.copyOf(trimmed), page.total(), nextCursor);
+    return new PagedResult(List.copyOf(trimmed), nextCursor);
   }
 }

@@ -176,11 +176,11 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "jvm_memory_used_bytes{application='product-sorter', area='heap'}",
+          "expr": "sum by(area) (jvm_memory_used_bytes{application='product-sorter', area='heap'})",
           "legendFormat": "heap"
         },
         {
-          "expr": "jvm_memory_used_bytes{application='product-sorter', area='nonheap'}",
+          "expr": "sum by(area) (jvm_memory_used_bytes{application='product-sorter', area='nonheap'})",
           "legendFormat": "non-heap"
         }
       ],
@@ -198,7 +198,7 @@
       "targets": [
         {
           "expr": "rate(jvm_gc_pause_seconds_count{application='product-sorter'}[1m])",
-          "legendFormat": "{{action}}"
+          "legendFormat": "{{action}} - {{cause}}"
         }
       ],
       "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "right" } },
@@ -233,16 +233,32 @@
       "description": "HTTP request rate grouped by outcome"
     },
     {
-      "title": "Traces (Tempo)",
-      "type": "traces",
+      "title": "Recent Traces",
+      "type": "table",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
       "datasource": { "type": "tempo", "uid": "Tempo" },
       "targets": [
         {
-          "query": "{service.name=\"product-sorter\"}",
-          "queryType": "serviceMap"
+          "query": "{}",
+          "queryType": "traceql",
+          "refId": "A",
+          "limit": 20
         }
       ],
+      "options": {
+        "showTypeIcon": true,
+        "sortBy": [{"displayName": "startTime", "desc": true}]
+      },
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "inspect": false } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "traceID" }, "properties": [{ "id": "custom.width", "value": 160 }] },
+          { "matcher": { "id": "byName", "options": "traceName" }, "properties": [{ "id": "custom.width", "value": 300 }] },
+          { "matcher": { "id": "byName", "options": "traceService" }, "properties": [{ "id": "custom.width", "value": 150 }] },
+          { "matcher": { "id": "byName", "options": "traceDuration" }, "properties": [{ "id": "unit", "value": "ms" }] },
+          { "matcher": { "id": "byName", "options": "startTime" }, "properties": [{ "id": "unit", "value": "dateTimeAsIso" }] }
+        ]
+      },
       "description": "Recent traces from the product-sorter service"
     },
     {

@@ -53,7 +53,7 @@ class ProductControllerTest {
   })
   void shouldReturn200ForValidWeights(final Double wSales, final Double wStock) {
     when(sortUseCase.execute(any(), isNull(), any()))
-      .thenReturn(new PagedResult(List.of(), 0, null));
+      .thenReturn(new PagedResult(List.of(), null));
 
     final var dto = new SortRequest();
     dto.setWeights(Map.of("salesUnits", wSales, "stockRatio", wStock));
@@ -71,7 +71,7 @@ class ProductControllerTest {
         Stock.of(List.of(StockBySize.of(Size.of("S"), 1), StockBySize.of(Size.of("M"), 1), StockBySize.of(Size.of("L"), 1))),
         (3 - i) * 0.1))
       .toList();
-    when(sortUseCase.execute(any(), isNull(), any())).thenReturn(new PagedResult(scoredProducts, 3, null));
+    when(sortUseCase.execute(any(), isNull(), any())).thenReturn(new PagedResult(scoredProducts, null));
 
     final var dto = new SortRequest();
     dto.setWeights(Map.of("salesUnits", 0.7, "stockRatio", 0.3));
@@ -80,7 +80,6 @@ class ProductControllerTest {
     assertThat(response.getStatusCode().value()).isEqualTo(200);
     assertThat(response.getBody()).isNotNull();
     assertThat(response.getBody().getData()).hasSize(3);
-    assertThat(response.getBody().getTotal()).isEqualTo(3);
   }
 
   @Test
@@ -90,7 +89,7 @@ class ProductControllerTest {
         Stock.of(List.of(StockBySize.of(Size.of("S"), 1), StockBySize.of(Size.of("M"), 1), StockBySize.of(Size.of("L"), 1)))),
       new Product(ProductId.of("2"), ProductName.of("P2"), SalesUnits.of(50),
         Stock.of(List.of(StockBySize.of(Size.of("S"), 0), StockBySize.of(Size.of("M"), 0), StockBySize.of(Size.of("L"), 0)))));
-    when(listUseCase.execute(isNull(), eq(10))).thenReturn(new PagedResult(products, 2, null));
+    when(listUseCase.execute(isNull(), eq(10))).thenReturn(new PagedResult(products, null));
 
     final var response = controller.getProducts(null, 10);
     assertThat(response.getStatusCode().value()).isEqualTo(200);
@@ -101,7 +100,7 @@ class ProductControllerTest {
 
   @Test
   void shouldReturnEmptyPageWhenNoProducts() {
-    when(listUseCase.execute(isNull(), eq(20))).thenReturn(new PagedResult(List.of(), 0, null));
+    when(listUseCase.execute(isNull(), eq(20))).thenReturn(new PagedResult(List.of(), null));
 
     final var response = controller.getProducts(null, null);
     assertThat(response.getStatusCode().value()).isEqualTo(200);

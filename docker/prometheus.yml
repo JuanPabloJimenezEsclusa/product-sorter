@@ -5,4 +5,14 @@ scrape_configs:
   - job_name: product-sorter
     metrics_path: /actuator/prometheus
     static_configs:
-      - targets: ["product-sorter-app:8880", "host.docker.internal:8880"]
+      - targets: ["product-sorter-app:8880"]
+
+  - job_name: redis-exporter
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["redis-exporter:9121"]
+
+  - job_name: mongodb-exporter
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["mongodb-exporter:9216"]

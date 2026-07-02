@@ -57,9 +57,6 @@ class MongoProductRepositoryTest {
         .as("First item ID should match")
         .isEqualTo(firstId);
     }
-    assertThat(result.total())
-      .as("Total should be 6")
-      .isEqualTo(6);
   }
 
   @Test
@@ -67,13 +64,11 @@ class MongoProductRepositoryTest {
     final var page1 = repository.findPage(null, 3);
     assertThat(page1.products()).hasSize(3);
     assertThat(page1.products().getFirst().productId().value()).isEqualTo("1");
-    assertThat(page1.total()).isEqualTo(6);
     assertThat(page1.nextCursor()).isNotNull();
 
     final var page2 = repository.findPage(page1.nextCursor(), 3);
     assertThat(page2.products()).hasSize(3);
     assertThat(page2.products().getFirst().productId().value()).isEqualTo("4");
-    assertThat(page2.total()).isEqualTo(6);
   }
 
   @Test
@@ -90,9 +85,7 @@ class MongoProductRepositoryTest {
     assertThat(result.products().getFirst().productId().value())
       .as("Product 5 has highest sales")
       .isEqualTo("5");
-    assertThat(result.total())
-      .as("Should count 6 products")
-      .isEqualTo(6);
+    assertThat(result.nextCursor()).isNotNull();
   }
 
   @Test
@@ -128,7 +121,6 @@ class MongoProductRepositoryTest {
     final var weights = new AppliedWeights(1.0, 0.0);
     final var empty = repository.sortByWeights(weights, CursorCodec.encode(-1, "z"), 20);
     assertThat(empty.products()).isEmpty();
-    assertThat(empty.total()).isGreaterThan(0);
     assertThat(empty.nextCursor()).isNull();
   }
 

@@ -26,9 +26,8 @@
         "required": ["id", "name", "salesUnits", "stock"]
       }
     },
-    "total": { "type": "integer" },
     "size": { "type": "integer" },
     "nextCursor": { "type": ["string", "null"] }
   },
-  "required": ["data", "total", "size"]
+  "required": ["data", "size"]
 }

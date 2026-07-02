@@ -24,9 +24,7 @@ final class ProductSorterHelper {
   private static final String WEIGHTED_SCORE = "weightedScore";
   private static final String SALES_UNITS = "$salesUnits";
   private static final String STOCK = "$stock";
-  private static final String TOTAL = "total";
-  private static final String METADATA = "metadata";
-  private static final String FIELD_NAME = "data";
+  private static final String ID = "_id";
 
   private ProductSorterHelper() {
   }
@@ -35,15 +33,16 @@ final class ProductSorterHelper {
     final List<AggregationOperation> stages = new ArrayList<>();
 
     stages.add(buildWeightedScoreField(appliedWeights));
-    stages.add(buildSortOperation());
 
     final var cursor = encodedCursor != null ? CursorCodec.decode(encodedCursor) : null;
 
-    if (cursor == null) {
-      stages.add(buildFacetOperation(limit));
-    } else {
-      stages.add(buildCursorFacetOperation(cursor, limit));
+    if (cursor != null) {
+      stages.add(buildSortOperation());
+      stages.add(buildCursorMatch(cursor));
     }
+
+    stages.add(buildSortOperation());
+    stages.add(Aggregation.limit(limit));
 
     return Aggregation.newAggregation(stages)
       .withOptions(AggregationOptions.builder().allowDiskUse(true).build());
@@ -83,26 +82,14 @@ final class ProductSorterHelper {
   }
 
   private static SortOperation buildSortOperation() {
-    return Aggregation.sort(Sort.Direction.DESC, WEIGHTED_SCORE, "_id");
+    return Aggregation.sort(Sort.Direction.DESC, WEIGHTED_SCORE, ID);
   }
 
   private static MatchOperation buildCursorMatch(final CursorCodec.DecodedCursor cursor) {
     final var criteria = new Criteria().orOperator(
       Criteria.where(WEIGHTED_SCORE).lt(cursor.score()),
-      Criteria.where(WEIGHTED_SCORE).is(cursor.score()).and("_id").lt(cursor.productId())
+      Criteria.where(WEIGHTED_SCORE).is(cursor.score()).and(ID).lt(cursor.productId())
     );
     return Aggregation.match(criteria);
-  }
-
-  private static AggregationOperation buildFacetOperation(final int limit) {
-    return Aggregation.facet()
-      .and(Aggregation.count().as(TOTAL)).as(METADATA)
-      .and(Aggregation.limit(limit)).as(FIELD_NAME);
-  }
-
-  private static AggregationOperation buildCursorFacetOperation(final CursorCodec.DecodedCursor cursor, final int limit) {
-    return Aggregation.facet()
-      .and(Aggregation.count().as(TOTAL)).as(METADATA)
-      .and(buildSortOperation(), buildCursorMatch(cursor), Aggregation.limit(limit)).as(FIELD_NAME);
   }
 }

@@ -32,7 +32,7 @@ k6-based load tests for the product-sorter API across three data volumes and thr
 
 Quick mode trades statistical stability for speed — p99 may be noisier but p95 is reliable enough for trend detection.
 
-**Workload:** 70% list (`GET /products?size=20`) + 30% sort (`POST /products/sort?size=20`).
+**Workload:** 40% list (`GET /products?size=20`) + 60% sort (`POST /products/sort?size=20`).
 
 Sort requests use random weights each iteration to bypass cache. Think time: 1s.
 
@@ -47,8 +47,8 @@ perf/
 │   │   └── headers.js           # Bearer token headers
 │   ├── list-products.js         # GET /products
 │   ├── sort-products.js         # POST /products/sort
-│   ├── mixed-workload.js        # 70/30 mixed (12 min, full)
-│   └── mixed-workload-quick.js  # 70/30 mixed (6 min, smoke)
+│   ├── mixed-workload.js        # 40/60 mixed (12 min, full)
+│   └── mixed-workload-quick.js  # 40/60 mixed (6 min, smoke)
 ├── scripts/
 │   ├── generate-data.sh         # ProductDataGenerator → JSONL
 │   ├── import-data.sh           # mongoimport --drop
@@ -64,17 +64,4 @@ perf/
 ## Prerequisites
 
 - Docker stack running: `docker compose up -d`
-- App built: `mvn package -DskipTests`
-- `jq` and `bc` installed (for report.sh)
-- `mongoimport` available in PATH (or MongoDB container accessible)
-- Keycloak client `product-sorter-client` (secret: `product-sorter-secret`) with service accounts enabled
-
-## Key metrics collected
-
-| Metric | Source |
-|--------|--------|
-| HTTP p50/p95/p99 per endpoint | k6 + Prometheus |
-| Sort duration p50/p95/p99 | Micrometer → Prometheus |
-| Request rate (req/s) | k6 |
-| JVM heap, GC pauses, virtual threads | Micrometer → Prometheus |
-| Fail rate | k6 thresholds |
+- App built and running (handled by `docker compose --profile app up --build`)

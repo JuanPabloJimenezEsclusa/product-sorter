@@ -23,7 +23,7 @@ export const options = {
 export default function listProducts() {
   const headers = authHeaders();
 
-  const res = http.get(`${BASE}/api/v1/products?size=20`, {
+  const res = http.get(`${BASE}/api/v1/products?size=100`, {
     headers,
     tags: { endpoint: 'list' },
   });
