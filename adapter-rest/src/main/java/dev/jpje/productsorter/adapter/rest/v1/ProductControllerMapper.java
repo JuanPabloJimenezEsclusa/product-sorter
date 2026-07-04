@@ -35,7 +35,6 @@ public class ProductControllerMapper {
     productPage.setData(result.products().stream()
       .map(ProductControllerMapper::toProductResponse)
       .toList());
-    productPage.setTotal(result.total());
     productPage.setSize(size);
     productPage.setNextCursor(result.nextCursor());
     return productPage;

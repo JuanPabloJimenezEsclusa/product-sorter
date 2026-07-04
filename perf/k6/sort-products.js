@@ -21,16 +21,15 @@ export const options = {
 };
 
 function randomWeights() {
-  const sales = (Math.random() * 0.6 + 0.2).toFixed(2);
-  const stock = (1 - sales).toFixed(2);
-  return JSON.stringify({ weights: { salesUnits: parseFloat(sales), stockRatio: parseFloat(stock) } });
+  const sales = (Math.random() * 0.6 + 0.2).toFixed(3);
+  const stock = (1 - sales).toFixed(3);
+  return JSON.stringify({ weights: { salesUnits: Number.parseFloat(sales), stockRatio: Number.parseFloat(stock) } });
 }
 
-export default function () {
+export default function listSortProducts() {
   const headers = authHeaders();
   const body = randomWeights();
-
-  const res = http.post(`${BASE}/api/v1/products/sort?size=20`, body, {
+  const res = http.post(`${BASE}/api/v1/products/sort?size=100`, body, {
     headers,
     tags: { endpoint: 'sort' },
   });

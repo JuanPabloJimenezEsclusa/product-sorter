@@ -94,7 +94,7 @@ Scoring is delegated to a MongoDB aggregation pipeline for `O(sort)` scalability
 | Weighted score formula & aggregation | `adapter-persistence` (ProductSorterHelper) |
 | Cursor-based pagination | `application` (PagedResult, size+1 detection) |
 
-The domain does **not** compute final scores in-memory. The aggregation pipeline handles everything in MongoDB:
+The domain does **not** compute final scores in-memory. The adapter translates weights into a MongoDB aggregation pipeline that uses top-K heap sort:
 
 ```javascript
 // w_sales=0.7, w_stock=0.3, cursor=null, size=20
@@ -125,43 +125,23 @@ db.products.aggregate([
   // ── Sort by score descending (tiebreaker: _id) ──
   { $sort: { weightedScore: -1, _id: -1 } },
 
-  // ── Facet: count + paginated data in one pass ──
-  { $facet: {
-    metadata: [{ $count: "total" }],
-    data:     [{ $limit: 21 }]  // size+1 to detect hasMore
-  }}
+  // ── Top-K: heap sort only keeps top N, O(N log K) ──
+  { $limit: 21 }  // size+1 to detect hasMore
 ], { allowDiskUse: true })
-
-// ── Result ──
-[
-  {
-    metadata: [{ total: 250000 }],
-    data: [
-      { _id: "5",  name: "LACE T-SHIRT",        weightedScore: 455.1, ... },
-      { _id: "1",  name: "V-NECH BASIC SHIRT",  weightedScore: 70.2,  ... },
-      ... // 21 documents (limit = size + 1)
-    ]
-  }
-]
 ```
 
-For cursor-based pagination (second page), a `$match` stage is added to the `data` sub-pipeline:
+For cursor-based pagination (second page), a `$match` stage is inserted between `$sort` and `$limit`:
 
 ```javascript
-{ $facet: {
-  metadata: [{ $count: "total" }],
-  data: [
-    { $sort: { weightedScore: -1, _id: -1 } },
-    { $match: {
-      $or: [
-        { weightedScore: { $lt: 70.2 } },
-        { weightedScore: 70.2, _id: { $lt: "1" } }
-      ]
-    }},
-    { $limit: 21 }
+{ $match: {
+  $or: [
+    { weightedScore: { $lt: 70.2 } },
+    { weightedScore: 70.2, _id: { $lt: "1" } }
   ]
 }}
 ```
+
+Eliminating `$facet` enables MongoDB's top-K optimization: `$sort` + `$limit` uses an in-memory heap of size K instead of sorting the entire collection. Pagination uses `nextCursor` (null = end of results) instead of tracking a `total` count, removing one extra collection scan per request.
 
 ### Data Flow
 
@@ -221,7 +201,6 @@ Both endpoints use cursor-based pagination instead of offset-based (`$skip`). Th
 | `cursor` | Base64-encoded `score:productId` (optional, null = first page) |
 | `size` | Items per page (default 20, max 100) |
 | `nextCursor` | Opaque token for next page (null = last page) |
-| `total` | Total products in collection |
 
 The repository returns `size + 1` items. The use case detects `hasMore` when result exceeds `size`, trims the extra item, and computes `nextCursor` from the last visible product.
 
@@ -394,7 +373,6 @@ curl -s -X POST "http://localhost:8880/api/v1/products/sort?cursor=...&size=20" 
       "score": 455.1
     }
   ],
-  "total": 6,
   "size": 20,
   "nextCursor": "NDU1LjE6NQ=="
 }
@@ -429,7 +407,6 @@ curl -s "http://localhost:8880/api/v1/products?cursor=...&size=10" \
       "score": null
     }
   ],
-  "total": 6,
   "size": 10,
   "nextCursor": "MC4wOjY="
 }
@@ -490,6 +467,10 @@ curl -s "http://localhost:8880/api/v1/products?cursor=...&size=10" \
 | Tempo | 3200 | — |
 | Loki | 3100 | — |
 | Keycloak | 8081 | admin/admin |
+
+### Performance Tests
+
+k6-based load tests across three data volumes (10k, 100k, 1M products). See [`perf/README.md`](perf/README.md) for details. Latest report: [`perf/report/report.md`](perf/report/report.md).
 
 ---
 

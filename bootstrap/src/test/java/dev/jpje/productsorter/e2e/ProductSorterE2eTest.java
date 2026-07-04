@@ -135,8 +135,7 @@ class ProductSorterE2eTest {
       .when()
       .post("/api/v1/products/sort")
       .then()
-      .statusCode(200)
-      .body("total", equalTo(c.expectedTotal()));
+      .statusCode(200);
     for (final var assertion : c.bodyAssertions()) {
       res = res.body(assertion.path(), equalTo(assertion.expected()));
     }
@@ -177,7 +176,6 @@ class ProductSorterE2eTest {
       .post("/api/v1/products/sort")
       .then()
       .statusCode(200)
-      .body("total", equalTo(6))
       .body("data", hasSize(2))
       .body("nextCursor", org.hamcrest.Matchers.notNullValue())
       .extract();
@@ -193,28 +191,27 @@ class ProductSorterE2eTest {
       .post("/api/v1/products/sort")
       .then()
       .statusCode(200)
-      .body("total", equalTo(6))
       .body("data", hasSize(2));
   }
 
   private record BodyAssertion(String path, Object expected) {
   }
 
-  private record SortCase(Map<String, Double> weights, String cursor, int size, int expectedTotal,
+  private record SortCase(Map<String, Double> weights, String cursor, int size,
                           List<BodyAssertion> bodyAssertions) {
   }
 
   private static Stream<Arguments> sortScenarios() {
     return Stream.of(
       arguments(named("sales only", new SortCase(
-        Map.of("salesUnits", 1.0, "stockRatio", 0.0), null, 20, 6,
+        Map.of("salesUnits", 1.0, "stockRatio", 0.0), null, 20,
         List.of(
           new BodyAssertion("data[0].id", "5"),
           new BodyAssertion("data[0].salesUnits", 650),
           new BodyAssertion("data[1].id", "1"),
           new BodyAssertion("data[1].salesUnits", 100))))),
       arguments(named("stock only", new SortCase(
-        Map.of("salesUnits", 0.0, "stockRatio", 1.0), null, 20, 6,
+        Map.of("salesUnits", 0.0, "stockRatio", 1.0), null, 20,
         List.of(
           new BodyAssertion("data[0].id", "6"),
           new BodyAssertion("data[1].id", "4"))))));

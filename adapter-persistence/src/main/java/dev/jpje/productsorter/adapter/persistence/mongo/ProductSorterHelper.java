@@ -22,6 +22,9 @@ import org.springframework.data.mongodb.core.query.Criteria;
 final class ProductSorterHelper {
 
   private static final String WEIGHTED_SCORE = "weightedScore";
+  private static final String SALES_UNITS = "$salesUnits";
+  private static final String STOCK = "$stock";
+  private static final String ID = "_id";
 
   private ProductSorterHelper() {
   }
@@ -30,15 +33,16 @@ final class ProductSorterHelper {
     final List<AggregationOperation> stages = new ArrayList<>();
 
     stages.add(buildWeightedScoreField(appliedWeights));
-    stages.add(buildSortOperation());
 
     final var cursor = encodedCursor != null ? CursorCodec.decode(encodedCursor) : null;
 
-    if (cursor == null) {
-      stages.add(buildFacetOperation(limit));
-    } else {
-      stages.add(buildCursorFacetOperation(cursor, limit));
+    if (cursor != null) {
+      stages.add(buildSortOperation());
+      stages.add(buildCursorMatch(cursor));
     }
+
+    stages.add(buildSortOperation());
+    stages.add(Aggregation.limit(limit));
 
     return Aggregation.newAggregation(stages)
       .withOptions(AggregationOptions.builder().allowDiskUse(true).build());
@@ -48,20 +52,20 @@ final class ProductSorterHelper {
     final var expressions = new ArrayList<AggregationExpression>();
 
     if (appliedWeights.salesUnitsWeight() > 0) {
-      expressions.add(ArithmeticOperators.Multiply.valueOf("$salesUnits")
+      expressions.add(ArithmeticOperators.Multiply.valueOf(SALES_UNITS)
         .multiplyBy(appliedWeights.salesUnitsWeight()));
     }
 
     if (appliedWeights.stockWeight() > 0) {
       final var condition = ComparisonOperators.valueOf("$$s.quantity").greaterThanValue(0);
-      final var sizesWithStock = ArrayOperators.Filter.filter("$stock").as("s").by(condition);
+      final var sizesWithStock = ArrayOperators.Filter.filter(STOCK).as("s").by(condition);
       final var stockRatio = ConditionalOperators.Cond
-        .when(ComparisonOperators.valueOf(ArrayOperators.Size.lengthOfArray("$stock"))
+        .when(ComparisonOperators.valueOf(ArrayOperators.Size.lengthOfArray(STOCK))
           .greaterThanValue(0))
         .then(ArithmeticOperators.Divide.valueOf(
           ArrayOperators.Size.lengthOfArray(sizesWithStock)
         ).divideBy(
-          ArrayOperators.Size.lengthOfArray("$stock")
+          ArrayOperators.Size.lengthOfArray(STOCK)
         ))
         .otherwise(0);
       expressions.add(ArithmeticOperators.Multiply.valueOf(stockRatio)
@@ -70,7 +74,7 @@ final class ProductSorterHelper {
 
     final var weightedScore = expressions.stream()
       .reduce((a, b) -> ArithmeticOperators.Add.valueOf(a).add(b))
-      .orElse(ArithmeticOperators.Multiply.valueOf("$salesUnits").multiplyBy(1.0));
+      .orElse(ArithmeticOperators.Multiply.valueOf(SALES_UNITS).multiplyBy(1.0));
 
     return Aggregation.addFields()
       .addFieldWithValue(WEIGHTED_SCORE, weightedScore)
@@ -78,26 +82,14 @@ final class ProductSorterHelper {
   }
 
   private static SortOperation buildSortOperation() {
-    return Aggregation.sort(Sort.Direction.DESC, WEIGHTED_SCORE, "_id");
+    return Aggregation.sort(Sort.Direction.DESC, WEIGHTED_SCORE, ID);
   }
 
   private static MatchOperation buildCursorMatch(final CursorCodec.DecodedCursor cursor) {
     final var criteria = new Criteria().orOperator(
       Criteria.where(WEIGHTED_SCORE).lt(cursor.score()),
-      Criteria.where(WEIGHTED_SCORE).is(cursor.score()).and("_id").lt(cursor.productId())
+      Criteria.where(WEIGHTED_SCORE).is(cursor.score()).and(ID).lt(cursor.productId())
     );
     return Aggregation.match(criteria);
-  }
-
-  private static AggregationOperation buildFacetOperation(final int limit) {
-    return Aggregation.facet()
-      .and(Aggregation.count().as("total")).as("metadata")
-      .and(Aggregation.limit(limit)).as("data");
-  }
-
-  private static AggregationOperation buildCursorFacetOperation(final CursorCodec.DecodedCursor cursor, final int limit) {
-    return Aggregation.facet()
-      .and(Aggregation.count().as("total")).as("metadata")
-      .and(buildSortOperation(), buildCursorMatch(cursor), Aggregation.limit(limit)).as("data");
   }
 }

@@ -123,8 +123,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ProductResponse'
-        total:
-          type: integer
         size:
           type: integer
         nextCursor:

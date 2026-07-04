@@ -21,23 +21,23 @@ export const options = {
 };
 
 function randomWeights() {
-  const sales = (Math.random() * 0.6 + 0.2).toFixed(2);
+  const sales = (Math.random() * 0.6 + 0.2).toFixed(3);
   return JSON.stringify({
-    weights: { salesUnits: parseFloat(sales), stockRatio: parseFloat((1 - sales).toFixed(2)) },
+    weights: { salesUnits: Number.parseFloat(sales), stockRatio: Number.parseFloat((1 - sales).toFixed(3)) },
   });
 }
 
-export default function () {
+export default function executeWorkload() {
   const headers = authHeaders();
 
-  if (Math.random() < 0.7) {
-    const res = http.get(`${BASE}/api/v1/products?size=20`, {
+  if (Math.random() < 0.4) {
+    const res = http.get(`${BASE}/api/v1/products?size=100`, {
       headers,
       tags: { endpoint: 'list' },
     });
     check(res, { 'list 200': (r) => r.status === 200 });
   } else {
-    const res = http.post(`${BASE}/api/v1/products/sort?size=20`, randomWeights(), {
+    const res = http.post(`${BASE}/api/v1/products/sort?size=100`, randomWeights(), {
       headers,
       tags: { endpoint: 'sort' },
     });

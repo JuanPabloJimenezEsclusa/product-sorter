@@ -43,15 +43,13 @@ public class MongoProductRepositoryAdapter implements ProductRepository {
       .map(mapper::toDomain)
       .toList();
 
-    final int total = (int) mongoTemplate.count(new Query(), COLLECTION_NAME);
-
     String nextCursor = null;
     if (!products.isEmpty()) {
       final var last = products.getLast();
       nextCursor = CursorCodec.encode(0, last.productId().value());
     }
 
-    return new PagedResult(products, total, nextCursor);
+    return new PagedResult(products, nextCursor);
   }
 
   @Override
@@ -65,42 +63,19 @@ public class MongoProductRepositoryAdapter implements ProductRepository {
     final var results = mongoTemplate.aggregate(aggregation, COLLECTION_NAME, Document.class)
       .getMappedResults();
 
-    if (results.isEmpty()) {
-      return new PagedResult(List.of(), 0, null);
-    }
-
-    final var facetDoc = results.getFirst();
-    final int total = extractTotal(facetDoc);
-    final var dataDocs = extractData(facetDoc);
-
     String nextCursor = null;
-    if (!dataDocs.isEmpty()) {
-      final var lastDoc = dataDocs.getLast();
+    if (!results.isEmpty()) {
+      final var lastDoc = results.getLast();
       final var lastScore = lastDoc.get("weightedScore", Number.class).doubleValue();
       final var lastId = lastDoc.get("_id").toString();
       nextCursor = CursorCodec.encode(lastScore, lastId);
     }
 
-    final var products = dataDocs.stream()
+    final var products = results.stream()
       .map(this::toProductWithScore)
       .toList();
 
-    return new PagedResult(products, total, nextCursor);
-  }
-
-  @SuppressWarnings("unchecked")
-  private int extractTotal(final Document facetDoc) {
-    final var metadata = (List<Document>) facetDoc.get("metadata");
-    if (metadata != null && !metadata.isEmpty()) {
-      return metadata.getFirst().getInteger("total", 0);
-    }
-    return 0;
-  }
-
-  @SuppressWarnings("unchecked")
-  private List<Document> extractData(final Document facetDoc) {
-    final var data = (List<Document>) facetDoc.get("data");
-    return data != null ? data : List.of();
+    return new PagedResult(products, nextCursor);
   }
 
   private Product toProductWithScore(final Document doc) {

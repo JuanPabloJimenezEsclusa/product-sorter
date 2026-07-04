@@ -18,23 +18,22 @@ class PagedResultTest {
 
   @Test
   void shouldCreateWithProducts() {
-    final var result = new ProductRepository.PagedResult(List.of(SAMPLE), 1, null);
+    final var result = new ProductRepository.PagedResult(List.of(SAMPLE), null);
     assertThat(result.products()).hasSize(1);
-    assertThat(result.total()).isEqualTo(1);
     assertThat(result.nextCursor()).isNull();
     assertThat(result.hasMore()).isFalse();
   }
 
   @Test
   void shouldDetectHasMore() {
-    final var result = new ProductRepository.PagedResult(List.of(SAMPLE), 10, "nextCursor");
+    final var result = new ProductRepository.PagedResult(List.of(SAMPLE), "nextCursor");
     assertThat(result.hasMore()).isTrue();
   }
 
   @Test
   void shouldCopyProducts() {
     final var mutable = new java.util.ArrayList<>(List.of(SAMPLE));
-    final var result = new ProductRepository.PagedResult(mutable, 1, null);
+    final var result = new ProductRepository.PagedResult(mutable, null);
     mutable.clear();
     assertThat(result.products()).hasSize(1);
   }

@@ -19,6 +19,7 @@ services:
     volumes:
       - mongodb_data:/data/db
       - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    command: ["mongod", "--wiredTigerCacheSizeGB", "3"]
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh --quiet
       interval: 5s
@@ -27,6 +28,16 @@ services:
       resources:
         limits: { cpus: "4", memory: "4096M" }
         reservations: { cpus: "1", memory: "1024M" }
+
+  mongodb-exporter:
+    image: percona/mongodb_exporter:0.51
+    container_name: product-sorter-mongodb-exporter
+    restart: unless-stopped
+    networks: [product-sorter]
+    command: ["--mongodb.uri=mongodb://mongodb:27017/admin", "--collector.diagnosticdata", "--collector.dbstats", "--collector.topmetrics"]
+    depends_on:
+      mongodb: { condition: service_healthy }
+    <<: *default-resources
 
   redis:
     image: redis:8-alpine
@@ -45,6 +56,17 @@ services:
         limits: { cpus: "2", memory: "2048M" }
         reservations: { cpus: "1", memory: "1024M" }
 
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.72.0
+    container_name: product-sorter-redis-exporter
+    hostname: redis-exporter
+    restart: unless-stopped
+    networks: [product-sorter]
+    command: ["-redis.addr=redis://redis:6379", "-redis.password=admin"]
+    depends_on:
+      redis: { condition: service_healthy }
+    <<: *default-resources
+
   redisinsight:
     image: redislabs/redisinsight:latest
     container_name: product-sorter-redisinsight
@@ -58,7 +80,7 @@ services:
       RI_REDIS_ALIAS_0: REDIS_LOCAL
       RI_REDIS_USERNAME_0: ${REDIS_USERNAME:-default}
       RI_REDIS_PASSWORD_0: ${REDIS_PASSWORD:-admin}
-    <<: *restart-policy
+    <<: *default-resources
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.6.4
@@ -86,8 +108,7 @@ services:
     ports: ["4318:4318"]
     networks: [product-sorter]
     volumes:
-      - ./docker/otel-collector-config.yml:/etc/otelcol-contrib/config.yml:ro
-    depends_on: [tempo]
+      - ./docker/otel-collector-config.yml:/etc/otelcol-contrib/config.yaml:ro
     <<: *default-resources
 
   prometheus:
@@ -100,7 +121,6 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    depends_on: [otel-collector]
     <<: *default-resources
 
   tempo:
@@ -111,7 +131,7 @@ services:
     networks: [product-sorter]
     command: ["-config.file=/etc/tempo/tempo.yml"]
     volumes:
-      - ./docker/tempo.yml:/etc/tempo/tempo.yml:ro
+      - ./docker/grafana/tempo.yml:/etc/tempo/tempo.yml:ro
     <<: *default-resources
 
   loki:
@@ -121,7 +141,7 @@ services:
     ports: ["3100:3100"]
     networks: [product-sorter]
     volumes:
-      - ./docker/loki-config.yml:/etc/loki/local-config.yml:ro
+      - ./docker/grafana/loki-config.yml:/etc/loki/local-config.yml:ro
     <<: *default-resources
 
   promtail:
@@ -164,17 +184,16 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker-compose
       SPRING_DOCKER_COMPOSE_ENABLED: false
-      JAVA_TOOL_OPTIONS: "-Xms512m -XX:MaxRAMPercentage=75.0 -XX:MaxMetaspaceSize=256m -XX:ReservedCodeCacheSize=256m -XX:+UseCompactObjectHeaders -Djava.security.egd=file:/dev/./urandom"
-      MONGODB_URI: "${MONGODB_URI:-mongodb://mongodb:27017/productsorter?maxPoolSize=200&connectTimeoutMS=120000&timeoutMS=120000&serverSelectionTimeoutMS=90000}"
-      REDIS_HOST: ${REDIS_HOST:-redis}
-      REDIS_PORT: ${REDIS_PORT:-6379}
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-admin}
-      REDIS_USERNAME: ${REDIS_USERNAME:-default}
-      JWT_JWK_SET_URI: ${JWT_JWK_SET_URI:-http://keycloak:8080/realms/product-sorter/protocol/openid-connect/certs}
-      OTLP_ENDPOINT: ${OTLP_ENDPOINT:-http://otel-collector:4318/v1/traces}
-      TRACING_SAMPLING_PROBABILITY: ${TRACING_SAMPLING_PROBABILITY:-1.0}
+      JAVA_TOOL_OPTIONS: ${APP_JAVA_TOOL_OPTIONS:-}
+      MONGODB_URI: ${MONGODB_URI:-}
+      REDIS_HOST: ${REDIS_HOST:-}
+      REDIS_PORT: ${REDIS_PORT:-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_USERNAME: ${REDIS_USERNAME:-}
+      JWT_JWK_SET_URI: ${JWT_JWK_SET_URI:-}
+      OTLP_ENDPOINT: ${OTLP_ENDPOINT:-}
       LOG_PATH: /var/log/product-sorter
-      LOGGING_LOKI_URL: http://loki:3100/loki/api/v1/push
+      LOGGING_LOKI_URL: ${LOGGING_LOKI_URL:-}
     depends_on:
       mongodb: { condition: service_healthy }
       redis: { condition: service_healthy }
