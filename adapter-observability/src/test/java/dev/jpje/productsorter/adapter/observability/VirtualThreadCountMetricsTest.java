@@ -5,11 +5,9 @@ import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.SynchronousQueue;
 
-import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -88,9 +86,7 @@ class VirtualThreadCountMetricsTest {
     final var totalGauge = registry.get("jvm.threads.virtual.live")
       .tag("scheduling.status", "total").gauge();
 
-    await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
-      assertThat(totalGauge.value()).isGreaterThanOrEqualTo(2);
-    });
+    await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(totalGauge.value()).isGreaterThanOrEqualTo(2));
 
     proceed.countDown();
 
