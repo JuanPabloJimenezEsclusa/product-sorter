@@ -12,27 +12,36 @@ import org.springframework.data.mongodb.core.aggregation.AggregationExpression;
 import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
 import org.springframework.data.mongodb.core.aggregation.AggregationOptions;
 import org.springframework.data.mongodb.core.aggregation.ArithmeticOperators;
-import org.springframework.data.mongodb.core.aggregation.ArrayOperators;
-import org.springframework.data.mongodb.core.aggregation.ComparisonOperators;
-import org.springframework.data.mongodb.core.aggregation.ConditionalOperators;
 import org.springframework.data.mongodb.core.aggregation.MatchOperation;
 import org.springframework.data.mongodb.core.aggregation.SortOperation;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 
-final class ProductSorterHelper {
+final class MongoQueryHelper {
 
   private static final String WEIGHTED_SCORE = "weightedScore";
   private static final String SALES_UNITS = "$salesUnits";
-  private static final String STOCK = "$stock";
+  private static final String STOCK_RATIO = "$stockRatio";
   private static final String ID = "_id";
 
-  private ProductSorterHelper() {
+  private MongoQueryHelper() {
   }
 
-  static Aggregation buildAggregation(final AppliedWeights appliedWeights, final String encodedCursor, final int limit) {
+  static Query buildPageQuery(final String encodedCursor, final int limit) {
+    final var query = new Query()
+      .with(Sort.by(Sort.Direction.ASC, ID))
+      .limit(limit);
+    if (encodedCursor != null) {
+      query.addCriteria(Criteria.where(ID).gt(CursorCodec.decode(encodedCursor).productId()));
+    }
+    return query;
+  }
+
+  static Aggregation buildSortAggregation(final AppliedWeights appliedWeights, final String encodedCursor,
+                                          final int limit, final double midpoint) {
     final List<AggregationOperation> stages = new ArrayList<>();
 
-    stages.add(buildWeightedScoreField(appliedWeights));
+    stages.add(buildWeightedScoreField(appliedWeights, midpoint));
 
     final var cursor = encodedCursor != null ? CursorCodec.decode(encodedCursor) : null;
 
@@ -48,27 +57,18 @@ final class ProductSorterHelper {
       .withOptions(AggregationOptions.builder().allowDiskUse(true).build());
   }
 
-  private static AddFieldsOperation buildWeightedScoreField(final AppliedWeights appliedWeights) {
+  private static AddFieldsOperation buildWeightedScoreField(final AppliedWeights appliedWeights, final double midpoint) {
     final var expressions = new ArrayList<AggregationExpression>();
 
     if (appliedWeights.salesUnitsWeight() > 0) {
-      expressions.add(ArithmeticOperators.Multiply.valueOf(SALES_UNITS)
+      final var salesRatio = ArithmeticOperators.Divide.valueOf(SALES_UNITS)
+        .divideBy(ArithmeticOperators.Add.valueOf(SALES_UNITS).add(midpoint));
+      expressions.add(ArithmeticOperators.Multiply.valueOf(salesRatio)
         .multiplyBy(appliedWeights.salesUnitsWeight()));
     }
 
     if (appliedWeights.stockWeight() > 0) {
-      final var condition = ComparisonOperators.valueOf("$$s.quantity").greaterThanValue(0);
-      final var sizesWithStock = ArrayOperators.Filter.filter(STOCK).as("s").by(condition);
-      final var stockRatio = ConditionalOperators.Cond
-        .when(ComparisonOperators.valueOf(ArrayOperators.Size.lengthOfArray(STOCK))
-          .greaterThanValue(0))
-        .then(ArithmeticOperators.Divide.valueOf(
-          ArrayOperators.Size.lengthOfArray(sizesWithStock)
-        ).divideBy(
-          ArrayOperators.Size.lengthOfArray(STOCK)
-        ))
-        .otherwise(0);
-      expressions.add(ArithmeticOperators.Multiply.valueOf(stockRatio)
+      expressions.add(ArithmeticOperators.Multiply.valueOf(STOCK_RATIO)
         .multiplyBy(appliedWeights.stockWeight()));
     }
 

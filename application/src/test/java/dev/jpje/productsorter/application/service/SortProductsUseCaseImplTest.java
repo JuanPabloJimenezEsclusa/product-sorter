@@ -168,7 +168,7 @@ class SortProductsUseCaseImplTest {
     public PagedResult sortByWeights(final AppliedWeights weights, final String cursor, final int limit) {
       final var sorted = products.stream()
         .map(p -> {
-          final var salesScore = weights.salesUnitsWeight() * p.salesUnits().value();
+          final var salesScore = weights.salesUnitsWeight() * p.salesUnits().value() / (p.salesUnits().value() + 50);
           final var stockScore = weights.stockWeight() * p.stock().stockRatio();
           final var weightedScore = salesScore + stockScore;
           return new Product(p.productId(), p.productName(), p.salesUnits(), p.stock(), weightedScore);

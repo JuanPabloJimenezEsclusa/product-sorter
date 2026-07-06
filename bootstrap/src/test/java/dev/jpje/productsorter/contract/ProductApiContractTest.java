@@ -65,7 +65,7 @@ class ProductApiContractTest {
   }
 
   @Container
-  static MongoDBContainer mongodb = new MongoDBContainer("mongodb/mongodb-community-server:8.3.2-ubi9");
+  static MongoDBContainer mongodb = new MongoDBContainer("mongodb/mongodb-community-server:8.3.4-ubi9");
 
   @DynamicPropertySource
   static void configure(final DynamicPropertyRegistry registry) {
@@ -81,33 +81,6 @@ class ProductApiContractTest {
   void setUp() throws Exception {
     seedProducts();
     jwt = generateJwt();
-  }
-
-  private void seedProducts() {
-    final var client = MongoClients.create(mongodb.getReplicaSetUrl());
-    final var template = new MongoTemplate(client, "test");
-    template.dropCollection("products");
-
-    template.save(new ProductDocument("1", "V-NECH BASIC SHIRT", 100,
-      List.of(new StockEntry("S", 4), new StockEntry("M", 9), new StockEntry("L", 0)), null));
-    template.save(new ProductDocument("5", "CONTRASTING LACE T-SHIRT", 650,
-      List.of(new StockEntry("S", 0), new StockEntry("M", 1), new StockEntry("L", 0)), null));
-
-    client.close();
-  }
-
-  private static String generateJwt() throws Exception {
-    final var clock = Clock.fixed(Instant.parse("2026-06-01T00:00:00Z"), ZoneOffset.UTC);
-    final var now = Instant.now(clock);
-    final var claims = new JWTClaimsSet.Builder()
-      .issuer("http://localhost:9999/realms/test")
-      .subject("contract-test-user")
-      .issueTime(Date.from(now))
-      .expirationTime(Date.from(now.plusSeconds(Integer.MAX_VALUE)))
-      .build();
-    final var signedJwt = new SignedJWT(new JWSHeader(JWSAlgorithm.RS256), claims);
-    signedJwt.sign(new RSASSASigner(RSA_KEY.getPrivate()));
-    return signedJwt.serialize();
   }
 
   @Test
@@ -157,5 +130,39 @@ class ProductApiContractTest {
       .statusCode(200)
       .body(matchesJsonSchemaInClasspath("schema/product-page.json"))
       .body("data", empty());
+  }
+
+  private void seedProducts() {
+    final var client = MongoClients.create(mongodb.getReplicaSetUrl());
+    final var template = new MongoTemplate(client, "test");
+    template.dropCollection("products");
+
+    template.save(product("1", "V-NECH BASIC SHIRT", 100,
+      List.of(new StockEntry("S", 4), new StockEntry("M", 9), new StockEntry("L", 0))));
+    template.save(product("5", "CONTRASTING LACE T-SHIRT", 650,
+      List.of(new StockEntry("S", 0), new StockEntry("M", 1), new StockEntry("L", 0))));
+
+    client.close();
+  }
+
+  private static ProductDocument product(final String id, final String name, final int salesUnits,
+                                          final List<StockEntry> stock) {
+    final long withStock = stock.stream().filter(e -> e.quantity() > 0).count();
+    final double stockRatio = stock.isEmpty() ? 0.0 : (double) withStock / stock.size();
+    return new ProductDocument(id, name, salesUnits, stock, null, stockRatio);
+  }
+
+  private static String generateJwt() throws Exception {
+    final var clock = Clock.fixed(Instant.parse("2026-06-01T00:00:00Z"), ZoneOffset.UTC);
+    final var now = Instant.now(clock);
+    final var claims = new JWTClaimsSet.Builder()
+      .issuer("http://localhost:9999/realms/test")
+      .subject("contract-test-user")
+      .issueTime(Date.from(now))
+      .expirationTime(Date.from(now.plusSeconds(Integer.MAX_VALUE)))
+      .build();
+    final var signedJwt = new SignedJWT(new JWSHeader(JWSAlgorithm.RS256), claims);
+    signedJwt.sign(new RSASSASigner(RSA_KEY.getPrivate()));
+    return signedJwt.serialize();
   }
 }

@@ -29,19 +29,17 @@ import org.testcontainers.mongodb.MongoDBContainer;
 class MongoProductRepositoryTest {
 
   @Container
-  static MongoDBContainer mongodb = new MongoDBContainer("mongodb/mongodb-community-server:8.3.2-ubi9");
+  static MongoDBContainer mongodb = new MongoDBContainer("mongodb/mongodb-community-server:8.3.4-ubi9");
 
   private MongoProductRepositoryAdapter repository;
-  private ProductDocumentMapper mapper;
   private MongoTemplate mongoTemplate;
 
   @BeforeEach
   void setUp() {
-    mapper = new ProductDocumentMapper();
     final var client = MongoClients.create(mongodb.getReplicaSetUrl());
     mongoTemplate = new MongoTemplate(client, "test");
     mongoTemplate.dropCollection("products");
-    repository = new MongoProductRepositoryAdapter(mongoTemplate, mapper);
+    repository = new MongoProductRepositoryAdapter(mongoTemplate, 50);
     seedProducts();
   }
 
@@ -131,7 +129,7 @@ class MongoProductRepositoryTest {
     assertThat(doc)
       .as("Document should exist")
       .isNotNull();
-    final var product = mapper.toDomain(doc);
+    final var product = ProductDocumentMapper.toDomain(doc);
     assertThat(product.productId().value())
       .as("Product ID should match")
       .isEqualTo(docId);
@@ -147,24 +145,31 @@ class MongoProductRepositoryTest {
   void shouldMapStockRatio() {
     final var doc = mongoTemplate.findById("1", ProductDocument.class, "products");
     assertThat(doc).isNotNull();
-    assertThat(mapper.toDomain(doc).stock().stockRatio())
+    assertThat(ProductDocumentMapper.toDomain(doc).stock().stockRatio())
       .as("Stock ratio should match expected")
       .isCloseTo(0.667, within(0.01));
   }
 
   private void seedProducts() {
-    mongoTemplate.save(new ProductDocument("1", "ALPHA SHIRT", 100, List.of(
-      new StockEntry("S", 4), new StockEntry("M", 9), new StockEntry("L", 0)), null));
-    mongoTemplate.save(new ProductDocument("2", "BETA T-SHIRT", 50, List.of(
-      new StockEntry("S", 35), new StockEntry("M", 9), new StockEntry("L", 9)), null));
-    mongoTemplate.save(new ProductDocument("3", "GAMMA POLO", 80, List.of(
-      new StockEntry("S", 20), new StockEntry("M", 2), new StockEntry("L", 20)), null));
-    mongoTemplate.save(new ProductDocument("4", "DELTA HOODIE", 3, List.of(
-      new StockEntry("S", 25), new StockEntry("M", 30), new StockEntry("L", 10)), null));
-    mongoTemplate.save(new ProductDocument("5", "LACE SHIRT", 650, List.of(
-      new StockEntry("S", 0), new StockEntry("M", 1), new StockEntry("L", 0)), null));
-    mongoTemplate.save(new ProductDocument("6", "SLOGAN TEE", 20, List.of(
-      new StockEntry("S", 9), new StockEntry("M", 2), new StockEntry("L", 5)), null));
+    mongoTemplate.save(product("1", "ALPHA SHIRT", 100, List.of(
+      new StockEntry("S", 4), new StockEntry("M", 9), new StockEntry("L", 0))));
+    mongoTemplate.save(product("2", "BETA T-SHIRT", 50, List.of(
+      new StockEntry("S", 35), new StockEntry("M", 9), new StockEntry("L", 9))));
+    mongoTemplate.save(product("3", "GAMMA POLO", 80, List.of(
+      new StockEntry("S", 20), new StockEntry("M", 2), new StockEntry("L", 20))));
+    mongoTemplate.save(product("4", "DELTA HOODIE", 3, List.of(
+      new StockEntry("S", 25), new StockEntry("M", 30), new StockEntry("L", 10))));
+    mongoTemplate.save(product("5", "LACE SHIRT", 650, List.of(
+      new StockEntry("S", 0), new StockEntry("M", 1), new StockEntry("L", 0))));
+    mongoTemplate.save(product("6", "SLOGAN TEE", 20, List.of(
+      new StockEntry("S", 9), new StockEntry("M", 2), new StockEntry("L", 5))));
+  }
+
+  private static ProductDocument product(final String id, final String name, final int salesUnits,
+                                          final List<StockEntry> stock) {
+    final long withStock = stock.stream().filter(e -> e.quantity() > 0).count();
+    final double stockRatio = stock.isEmpty() ? 0.0 : (double) withStock / stock.size();
+    return new ProductDocument(id, name, salesUnits, stock, null, stockRatio);
   }
 
   private static Stream<Arguments> paginationCases() {

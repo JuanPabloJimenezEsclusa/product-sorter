@@ -51,6 +51,6 @@ echo "Import complete."
 
 echo "Recreating indexes ..."
 mongosh --quiet "$MONGODB_URI" --eval "
-  db.${COLLECTION}.createIndex({salesUnits: -1});
-  print('Index salesUnits:-1 created');
+  db.${COLLECTION}.createIndex({salesUnits: -1, _id: -1});
+  print('Index {salesUnits:-1, _id:-1} created');
 "
