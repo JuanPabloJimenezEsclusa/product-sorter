@@ -71,7 +71,7 @@
     <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
     <checkstyle.version>13.7.0</checkstyle.version>
     <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
-    <rewrite-maven-plugin.version>6.42.0</rewrite-maven-plugin.version>
+    <rewrite-maven-plugin.version>6.43.0</rewrite-maven-plugin.version>
     <sonar-maven-plugin.version>5.7.0.6970</sonar-maven-plugin.version>
     <git-changelog-maven-plugin.version>2.2.11</git-changelog-maven-plugin.version>
     <maven-site-plugin.version>3.22.0</maven-site-plugin.version>
@@ -79,7 +79,7 @@
     <maven-surefire-report-plugin.version>3.5.6</maven-surefire-report-plugin.version>
     <jackson-databind-nullable.version>0.2.10</jackson-databind-nullable.version>
     <dependency-check-maven.version>12.2.2</dependency-check-maven.version>
-    <pitest-maven.version>1.25.5</pitest-maven.version>
+    <pitest-maven.version>1.25.6</pitest-maven.version>
 
     <instancio.version>5.6.0</instancio.version>
     <archunit.version>1.4.2</archunit.version>
