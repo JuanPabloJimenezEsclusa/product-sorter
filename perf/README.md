@@ -25,14 +25,14 @@ k6-based load tests for the product-sorter API across three data volumes and thr
 ## Test matrix
 
 | Products | Users (ramp) | Full (steady) | Quick (steady) | Warmup |
-|----------|-------------|---------------|----------------|--------|
-| 10,000   | 5 → 10 → 50 → 100 | 3 min | 90s | 15-30s |
-| 100,000  | 5 → 10 → 50 → 100 | 3 min | 90s | 15-30s |
-| 1,000,000 | 5 → 10 → 50 → 100 | 3 min | 90s | 30-60s |
+|----------|-------------|------|----------------|--------|
+| 10,000   | 5 → 10 → 50 → 100 | 180s | 90s | 15-30s |
+| 100,000  | 5 → 10 → 50 → 100 | 180s | 90s | 15-30s |
+| 1,000,000 | 5 → 10 → 50 → 100 | 180s | 90s | 30-60s |
 
 Quick mode trades statistical stability for speed — p99 may be noisier but p95 is reliable enough for trend detection.
 
-**Workload:** 40% list (`GET /products?size=20`) + 60% sort (`POST /products/sort?size=20`).
+**Workload:** 40% list (`GET /products?size=100`) + 60% sort (`POST /products/sort?size=100`).
 
 Sort requests use random weights each iteration to bypass cache. Think time: 1s.
 
@@ -52,7 +52,7 @@ perf/
 ├── scripts/
 │   ├── generate-data.sh         # ProductDataGenerator → JSONL
 │   ├── import-data.sh           # mongoimport --drop
-│   ├── start.sh                 # Start app stack + perf container, wait for health
+│   ├── start.sh                 # Start app stack, wait for health
 │   ├── quick-test.sh            # Smoke suite: all 3 volumes, 6 min each
 │   ├── run-session.sh           # Full session orchestrator (6 steps)
 │   ├── cleanup.sh               # Stop services, remove volumes, delete app image

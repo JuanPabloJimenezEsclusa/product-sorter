@@ -9,7 +9,6 @@ RESULTS_DIR="${PERF_DIR}/report/results"
 report_md() {
   echo "# Performance Test Report"  
   echo "**Date:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-  echo "**Workload:** mixed (40% list GET + 60% sort POST)"
   echo
 
   local sessions=()

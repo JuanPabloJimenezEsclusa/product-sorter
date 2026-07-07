@@ -300,6 +300,17 @@ docker compose --profile app up --build
 
 ![Architecture Diagram](docs/images/product-sorter-architecture.svg)
 
+| Service                               | Auth                  |
+|---------------------------------------|-----------------------|
+| [API](http://localhost:8880)          | Bearer JWT (Keycloak) |
+| [Grafana](http://localhost:3000)      | `admin` / `admin`     |
+| [Prometheus](http://localhost:9090)   | —                     |
+| [Alertmanager](http://localhost:9093) | —                     |
+| [Keycloak](http://localhost:8081)     | `admin` / `admin`     |
+| [RedisInsight](http://localhost:5540) | —                     |
+
+![Telemetry example](docs/images/grafana-monitoring-example.gif)
+
 ### Generate test data
 
 ```txt
