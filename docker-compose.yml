@@ -34,7 +34,7 @@ services:
     container_name: product-sorter-mongodb-exporter
     restart: unless-stopped
     networks: [product-sorter]
-    command: ["--mongodb.uri=mongodb://mongodb:27017/admin", "--collector.topmetrics", "--no-collector.diagnosticdata"]
+    command: ["--mongodb.uri=mongodb://mongodb:27017/admin", "--collector.diagnosticdata"]
     depends_on:
       mongodb: { condition: service_healthy }
     <<: *default-resources
