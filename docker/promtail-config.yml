@@ -21,3 +21,6 @@ scrape_configs:
         regex: "/?product-sorter-(.+)"
         target_label: service
         replacement: "$1"
+      - source_labels: [service]
+        regex: "app"
+        action: drop

@@ -8,12 +8,13 @@ import dev.jpje.productsorter.domain.vo.SalesUnits;
 import dev.jpje.productsorter.domain.vo.Size;
 import dev.jpje.productsorter.domain.vo.Stock;
 import dev.jpje.productsorter.domain.vo.StockBySize;
-import org.springframework.stereotype.Component;
 
-@Component
-public class ProductDocumentMapper {
+final class ProductDocumentMapper {
 
-  public Product toDomain(final ProductDocument doc) {
+  private ProductDocumentMapper() {
+  }
+
+  static Product toDomain(final ProductDocument doc) {
     return new Product(
       ProductId.of(doc.id()),
       ProductName.of(doc.name()),
@@ -25,3 +26,4 @@ public class ProductDocumentMapper {
     );
   }
 }
+

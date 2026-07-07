@@ -27,14 +27,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class ProductControllerTest {
-
-  @Spy
-  private ProductControllerMapper mapper;
 
   @Mock
   private SortProductsUseCase sortUseCase;

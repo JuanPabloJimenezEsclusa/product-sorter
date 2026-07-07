@@ -18,34 +18,31 @@ public class ProductController implements ProductsApi {
 
   private final SortProductsUseCase sortUseCase;
   private final ListProductsUseCase listUseCase;
-  private final ProductControllerMapper mapper;
 
   public ProductController(final SortProductsUseCase sortUseCase,
-                           final ListProductsUseCase listUseCase,
-                           final ProductControllerMapper mapper) {
+                           final ListProductsUseCase listUseCase) {
     this.sortUseCase = sortUseCase;
     this.listUseCase = listUseCase;
-    this.mapper = mapper;
   }
 
   @Override
   public ResponseEntity<ProductPageResponse> sortProducts(final SortRequest sortRequest,
-                                                   final String cursor,
-                                                   final Integer size) {
+                                                          final String cursor,
+                                                          final Integer size) {
     final var request = new SortProductsRequest(sortRequest.getWeights());
-    final var resolvedSize = mapper.sizeOrDefault(size);
+    final var resolvedSize = ProductControllerMapper.sizeOrDefault(size);
     final var result = sortUseCase.execute(request, cursor, resolvedSize);
 
     log.debug("sort resp: count={}, hasMore={}", result.products().size(), result.hasMore());
-    return ResponseEntity.ok(mapper.toProductPage(result, resolvedSize));
+    return ResponseEntity.ok(ProductControllerMapper.toProductPage(result, resolvedSize));
   }
 
   @Override
   public ResponseEntity<ProductPageResponse> getProducts(final String cursor, final Integer size) {
-    final var resolvedSize = mapper.sizeOrDefault(size);
+    final var resolvedSize = ProductControllerMapper.sizeOrDefault(size);
     final var result = listUseCase.execute(cursor, resolvedSize);
 
     log.debug("get resp: count={}, hasMore={}", result.products().size(), result.hasMore());
-    return ResponseEntity.ok(mapper.toProductPage(result, resolvedSize));
+    return ResponseEntity.ok(ProductControllerMapper.toProductPage(result, resolvedSize));
   }
 }

@@ -11,6 +11,7 @@ public record ProductDocument(
     String name,
     int salesUnits,
     List<StockEntry> stock,
-    Double weightedScore
+    Double weightedScore,
+    Double stockRatio
 ) {
 }

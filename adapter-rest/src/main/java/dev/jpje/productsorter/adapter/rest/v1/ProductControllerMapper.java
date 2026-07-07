@@ -5,13 +5,31 @@ import dev.jpje.productsorter.api.v1.dto.ProductResponse;
 import dev.jpje.productsorter.api.v1.dto.StockDto;
 import dev.jpje.productsorter.domain.model.Product;
 import dev.jpje.productsorter.domain.port.ProductRepository.PagedResult;
-import org.springframework.stereotype.Component;
 
-@Component
-public class ProductControllerMapper {
+final class ProductControllerMapper {
 
   private static final int DEFAULT_SIZE = 20;
   private static final int MAX_SIZE = 100;
+
+  private ProductControllerMapper() {
+  }
+
+  static ProductPageResponse toProductPage(final PagedResult result, final int size) {
+    final var productPage = new ProductPageResponse();
+    productPage.setData(result.products().stream()
+      .map(ProductControllerMapper::toProductResponse)
+      .toList());
+    productPage.setSize(size);
+    productPage.setNextCursor(result.nextCursor());
+    return productPage;
+  }
+
+  static int sizeOrDefault(final Integer size) {
+    if (size == null || size < 1) {
+      return DEFAULT_SIZE;
+    }
+    return Math.min(size, MAX_SIZE);
+  }
 
   private static ProductResponse toProductResponse(final Product product) {
     final var dto = new ProductResponse();
@@ -28,22 +46,5 @@ public class ProductControllerMapper {
       .toList());
     dto.setScore(product.weightedScore());
     return dto;
-  }
-
-  public ProductPageResponse toProductPage(final PagedResult result, final int size) {
-    final var productPage = new ProductPageResponse();
-    productPage.setData(result.products().stream()
-      .map(ProductControllerMapper::toProductResponse)
-      .toList());
-    productPage.setSize(size);
-    productPage.setNextCursor(result.nextCursor());
-    return productPage;
-  }
-
-  public int sizeOrDefault(final Integer size) {
-    if (size == null || size < 1) {
-      return DEFAULT_SIZE;
-    }
-    return Math.min(size, MAX_SIZE);
   }
 }

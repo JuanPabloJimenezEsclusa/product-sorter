@@ -269,10 +269,11 @@
       "targets": [
         {
           "expr": "{service=\"product-sorter\"} |= ``",
-          "legendFormat": ""
+          "legendFormat": "",
+          "maxLines": 1000
         }
       ],
-      "options": { "showTime": true, "showLabels": true, "wrapLogMessage": true, "sortOrder": "Descending" },
+      "options": { "showTime": true, "showLabels": true, "wrapLogMessage": true, "sortOrder": "Descending", "showLogsVolume": true },
       "description": "Live logs from the product-sorter application"
     }
   ],

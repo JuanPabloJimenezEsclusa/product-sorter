@@ -34,7 +34,7 @@ services:
     container_name: product-sorter-mongodb-exporter
     restart: unless-stopped
     networks: [product-sorter]
-    command: ["--mongodb.uri=mongodb://mongodb:27017/admin", "--collector.diagnosticdata", "--collector.dbstats", "--collector.topmetrics"]
+    command: ["--mongodb.uri=mongodb://mongodb:27017/admin", "--collector.topmetrics", "--no-collector.diagnosticdata"]
     depends_on:
       mongodb: { condition: service_healthy }
     <<: *default-resources
@@ -46,7 +46,7 @@ services:
     restart: unless-stopped
     ports: ["6379:6379"]
     networks: [product-sorter]
-    command: redis-server --save 20 1 --loglevel warning --requirepass admin
+    command: redis-server --save "" --loglevel warning --requirepass admin
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -102,7 +102,7 @@ services:
         reservations: { cpus: "1", memory: "1024M" }
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.152.0-nightly.286fff0
+    image: otel/opentelemetry-collector-contrib:0.155.0
     container_name: product-sorter-otel
     restart: unless-stopped
     ports: ["4318:4318"]
@@ -120,7 +120,27 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./docker/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+    depends_on: [alertmanager]
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+    <<: *default-resources
+
+  alertmanager:
+    image: prom/alertmanager:v0.29.0
+    container_name: product-sorter-alertmanager
+    restart: unless-stopped
+    ports: ["9093:9093"]
+    networks: [product-sorter]
+    volumes:
+      - ./docker/prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
     <<: *default-resources
 
   tempo:

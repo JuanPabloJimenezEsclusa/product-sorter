@@ -91,33 +91,23 @@ Scoring is delegated to a MongoDB aggregation pipeline for `O(sort)` scalability
 |---------------|-------|
 | Metric definitions + weight validation | `domain` (Metrics, AppliedWeights) |
 | Raw value computation (sales, stock ratio) | `domain` (Stock.stockRatio, SalesUnits.value) |
-| Weighted score formula & aggregation | `adapter-persistence` (ProductSorterHelper) |
+| Weighted score formula & aggregation | `adapter-persistence` (MongoQueryHelper) |
 | Cursor-based pagination | `application` (PagedResult, size+1 detection) |
 
 The domain does **not** compute final scores in-memory. The adapter translates weights into a MongoDB aggregation pipeline that uses top-K heap sort:
 
 ```javascript
-// w_sales=0.7, w_stock=0.3, cursor=null, size=20
+// w_sales=0.7, w_stock=0.3, midpoint=50, cursor=null, size=20
 db.products.aggregate([
   // ── Compute weighted score per document ──
   { $addFields: {
     weightedScore: {
       $add: [
-        { $multiply: ["$salesUnits", 0.7] },
         { $multiply: [
-          { $cond: [
-            { $gt: [{ $size: "$stock" }, 0] },
-            { $divide: [
-              { $size: { $filter: {
-                input: "$stock",
-                cond: { $gt: ["$$s.quantity", 0] }
-              }}},
-              { $size: "$stock" }
-            ]},
-            0
-          ]},
-          0.3
-        ]}
+          { $divide: ["$salesUnits", { $add: ["$salesUnits", 50] }] },
+          0.7
+        ]},
+        { $multiply: ["$stockRatio", 0.3] }
       ]
     }
   }},
@@ -141,7 +131,7 @@ For cursor-based pagination (second page), a `$match` stage is inserted between 
 }}
 ```
 
-Eliminating `$facet` enables MongoDB's top-K optimization: `$sort` + `$limit` uses an in-memory heap of size K instead of sorting the entire collection. Pagination uses `nextCursor` (null = end of results) instead of tracking a `total` count, removing one extra collection scan per request.
+MongoDB top-K optimization: `$sort` + `$limit` uses an in-memory heap of size K instead of sorting the entire collection. Pagination uses `nextCursor` (null = end of results) instead of tracking a `total` count, removing one extra collection scan per request.
 
 ### Data Flow
 
@@ -217,15 +207,15 @@ The repository returns `size + 1` items. The use case detects `hasMore` when res
 
 ## Scoring Algorithm
 
-Products are sorted by a weighted sum of raw metric values. The sales criterion uses raw sales units (no normalization). The stock criterion uses a binary availability ratio — the proportion of sizes that have any inventory. Final scores are computed in MongoDB via an aggregation pipeline.
+Products are sorted by a weighted sum of normalized metric values. Both criteria are normalized to the [0, 1] range. Sales units use a logistic saturation function (`x / (x + midpoint)`). Stock uses a binary availability ratio. Final scores are computed in MongoDB via an aggregation pipeline.
 
 ### Criterion: Sales Units
 
 ```
-rawScore(product) = product.salesUnits
+salesRatio(product) = product.salesUnits / (product.salesUnits + midpoint)
 ```
 
-Uses raw sales units. No normalization against max sales.
+Uses logistic normalization (`x / (x + K)`) with configurable `midpoint` (default 50). At `salesUnits = midpoint`, the ratio is 0.5. ∈ [0, 1). No dependency on max sales or the full dataset.
 
 ### Criterion: Stock Ratio
 
@@ -239,34 +229,34 @@ Measures size availability: what fraction of the product's sizes are in stock. �
 ### Weighted Sum
 
 ```
-weightedScore(product) = w_sales × salesUnits + w_stock × stockRatio
+weightedScore(product) = w_sales × salesRatio + w_stock × stockRatio
 ```
 
-Sales weights are raw multipliers. Stock weights apply to a ratio already in [0, 1].
+Both criteria are now in the same [0, 1] range. Weights determine their relative contribution to the final score.
 
 ### Step-by-step Example
 
-Using the dataset with `weights = { salesUnits: 0.7, stockRatio: 0.3 }`:
+Using the dataset with `weights = { salesUnits: 0.7, stockRatio: 0.3 }` and `midpoint = 50`:
 
-| # | Name | Sales | S | M | L | Sales Score | Stock Ratio | Weighted Score |
+| # | Name | Sales | S | M | L | Sales Ratio | Stock Ratio | Weighted Score |
 |---|------|-------|----|----|----|-------------|-------------|----------------|
-| 1 | V-NECH BASIC SHIRT | 100 | 4 | 9 | 0 | 100 × 0.7 = 70.0 | 2/3 = 0.667 | 70.0 + 0.667×0.3 = **70.2** |
-| 2 | CONTRASTING FABRIC T-SHIRT | 50 | 35 | 9 | 9 | 50 × 0.7 = 35.0 | 3/3 = 1.0 | 35.0 + 1.0×0.3 = **35.3** |
-| 3 | RAISED PRINT T-SHIRT | 80 | 20 | 2 | 20 | 80 × 0.7 = 56.0 | 3/3 = 1.0 | 56.0 + 1.0×0.3 = **56.3** |
-| 4 | PLEATED T-SHIRT | 3 | 25 | 30 | 10 | 3 × 0.7 = 2.1 | 3/3 = 1.0 | 2.1 + 1.0×0.3 = **2.4** |
-| 5 | CONTRASTING LACE T-SHIRT | 650 | 0 | 1 | 0 | 650 × 0.7 = 455.0 | 1/3 = 0.333 | 455.0 + 0.333×0.3 = **455.1** |
-| 6 | SLOGAN T-SHIRT | 20 | 9 | 2 | 5 | 20 × 0.7 = 14.0 | 3/3 = 1.0 | 14.0 + 1.0×0.3 = **14.3** |
+| 1 | V-NECH BASIC SHIRT | 100 | 4 | 9 | 0 | 100/(100+50) = 0.667 | 2/3 | 0.7×0.667 + 0.3×(2/3) = **0.667** |
+| 2 | CONTRASTING FABRIC T-SHIRT | 50 | 35 | 9 | 9 | 50/(50+50) = 0.500 | 3/3 = 1.0 | 0.7×0.500 + 0.3×1.0 = **0.650** |
+| 3 | RAISED PRINT T-SHIRT | 80 | 20 | 2 | 20 | 80/(80+50) = 0.615 | 3/3 = 1.0 | 0.7×0.615 + 0.3×1.0 = **0.731** |
+| 4 | PLEATED T-SHIRT | 3 | 25 | 30 | 10 | 3/(3+50) = 0.057 | 3/3 = 1.0 | 0.7×0.057 + 0.3×1.0 = **0.340** |
+| 5 | CONTRASTING LACE T-SHIRT | 650 | 0 | 1 | 0 | 650/(650+50) = 0.929 | 1/3 | 0.7×0.929 + 0.3×(1/3) = **0.750** |
+| 6 | SLOGAN T-SHIRT | 20 | 9 | 2 | 5 | 20/(20+50) = 0.286 | 3/3 = 1.0 | 0.7×0.286 + 0.3×1.0 = **0.500** |
 
 **Sorted result (descending score):**
 
 | Position | ID | Name | Score |
 |----------|----|------|-------|
-| 1 | 5 | CONTRASTING LACE T-SHIRT | **455.1** |
-| 2 | 1 | V-NECH BASIC SHIRT | **70.2** |
-| 3 | 3 | RAISED PRINT T-SHIRT | **56.3** |
-| 4 | 2 | CONTRASTING FABRIC T-SHIRT | **35.3** |
-| 5 | 6 | SLOGAN T-SHIRT | **14.3** |
-| 6 | 4 | PLEATED T-SHIRT | **2.4** |
+| 1 | 5 | CONTRASTING LACE T-SHIRT | **0.750** |
+| 2 | 3 | RAISED PRINT T-SHIRT | **0.731** |
+| 3 | 1 | V-NECH BASIC SHIRT | **0.667** |
+| 4 | 2 | CONTRASTING FABRIC T-SHIRT | **0.650** |
+| 5 | 6 | SLOGAN T-SHIRT | **0.500** |
+| 6 | 4 | PLEATED T-SHIRT | **0.340** |
 
 ---
 
@@ -309,6 +299,17 @@ docker compose --profile app up --build
 ### Deployment Architecture
 
 ![Architecture Diagram](docs/images/product-sorter-architecture.svg)
+
+| Service                               | Auth                  |
+|---------------------------------------|-----------------------|
+| [API](http://localhost:8880)          | Bearer JWT (Keycloak) |
+| [Grafana](http://localhost:3000)      | `admin` / `admin`     |
+| [Prometheus](http://localhost:9090)   | —                     |
+| [Alertmanager](http://localhost:9093) | —                     |
+| [Keycloak](http://localhost:8081)     | `admin` / `admin`     |
+| [RedisInsight](http://localhost:5540) | —                     |
+
+![Telemetry example](docs/images/grafana-monitoring-example.gif)
 
 ### Generate test data
 
