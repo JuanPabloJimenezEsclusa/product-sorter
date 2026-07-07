@@ -57,7 +57,7 @@ services:
         reservations: { cpus: "1", memory: "1024M" }
 
   redis-exporter:
-    image: oliver006/redis_exporter:v1.72.0
+    image: oliver006/redis_exporter:v1.86.0
     container_name: product-sorter-redis-exporter
     hostname: redis-exporter
     restart: unless-stopped
@@ -102,7 +102,7 @@ services:
         reservations: { cpus: "1", memory: "1024M" }
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.155.0
+    image: otel/opentelemetry-collector-contrib:0.156.0
     container_name: product-sorter-otel
     restart: unless-stopped
     ports: ["4318:4318"]
@@ -112,7 +112,7 @@ services:
     <<: *default-resources
 
   prometheus:
-    image: prom/prometheus:v3.12.0
+    image: prom/prometheus:v3.13.0
     container_name: product-sorter-prometheus
     restart: unless-stopped
     ports: ["9090:9090"]
@@ -131,7 +131,7 @@ services:
     <<: *default-resources
 
   alertmanager:
-    image: prom/alertmanager:v0.29.0
+    image: prom/alertmanager:v0.33.1
     container_name: product-sorter-alertmanager
     restart: unless-stopped
     ports: ["9093:9093"]
