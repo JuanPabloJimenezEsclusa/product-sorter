@@ -25,10 +25,6 @@
 
   <packaging>pom</packaging>
 
-  <properties>
-    <sonar.skip>true</sonar.skip>
-  </properties>
-
   <dependencies>
     <dependency>
       <groupId>dev.jpje</groupId>
