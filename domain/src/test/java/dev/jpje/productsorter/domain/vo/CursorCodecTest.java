@@ -17,11 +17,11 @@ class CursorCodecTest {
   @MethodSource("encodeDecodeScenarios")
   void shouldEncodeAndDecode(final double score, final String productId) {
     final var encoded = CursorCodec.encode(score, productId);
-    assertThat(encoded).isNotEmpty();
+    assertThat(encoded).as("encoded cursor not empty").isNotEmpty();
 
     final var decoded = CursorCodec.decode(encoded);
-    assertThat(decoded.score()).isEqualTo(score);
-    assertThat(decoded.productId()).isEqualTo(productId);
+    assertThat(decoded.score()).as("round-trip score").isEqualTo(score);
+    assertThat(decoded.productId()).as("round-trip product id").isEqualTo(productId);
   }
 
   @ParameterizedTest(name = "{0}")

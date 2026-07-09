@@ -54,8 +54,8 @@ class VirtualThreadCountMetricsTest {
     await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
       final var totalGauge = registry.get("jvm.threads.virtual.live")
         .tag("scheduling.status", "total").gauge();
-      assertThat(totalGauge).isNotNull();
-      assertThat(totalGauge.value()).isGreaterThanOrEqualTo(3);
+      assertThat(totalGauge).as("virtual-thread total gauge registered").isNotNull();
+      assertThat(totalGauge.value()).as("all parked virtual threads counted").isGreaterThanOrEqualTo(3);
     });
 
     for (Thread vt : threads) {
@@ -86,7 +86,8 @@ class VirtualThreadCountMetricsTest {
     final var totalGauge = registry.get("jvm.threads.virtual.live")
       .tag("scheduling.status", "total").gauge();
 
-    await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(totalGauge.value()).isGreaterThanOrEqualTo(2));
+    await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(totalGauge.value())
+      .as("running virtual threads counted").isGreaterThanOrEqualTo(2));
 
     proceed.countDown();
 
@@ -95,6 +96,6 @@ class VirtualThreadCountMetricsTest {
     }
 
     await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
-      assertThat(totalGauge.value()).isZero());
+      assertThat(totalGauge.value()).as("gauge returns to zero once threads end").isZero());
   }
 }

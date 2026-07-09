@@ -60,13 +60,13 @@ class MongoProductRepositoryTest {
   @Test
   void shouldPageWithCursor() {
     final var page1 = repository.findPage(null, 3);
-    assertThat(page1.products()).hasSize(3);
-    assertThat(page1.products().getFirst().productId().value()).isEqualTo("1");
-    assertThat(page1.nextCursor()).isNotNull();
+    assertThat(page1.products()).as("first page size").hasSize(3);
+    assertThat(page1.products().getFirst().productId().value()).as("first page starts at id 1").isEqualTo("1");
+    assertThat(page1.nextCursor()).as("first page has next cursor").isNotNull();
 
     final var page2 = repository.findPage(page1.nextCursor(), 3);
-    assertThat(page2.products()).hasSize(3);
-    assertThat(page2.products().getFirst().productId().value()).isEqualTo("4");
+    assertThat(page2.products()).as("second page size").hasSize(3);
+    assertThat(page2.products().getFirst().productId().value()).as("second page starts at id 4").isEqualTo("4");
   }
 
   @Test
@@ -102,24 +102,24 @@ class MongoProductRepositoryTest {
   void shouldSortByWeightsCursorPaginated() {
     final var weights = new AppliedWeights(0.7, 0.3);
     final var page1 = repository.sortByWeights(weights, null, 2);
-    assertThat(page1.products()).hasSize(2);
-    assertThat(page1.nextCursor()).isNotNull();
+    assertThat(page1.products()).as("first page size").hasSize(2);
+    assertThat(page1.nextCursor()).as("first page has next cursor").isNotNull();
     assertThat(page1.products().getFirst().productId().value())
-      .isEqualTo("5");
+      .as("top-scored product first").isEqualTo("5");
 
     final var page2 = repository.sortByWeights(weights, page1.nextCursor(), 2);
-    assertThat(page2.products()).hasSize(2);
-    assertThat(page2.nextCursor()).isNotNull();
+    assertThat(page2.products()).as("second page size").hasSize(2);
+    assertThat(page2.nextCursor()).as("second page has next cursor").isNotNull();
     assertThat(page2.products().getFirst().productId().value())
-      .isNotEqualTo("5");
+      .as("second page does not repeat top product").isNotEqualTo("5");
   }
 
   @Test
   void shouldReturnEmptyForCursorPastEnd() {
     final var weights = new AppliedWeights(1.0, 0.0);
     final var empty = repository.sortByWeights(weights, CursorCodec.encode(-1, "z"), 20);
-    assertThat(empty.products()).isEmpty();
-    assertThat(empty.nextCursor()).isNull();
+    assertThat(empty.products()).as("no products past end of results").isEmpty();
+    assertThat(empty.nextCursor()).as("no next cursor past end").isNull();
   }
 
   @ParameterizedTest(name = "{0}")

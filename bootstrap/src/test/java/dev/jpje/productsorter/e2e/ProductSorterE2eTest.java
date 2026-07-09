@@ -8,6 +8,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.interfaces.RSAPublicKey;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -24,6 +25,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import dev.jpje.productsorter.adapter.persistence.mongo.entity.ProductDocument;
 import dev.jpje.productsorter.adapter.persistence.mongo.entity.StockEntry;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -64,7 +66,7 @@ class ProductSorterE2eTest {
     @Bean
     @Primary
     JwtDecoder jwtDecoder() {
-      return NimbusJwtDecoder.withPublicKey((java.security.interfaces.RSAPublicKey) RSA_KEY.getPublic()).build();
+      return NimbusJwtDecoder.withPublicKey((RSAPublicKey) RSA_KEY.getPublic()).build();
     }
   }
 
@@ -142,7 +144,7 @@ class ProductSorterE2eTest {
       .then()
       .statusCode(200)
       .body("data", hasSize(2))
-      .body("nextCursor", org.hamcrest.Matchers.notNullValue())
+      .body("nextCursor", Matchers.notNullValue())
       .extract();
 
     final var cursor = firstPage.path("nextCursor");
@@ -195,6 +197,7 @@ class ProductSorterE2eTest {
       .subject("e2e-test-user")
       .issueTime(Date.from(now))
       .expirationTime(Date.from(now.plusSeconds(Integer.MAX_VALUE)))
+      .claim("realm_access", Map.of("roles", List.of("admin", "operator")))
       .build();
     final var signedJwt = new SignedJWT(new JWSHeader(JWSAlgorithm.RS256), claims);
     signedJwt.sign(new RSASSASigner(RSA_KEY.getPrivate()));

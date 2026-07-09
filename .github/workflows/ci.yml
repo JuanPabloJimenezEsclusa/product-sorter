@@ -45,11 +45,6 @@ jobs:
         if: github.actor != 'dependabot[bot]'
         run: mvn ${MAVEN_CLI_OPTS} -pl domain -Ppitest verify
 
-      - uses: actions/upload-artifact@v7
-        with:
-          name: jacoco-report
-          path: "./coverage-jacoco/target/site/jacoco-aggregate/index.html"
-
   dependency-review:
     if: github.event_name == 'pull_request'
     needs: test

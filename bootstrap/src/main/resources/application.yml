@@ -11,7 +11,7 @@ spring:
   main:
     banner-mode: console
   mongodb:
-    uri: "${MONGODB_URI:mongodb://localhost:27017/productsorter?maxPoolSize=500&connectTimeoutMS=5000&timeoutMS=5000&serverSelectionTimeoutMS=5000}"
+    uri: "${MONGODB_URI:mongodb://localhost:27017/productsorter?maxPoolSize=500&connectTimeoutMS=2000&serverSelectionTimeoutMS=2000&timeoutMS=5000}"
     ssl:
       enabled: false
   docker:
@@ -30,11 +30,34 @@ springdoc:
       client-id: app
       use-pkce-with-authorization-code-grant: true
 
+resilience:
+  retry:
+    max-attempts: 3
+    initial-backoff-millis: 100
+  circuitbreaker:
+    failure-rate-threshold: 50
+    slow-call-rate-threshold: 100
+    slow-call-duration-seconds: 6
+    sliding-window-type: TIME_BASED
+    sliding-window-size: 30
+    minimum-number-of-calls: 50
+    wait-open-seconds: 10
+  bulkhead:
+    max-concurrent-calls: 128
+    max-wait-millis: 100
+  ratelimiter:
+    limit-for-period: 200
+    refresh-period-seconds: 1
+  jwks:
+    max-attempts: 2
+    connect-timeout-seconds: 2
+    read-timeout-seconds: 3
+
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus,metrics
+        include: health,info,prometheus,metrics,circuitbreakers,retries,bulkheads,ratelimiters
 
 server:
   application-display-name: application

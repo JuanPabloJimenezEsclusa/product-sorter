@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.List;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.lettuce.core.metrics.MicrometerCommandLatencyRecorder;
 import io.lettuce.core.metrics.MicrometerOptions;
 import io.lettuce.core.resource.ClientResources;
@@ -31,8 +32,9 @@ public class CacheConfig {
 
   @Bean
   @Primary
-  public CacheManager multiTierCacheManager(final List<CacheManager> cacheManagers) {
-    return new CompositeCacheManager(cacheManagers);
+  public CacheManager multiTierCacheManager(final List<CacheManager> cacheManagers,
+                                            final CircuitBreakerRegistry circuitBreakerRegistry) {
+    return new CompositeCacheManager(cacheManagers, circuitBreakerRegistry.circuitBreaker("redis"));
   }
 
   @Bean

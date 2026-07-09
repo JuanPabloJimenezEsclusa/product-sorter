@@ -1,41 +1,41 @@
 # Performance Test Report
-**Date:** 2026-07-07T19:28:28Z
+**Date:** 2026-07-10T13:42:16Z
 
 ## Overall Results
 
 | Session  | Total Req | Fail Rate | p50 (ms) | p95 (ms) | p99 (ms) | Max (ms) | Req/s | VUs |
 |----------|-----------|-----------|----------|----------|----------|----------|-------|-----|
-| 10k-products | 36074 | 0% | 3 | 8 | 26 | 51 | 50 | 100 |
-| 10k-products-quick | 18106 | 0% | 3 | 9 | 26 | 43 | 50.2 | 100 |
-| 100k-products | 35992 | 0% | 3 | 7 | 90 | 1489 | 50 | 100 |
-| 100k-products-quick | 18085 | 0% | 3 | 7 | 81 | 103 | 50.1 | 100 |
-| 1M-products | 13485 | 33% | 5 | 5007 | 5010 | 5073 | 18.7 | 100 |
-| 1M-products-quick | 8355 | 29% | 4 | 5007 | 5009 | 5072 | 18.6 | 100 |
+| 10k-products | 36067 | 0% | 3 | 6 | 25 | 44 | 50.1 | 100 |
+| 10k-products-quick | 18083 | 0% | 4 | 11 | 35 | 90 | 50.1 | 100 |
+| 100k-products | 35999 | 0% | 3 | 7 | 85 | 713 | 49.9 | 100 |
+| 100k-products-quick | 18024 | 0% | 3 | 8 | 152 | 312 | 50 | 100 |
+| 1M-products | 18705 | 53% | 3 | 5007 | 5010 | 5171 | 25.9 | 100 |
+| 1M-products-quick | 7958 | 37% | 5 | 5009 | 5013 | 5119 | 17.6 | 100 |
 
 ## Per-Endpoint Latency
 
 | Session  | Endpoint | p50 (ms) | p95 (ms) | p99 (ms) | Avg (ms) | Max (ms) |
 |----------|----------|----------|----------|----------|----------|----------|
-| 10k-products | sort | 3 | 18 | 28 | 4.7 | 51 |
-| 10k-products-quick | sort | 4 | 19 | 27 | 5.1 | 43 |
-| 100k-products | sort | 3 | 79 | 95 | 8.6 | 1382 |
-| 100k-products-quick | sort | 3 | 71 | 83 | 7.7 | 103 |
-| 1M-products | sort | 4971 | 5008 | 5011 | 2843.2 | 5073 |
-| 1M-products-quick | sort | 4500 | 5007 | 5011 | 2540.6 | 5072 |
+| 10k-products | sort | 4 | 19 | 26 | 4.8 | 44 |
+| 10k-products-quick | sort | 5 | 29 | 37 | 6.6 | 90 |
+| 100k-products | sort | 4 | 76 | 88 | 8.5 | 123 |
+| 100k-products-quick | sort | 4 | 134 | 160 | 12.7 | 312 |
+| 1M-products | sort | 4 | 5007 | 5011 | 1576.2 | 5171 |
+| 1M-products-quick | sort | 4750 | 5010 | 5014 | 2685.3 | 5119 |
 
 ## Checks
 
 | Session  | Metric | Status | Detail |
 |----------|--------|--------|--------|
-| 10k-products | check: list 200 | PASS | 14339/14339 |
-| 10k-products | check: sort 200 | PASS | 21635/21635 |
-| 10k-products-quick | check: list 200 | PASS | 7164/7164 |
-| 10k-products-quick | check: sort 200 | PASS | 10842/10842 |
-| 100k-products | check: list 200 | PASS | 14634/14634 |
-| 100k-products | check: sort 200 | PASS | 21258/21258 |
-| 100k-products-quick | check: list 200 | PASS | 7214/7214 |
-| 100k-products-quick | check: sort 200 | PASS | 10771/10771 |
-| 1M-products | check: list 200 | PASS | 5323/5323 |
-| 1M-products | check: sort 200 | FAIL | 3531/8062 |
-| 1M-products-quick | check: list 200 | PASS | 3381/3381 |
-| 1M-products-quick | check: sort 200 | FAIL | 2427/4874 |
+| 10k-products | check: list 200 | PASS | 14448/14448 |
+| 10k-products | check: sort 200 | PASS | 21519/21519 |
+| 10k-products-quick | check: list 200 | PASS | 7236/7236 |
+| 10k-products-quick | check: sort 200 | PASS | 10747/10747 |
+| 100k-products | check: list 200 | PASS | 14365/14365 |
+| 100k-products | check: sort 200 | PASS | 21534/21534 |
+| 100k-products-quick | check: list 200 | PASS | 7246/7246 |
+| 100k-products-quick | check: sort 200 | PASS | 10678/10678 |
+| 1M-products | check: list 200 | FAIL | 4832/7470 |
+| 1M-products | check: sort 200 | FAIL | 3818/11135 |
+| 1M-products-quick | check: list 200 | FAIL | 2909/3100 |
+| 1M-products-quick | check: sort 200 | FAIL | 1965/4758 |

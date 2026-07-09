@@ -18,8 +18,8 @@ class AppliedWeightsTest {
   @MethodSource("validWeightsScenarios")
   void shouldCreateWithValidWeights(final double sales, final double stock) {
     final var weights = new AppliedWeights(sales, stock);
-    assertThat(weights.salesUnitsWeight()).isEqualTo(sales);
-    assertThat(weights.stockWeight()).isEqualTo(stock);
+    assertThat(weights.salesUnitsWeight()).as("sales weight").isEqualTo(sales);
+    assertThat(weights.stockWeight()).as("stock weight").isEqualTo(stock);
   }
 
   @ParameterizedTest(name = "{0}")
@@ -33,8 +33,8 @@ class AppliedWeightsTest {
   @MethodSource("fromMapScenarios")
   void shouldCreateFromMap(final Map<String, Double> map, final double expectedSales, final double expectedStock) {
     final var weights = AppliedWeights.fromMap(map);
-    assertThat(weights.salesUnitsWeight()).isEqualTo(expectedSales);
-    assertThat(weights.stockWeight()).isEqualTo(expectedStock);
+    assertThat(weights.salesUnitsWeight()).as("sales weight from map").isEqualTo(expectedSales);
+    assertThat(weights.stockWeight()).as("stock weight from map").isEqualTo(expectedStock);
   }
 
   private static Stream<Arguments> validWeightsScenarios() {

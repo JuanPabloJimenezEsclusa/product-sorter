@@ -41,12 +41,8 @@ class ListProductsUseCaseImplTest {
     repository.products = products(totalProducts);
 
     final var result = useCase.execute(null, size);
-    assertThat(result.products())
-      .as("Should have %d products", expectedCount)
-      .hasSize(expectedCount);
-    assertThat(result.nextCursor())
-      .as("Should have nextCursor")
-      .isNotNull();
+    assertThat(result.products()).as("Should have %d products", expectedCount).hasSize(expectedCount);
+    assertThat(result.nextCursor()).as("Should have nextCursor").isNotNull();
   }
 
   @ParameterizedTest(name = "{0}")
@@ -56,17 +52,20 @@ class ListProductsUseCaseImplTest {
     repository.products = products(totalProducts);
 
     final var page1 = useCase.execute(null, size);
-    assertThat(page1.products()).hasSize(expectedFirst);
-    assertThat(page1.nextCursor()).isNotNull();
+    assertThat(page1.products()).as("first page size").hasSize(expectedFirst);
+    assertThat(page1.nextCursor()).as("first page has next cursor").isNotNull();
 
     final var page2 = useCase.execute(page1.nextCursor(), size);
-    assertThat(page2.products()).hasSize(expectedSecond);
+    assertThat(page2.products()).as("second page size").hasSize(expectedSecond);
   }
 
   private static Product product(final String id, final int salesUnits) {
     return new Product(
       ProductId.of(id), ProductName.of("P" + id), SalesUnits.of(salesUnits),
-      Stock.of(List.of(StockBySize.of(Size.of("S"), 1), StockBySize.of(Size.of("M"), 1), StockBySize.of(Size.of("L"), 1))));
+      Stock.of(List.of(
+        StockBySize.of(Size.of("S"), 1),
+        StockBySize.of(Size.of("M"), 1),
+        StockBySize.of(Size.of("L"), 1))));
   }
 
   private static List<Product> products(final int count) {
