@@ -160,6 +160,7 @@ class ProductApiContractTest {
       .subject("contract-test-user")
       .issueTime(Date.from(now))
       .expirationTime(Date.from(now.plusSeconds(Integer.MAX_VALUE)))
+      .claim("realm_access", Map.of("roles", List.of("admin", "operator")))
       .build();
     final var signedJwt = new SignedJWT(new JWSHeader(JWSAlgorithm.RS256), claims);
     signedJwt.sign(new RSASSASigner(RSA_KEY.getPrivate()));

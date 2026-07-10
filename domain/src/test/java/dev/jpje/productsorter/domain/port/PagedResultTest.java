@@ -19,9 +19,9 @@ class PagedResultTest {
   @Test
   void shouldCreateWithProducts() {
     final var result = new ProductRepository.PagedResult(List.of(SAMPLE), null);
-    assertThat(result.products()).hasSize(1);
-    assertThat(result.nextCursor()).isNull();
-    assertThat(result.hasMore()).isFalse();
+    assertThat(result.products()).as("products preserved").hasSize(1);
+    assertThat(result.nextCursor()).as("no next cursor").isNull();
+    assertThat(result.hasMore()).as("no more pages").isFalse();
   }
 
   @Test

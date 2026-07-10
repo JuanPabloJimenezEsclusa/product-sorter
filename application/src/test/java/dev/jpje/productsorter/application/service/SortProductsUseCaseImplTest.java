@@ -102,14 +102,12 @@ class SortProductsUseCaseImplTest {
     final var firstPage = useCase.execute(
       new SortProductsRequest(Map.of(Metrics.SALES_UNITS.key(), 1.0, Metrics.STOCK.key(), 0.0)),
       null, size);
-    assertThat(firstPage.products()).hasSize(expectedFirstPage);
+    assertThat(firstPage.products()).as("first page size").hasSize(expectedFirstPage);
 
-    if (firstPage.hasMore()) {
-      final var secondPage = useCase.execute(
-        new SortProductsRequest(Map.of(Metrics.SALES_UNITS.key(), 1.0, Metrics.STOCK.key(), 0.0)),
-        firstPage.nextCursor(), size);
-      assertThat(secondPage.products()).hasSize(expectedSecondPage);
-    }
+    final var secondPage = useCase.execute(
+      new SortProductsRequest(Map.of(Metrics.SALES_UNITS.key(), 1.0, Metrics.STOCK.key(), 0.0)),
+      firstPage.nextCursor(), size);
+    assertThat(secondPage.products()).as("second page size").hasSize(expectedSecondPage);
   }
 
   private static Stream<Arguments> sortScenarios() {

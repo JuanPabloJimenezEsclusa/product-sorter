@@ -1,0 +1,25 @@
+services:
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:2.12.0
+    container_name: product-sorter-toxiproxy
+    restart: unless-stopped
+    networks: [product-sorter]
+    ports: ["8474:8474"]
+    profiles: ["app"]
+    command: ["-host=0.0.0.0", "-config=/toxiproxy.json"]
+    volumes:
+      - ./chaos/toxiproxy.json:/toxiproxy.json:ro
+    healthcheck:
+      test: ["CMD", "/toxiproxy-cli", "list"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  product-sorter-app:
+    environment:
+      MONGODB_URI: "mongodb://toxiproxy:21017/productsorter?directConnection=true&connectTimeoutMS=2000&serverSelectionTimeoutMS=2000&timeoutMS=5000"
+      REDIS_HOST: toxiproxy
+      REDIS_PORT: "21379"
+      JWT_JWK_SET_URI: "http://toxiproxy:21080/realms/product-sorter/protocol/openid-connect/certs"
+    depends_on:
+      toxiproxy: { condition: service_healthy }

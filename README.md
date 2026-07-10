@@ -13,6 +13,7 @@
   <a href="https://github.com/JuanPabloJimenezEsclusa/product-sorter/actions/workflows/ci.yml"><img src="https://github.com/JuanPabloJimenezEsclusa/product-sorter/actions/workflows/ci.yml/badge.svg" alt="CI"/></a>
   <a href="https://github.com/JuanPabloJimenezEsclusa/product-sorter/actions/workflows/pages.yml"><img src="https://github.com/JuanPabloJimenezEsclusa/product-sorter/actions/workflows/pages.yml/badge.svg" alt="Pages"/></a>
   <a href="https://github.com/JuanPabloJimenezEsclusa/product-sorter/actions/workflows/codeql.yml"><img src="https://github.com/JuanPabloJimenezEsclusa/product-sorter/actions/workflows/codeql.yml/badge.svg" alt="CodeQL"/></a>
+  <a href="https://github.com/JuanPabloJimenezEsclusa/product-sorter/actions/workflows/chaos.yml"><img src="https://github.com/JuanPabloJimenezEsclusa/product-sorter/actions/workflows/chaos.yml/badge.svg" alt="Chaos"/></a>
 </p>
 
 ---
@@ -30,6 +31,81 @@
 ---
 
 **Product Sorter** is a REST service that sorts a product catalog by weighted scoring criteria (sales units, stock). Built with hexagonal (ports & adapters) architecture on Java, Spring Boot, and Maven multi-module.
+
+---
+
+## Overview
+
+A product category (t-shirts) must be ordered by business relevance. Relevance is a **weighted sum of criteria** — **sales units** and **stock availability across sizes** — where the caller supplies each weight and new criteria can be added over time. The catalog is persisted in MongoDB and the functionality is exposed over REST.
+
+Scores are computed server-side in a MongoDB aggregation pipeline to keep sorting close to the data. See the exact computation on the sample catalog in [Scoring Algorithm → Step-by-step Example](#step-by-step-example).
+
+### Request Flow
+
+```mermaid
+sequenceDiagram
+    actor Client
+    participant API as ProductController
+    participant RL as RateLimitInterceptor
+    participant DEC as MetricsSortProductsUseCase
+    participant UC as SortProductsUseCase
+    participant RES as ResilientProductRepository
+    participant ADPT as MongoProductRepositoryAdapter
+    participant Cache as Caffeine L1 + Redis L2
+    participant Mongo as MongoDB
+
+    Client->>API: POST /api/v1/products/sort {weights}
+    API->>RL: rate-limit check
+    API->>DEC: execute(weights, cursor, size)
+    DEC->>UC: delegate (+ record metrics)
+    UC->>RES: sortByWeights(...)
+    RES->>ADPT: bulkhead → breaker → retry
+    ADPT->>Cache: get(page key)
+    alt cache hit
+        Cache-->>ADPT: cached page
+    else miss
+        ADPT->>Mongo: aggregation (weighted score + sort)
+        Mongo-->>ADPT: ranked products
+        ADPT->>Cache: put(page key)
+    end
+    ADPT-->>RES: PagedResult
+    RES-->>UC: PagedResult
+    UC-->>DEC: PagedResult
+    DEC-->>API: PagedResult
+    API-->>Client: 200 OK {data, nextCursor}
+```
+
+## Requirements Traceability
+
+**Core requirements**
+
+| Requirement | Decision | Where |
+|-------------|----------|-------|
+| Weighted-sum sorting, extensible criteria | Composition of weighted criteria (`AppliedWeights`, `Metrics`) | [Scoring Algorithm](#scoring-algorithm), [ADR-0006](docs/adr/0006-scored-product-composition.md) |
+| Sales-units & stock-ratio criteria | Logistic sales ratio + size-availability ratio | [Scoring Algorithm](#scoring-algorithm) |
+| Weights received via REST | `POST /api/v1/products/sort` | [ADR-0005](docs/adr/0005-api-design-post-vs-get-and-pagination.md) |
+| Java 8+, Spring Boot | Java 25, Spring Boot 4.1 | `pom.xml` |
+| Rich domain, no anemia (VOs, Aggregate, services) | Pure `domain` module | [Layer Constraints](#layer-constraints), [ADR-0006](docs/adr/0006-scored-product-composition.md) |
+| Hexagonal + tactical DDD, layer separation | Multi-module + ArchUnit rules | [Modules](#modules), [ADR-0008](docs/adr/0008-pure-hexagonal-adapter-naming.md) |
+| Tests: unit / integration / E2E (rest-assured) | Three tiers, representative names | [Testing](#testing) |
+| MongoDB persistence | Aggregation-pipeline adapter | [ADR-0001](docs/adr/0001-use-mongodb.md) |
+| Patterns in sorting criteria | Weighted-criteria composition | [Scoring Algorithm](#scoring-algorithm) |
+| No smells / no Spanish / no dead code | Checkstyle + OpenRewrite + test conventions | [Quality](#quality), [Testing](#testing) |
+
+**Beyond the requirements (extra mile)**
+
+| Capability | Implementation | Where |
+|------------|----------------|-------|
+| Multi-tier cache (L1 + L2) | Caffeine + Redis, cache-aside | [Caching](#caching-l1--l2), [ADR-0002](docs/adr/0002-use-multi-tier-cache.md) |
+| API security | OAuth2 / OIDC resource server | [ADR-0003](docs/adr/0003-use-oauth2-oidc.md) |
+| Virtual threads | Project Loom for blocking I/O | [ADR-0004](docs/adr/0004-use-virtual-threads.md) |
+| Cursor-based pagination | Opaque `score:id` cursor | [Pagination](#pagination), [ADR-0005](docs/adr/0005-api-design-post-vs-get-and-pagination.md) |
+| Observability | Micrometer + OpenTelemetry + MDC (Prometheus / Tempo / Loki / Grafana) | [Observability](#observability), [ADR-0007](docs/adr/0007-observability-decorator-and-mdc.md) |
+| Resilience | Retry / circuit breaker / bulkhead / rate limiter | [Resilience](#resilience-resilience4j), [ADR-0009](docs/adr/0009-resilience-and-timeout-strategy.md) |
+| API-first contract | OpenAPI 3.1 → generated Spring interfaces | [Modules](#modules) |
+| Quality gates | JaCoCo, ArchUnit, PIT mutation, OWASP, SonarCloud | [Quality](#quality) |
+| CI/CD | GitHub Actions (CI, CodeQL, Pages, commitlint), Dependabot | [CI/CD](#cicd) |
+| Performance testing | k6 load scenarios (10k → 1M) | [Performance Tests](#performance-tests) |
 
 ---
 
@@ -202,6 +278,19 @@ The repository returns `size + 1` items. The use case detects `hasMore` when res
 | `sorting_duration_seconds` | Timer (p50, p95, p99) | — | Sort execution time |
 | `sorting_products` | DistributionSummary (p50, p95, p99) | — | Products per sort |
 | `sorting_weights` | DistributionSummary | `criterion` | Sales/stock weights used |
+
+### Resilience (Resilience4j)
+
+Fault tolerance is applied at each outbound boundary as **decorators**, keeping domain/application framework-free:
+
+| Boundary | Strategy | Degradation |
+|----------|----------|-------------|
+| MongoDB (`ResilientProductRepository`) | Bulkhead → CircuitBreaker → Retry | Open/full → fail fast `503` |
+| Redis L2 (`ResilientCache`) | CircuitBreaker | Open → cache miss (fall back to MongoDB) |
+| JWKS fetch (`JwtDecoderResilienceConfig`) | Retry + timeouts | Transient fetch retried |
+| REST ingress (`RateLimitInterceptor`) | RateLimiter | Over limit → `429` |
+
+Retry covers connectivity/failover only (never timeouts); the breaker is time-based and slow-call-aware; the bulkhead sits above concurrency and below the Mongo pool.
 
 ---
 
@@ -424,11 +513,13 @@ curl -s "http://localhost:8880/api/v1/products?cursor=...&size=10" \
 | Application | JUnit 5 + Instancio + Mockito | use cases with cursor pagination |
 | Integration | Testcontainers (MongoDB 8) | aggregation pipeline + pagination + mapper |
 | Cache | Mockito | MultiTierCache + CompositeCacheManager |
+| Resilience | JUnit 5 + Resilience4j | retry, circuit breaker, bulkhead, rate limiter |
 | Observability | Mockito + Micrometer | metrics, decorator, MDC filter |
 | Adapter | Mockito | controller + mapper |
 | Architecture | ArchUnit | hexagonal boundary rules |
 | E2E | Testcontainers + REST Assured | full HTTP stack: sort + paginate with cursor |
 | Contract | REST Assured + JSON Schema | API response matches OpenAPI spec |
+| Chaos | Testcontainers + Toxiproxy + MockWebServer | fault injection: fail-fast, degradation, recovery (`-Pchaos`, [chaos/](chaos/README.md)) |
 
 ---
 
@@ -456,6 +547,7 @@ curl -s "http://localhost:8880/api/v1/products?cursor=...&size=10" \
 | `commitlint.yml` | PR to `develop` | Conventional Commits validation |
 | `pages.yml` | Push to `develop` | Maven site + coverage reports to GitHub Pages |
 | `dependabot.yml` | Weekly | Maven, Docker, Compose, Actions updates |
+| `chaos.yml` | Weekly + manual | Chaos/resilience tests (`-Pchaos`) |
 
 ---
 
@@ -489,6 +581,7 @@ All significant design decisions are documented as ADRs in [`docs/adr/`](docs/ad
 | [ADR-0006](docs/adr/0006-scored-product-composition.md) | ScoredProduct composition over field duplication |
 | [ADR-0007](docs/adr/0007-observability-decorator-and-mdc.md) | Decorator pattern for metrics + MDC correlation |
 | [ADR-0008](docs/adr/0008-pure-hexagonal-adapter-naming.md) | Pure hexagonal adapter naming convention |
+| [ADR-0009](docs/adr/0009-resilience-and-timeout-strategy.md) | Resilience4j decorators + timeout strategy |
 
 ---
 

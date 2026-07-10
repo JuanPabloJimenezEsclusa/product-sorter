@@ -28,6 +28,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 
 @ExtendWith(MockitoExtension.class)
 class ProductControllerTest {
@@ -55,7 +56,7 @@ class ProductControllerTest {
     dto.setWeights(Map.of("salesUnits", wSales, "stockRatio", wStock));
 
     final var response = controller.sortProducts(dto, null, null);
-    assertThat(response.getStatusCode().value()).isEqualTo(200);
+    assertThat(response.getStatusCode().value()).as("valid weights return OK").isEqualTo(HttpStatus.OK.value());
   }
 
   @Test
@@ -64,7 +65,10 @@ class ProductControllerTest {
       .mapToObj(i -> new Product(
         ProductId.of(String.valueOf(i + 1)), ProductName.of("P" + (i + 1)),
         SalesUnits.of((i + 1) * 100),
-        Stock.of(List.of(StockBySize.of(Size.of("S"), 1), StockBySize.of(Size.of("M"), 1), StockBySize.of(Size.of("L"), 1))),
+        Stock.of(List.of(
+          StockBySize.of(Size.of("S"), 1),
+          StockBySize.of(Size.of("M"), 1),
+          StockBySize.of(Size.of("L"), 1))),
         (3 - i) * 0.1))
       .toList();
     when(sortUseCase.execute(any(), isNull(), any())).thenReturn(new PagedResult(scoredProducts, null));
@@ -73,25 +77,31 @@ class ProductControllerTest {
     dto.setWeights(Map.of("salesUnits", 0.7, "stockRatio", 0.3));
 
     final var response = controller.sortProducts(dto, null, null);
-    assertThat(response.getStatusCode().value()).isEqualTo(200);
-    assertThat(response.getBody()).isNotNull();
-    assertThat(response.getBody().getData()).hasSize(3);
+    assertThat(response.getStatusCode().value()).as("sort returns OK").isEqualTo(HttpStatus.OK.value());
+    assertThat(response.getBody()).as("sort body present").isNotNull();
+    assertThat(response.getBody().getData()).as("all sorted products returned").hasSize(scoredProducts.size());
   }
 
   @Test
   void shouldReturnProductsWithPagination() {
     final var products = List.of(
       new Product(ProductId.of("1"), ProductName.of("P1"), SalesUnits.of(100),
-        Stock.of(List.of(StockBySize.of(Size.of("S"), 1), StockBySize.of(Size.of("M"), 1), StockBySize.of(Size.of("L"), 1)))),
+        Stock.of(List.of(
+          StockBySize.of(Size.of("S"), 1),
+          StockBySize.of(Size.of("M"), 1),
+          StockBySize.of(Size.of("L"), 1)))),
       new Product(ProductId.of("2"), ProductName.of("P2"), SalesUnits.of(50),
-        Stock.of(List.of(StockBySize.of(Size.of("S"), 0), StockBySize.of(Size.of("M"), 0), StockBySize.of(Size.of("L"), 0)))));
+        Stock.of(List.of(
+          StockBySize.of(Size.of("S"), 0),
+          StockBySize.of(Size.of("M"), 0),
+          StockBySize.of(Size.of("L"), 0)))));
     when(listUseCase.execute(isNull(), eq(10))).thenReturn(new PagedResult(products, null));
 
     final var response = controller.getProducts(null, 10);
-    assertThat(response.getStatusCode().value()).isEqualTo(200);
-    assertThat(response.getBody()).isNotNull();
-    assertThat(response.getBody().getData()).hasSize(2);
-    assertThat(response.getBody().getSize()).isEqualTo(10);
+    assertThat(response.getStatusCode().value()).as("list returns OK").isEqualTo(HttpStatus.OK.value());
+    assertThat(response.getBody()).as("list body present").isNotNull();
+    assertThat(response.getBody().getData()).as("all products returned").hasSize(products.size());
+    assertThat(response.getBody().getSize()).as("requested page size echoed").isEqualTo(10);
   }
 
   @Test
@@ -99,8 +109,8 @@ class ProductControllerTest {
     when(listUseCase.execute(isNull(), eq(20))).thenReturn(new PagedResult(List.of(), null));
 
     final var response = controller.getProducts(null, null);
-    assertThat(response.getStatusCode().value()).isEqualTo(200);
-    assertThat(response.getBody()).isNotNull();
-    assertThat(response.getBody().getData()).isEmpty();
+    assertThat(response.getStatusCode().value()).as("empty list returns OK").isEqualTo(HttpStatus.OK.value());
+    assertThat(response.getBody()).as("empty body present").isNotNull();
+    assertThat(response.getBody().getData()).as("no products returned").isEmpty();
   }
 }

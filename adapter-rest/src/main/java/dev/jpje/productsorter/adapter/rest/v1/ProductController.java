@@ -9,6 +9,7 @@ import dev.jpje.productsorter.application.port.SortProductsUseCase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -26,6 +27,7 @@ public class ProductController implements ProductsApi {
   }
 
   @Override
+  @PreAuthorize("hasAnyRole('operator')")
   public ResponseEntity<ProductPageResponse> sortProducts(final SortRequest sortRequest,
                                                           final String cursor,
                                                           final Integer size) {
@@ -38,6 +40,7 @@ public class ProductController implements ProductsApi {
   }
 
   @Override
+  @PreAuthorize("hasAnyRole('admin', 'operator')")
   public ResponseEntity<ProductPageResponse> getProducts(final String cursor, final Integer size) {
     final var resolvedSize = ProductControllerMapper.sizeOrDefault(size);
     final var result = listUseCase.execute(cursor, resolvedSize);
