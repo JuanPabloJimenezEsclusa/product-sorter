@@ -83,7 +83,7 @@ services:
     <<: *default-resources
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.6.4
+    image: quay.io/keycloak/keycloak:26.7.0
     container_name: product-sorter-keycloak
     restart: unless-stopped
     ports: ["8081:8080"]
@@ -112,7 +112,7 @@ services:
     <<: *default-resources
 
   prometheus:
-    image: prom/prometheus:v3.13.0
+    image: prom/prometheus:v3.13.1
     container_name: product-sorter-prometheus
     restart: unless-stopped
     ports: ["9090:9090"]
