@@ -76,7 +76,7 @@
     <resilience4j.version>2.4.0</resilience4j.version>
 
     <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
-    <checkstyle.version>13.7.0</checkstyle.version>
+    <checkstyle.version>13.8.0</checkstyle.version>
     <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
     <rewrite-maven-plugin.version>6.43.0</rewrite-maven-plugin.version>
     <sonar-maven-plugin.version>5.7.0.6970</sonar-maven-plugin.version>
@@ -88,9 +88,9 @@
 
     <instancio.version>5.6.0</instancio.version>
     <archunit.version>1.4.2</archunit.version>
-    <rest-assured.version>6.0.0</rest-assured.version>
-    <pitest-maven.version>1.25.6</pitest-maven.version>
-    <mockwebserver.version>5.3.2</mockwebserver.version>
+    <rest-assured.version>6.0.1</rest-assured.version>
+    <pitest-maven.version>1.25.7</pitest-maven.version>
+    <mockwebserver.version>5.4.0</mockwebserver.version>
     <surefire.excludedGroups>chaos</surefire.excludedGroups>
 
     <sonar.organization>juanpablojimenezesclusa</sonar.organization>
