@@ -20,12 +20,12 @@
 
 <p align="center">
   <a href="https://alistair.cockburn.us/hexagonal-architecture/"><img src="https://img.shields.io/badge/Architecture-Hexagonal-brightgreen?style=for-the-badge" alt="Hexagonal"/></a>
+  <a href="https://www.openapis.org/"><img src="https://img.shields.io/badge/API%20First-OpenAPI%203.1-6BA539?style=for-the-badge" alt="OpenAPI"/></a>
   <a href="https://spring.io/projects/spring-boot"><img src="https://img.shields.io/badge/Spring%20Boot-4.1-brightgreen?style=for-the-badge" alt="Spring Boot 4.1"/></a>
   <a href="https://www.mongodb.com/"><img src="https://img.shields.io/badge/DB-MongoDB-47A248?style=for-the-badge" alt="MongoDB"/></a>
   <a href="https://redis.io/"><img src="https://img.shields.io/badge/Cache-Redis-DC382D?style=for-the-badge" alt="Redis"/></a>
   <a href="https://openid.net/connect/"><img src="https://img.shields.io/badge/Auth-OAuth2%2FOIDC-167EE6?style=for-the-badge" alt="OAuth2"/></a>
   <a href="https://opentelemetry.io/"><img src="https://img.shields.io/badge/Observability-OpenTelemetry-000000?style=for-the-badge" alt="OpenTelemetry"/></a>
-  <a href="https://www.openapis.org/"><img src="https://img.shields.io/badge/API%20First-OpenAPI%203.1-6BA539?style=for-the-badge" alt="OpenAPI"/></a>
 </p>
 
 ---
@@ -47,7 +47,7 @@ sequenceDiagram
     actor Client
     participant API as ProductController
     participant RL as RateLimitInterceptor
-    participant DEC as MetricsSortProductsUseCase
+    participant DEC as SortProductsMetricsDecorator
     participant UC as SortProductsUseCase
     participant RES as ResilientProductRepository
     participant ADPT as MongoProductRepositoryAdapter
@@ -100,12 +100,12 @@ sequenceDiagram
 | API security | OAuth2 / OIDC resource server | [ADR-0003](docs/adr/0003-use-oauth2-oidc.md) |
 | Virtual threads | Project Loom for blocking I/O | [ADR-0004](docs/adr/0004-use-virtual-threads.md) |
 | Cursor-based pagination | Opaque `score:id` cursor | [Pagination](#pagination), [ADR-0005](docs/adr/0005-api-design-post-vs-get-and-pagination.md) |
-| Observability | Micrometer + OpenTelemetry + MDC (Prometheus / Tempo / Loki / Grafana) | [Observability](#observability), [ADR-0007](docs/adr/0007-observability-decorator-and-mdc.md) |
+| Observability | Micrometer + OpenTelemetry + MDC (Prometheus / Tempo / Loki / Grafana) | [Business Metrics](#business-metrics-micrometer), [ADR-0007](docs/adr/0007-observability-decorator-and-mdc.md) |
 | Resilience | Retry / circuit breaker / bulkhead / rate limiter | [Resilience](#resilience-resilience4j), [ADR-0009](docs/adr/0009-resilience-and-timeout-strategy.md) |
 | API-first contract | OpenAPI 3.1 → generated Spring interfaces | [Modules](#modules) |
 | Quality gates | JaCoCo, ArchUnit, PIT mutation, OWASP, SonarCloud | [Quality](#quality) |
 | CI/CD | GitHub Actions (CI, CodeQL, Pages, commitlint), Dependabot | [CI/CD](#cicd) |
-| Performance testing | k6 load scenarios (10k → 1M) | [Performance Tests](#performance-tests) |
+| Performance testing | k6 load scenarios (10k → 1M) | [Testing](#testing) |
 
 ---
 
@@ -137,7 +137,7 @@ flowchart LR
 
 ### Layer Constraints
 
-- `domain` is pure Java — zero Spring imports. Enforced by ArchUnit.
+- `domain` is pure Java — zero Spring imports.
 - `application` depends only on `domain` (no framework, no adapters).
 - `adapter-persistence` depends only on `domain` (outbound adapter).
 - `adapter-observability` depends on `domain` and `application` (metrics decorator wrapping application input ports).
@@ -234,13 +234,13 @@ flowchart LR
         CACHE[("Redis L2 + Caffeine L1")]
     end
     subgraph adapter-observability
-        MM[MetricsSortProductsUseCase ★ Decorator]
+        MM[SortProductsMetrics ★ Decorator]
         SM[SortingMetrics]
     end
 
     POST & GET --> C --> M
-    C -.->|SortProductsUseCase| MM
-    C --> LUC
+    C -.->|SortProducts| MM
+    C -.->|ListProducts| LUC
     MM -.->|delegates to| SUC --> REPO
     LUC --> REPO
     REPO --> ADPT --> HLP
@@ -370,22 +370,22 @@ mvn test -pl coverage-jacoco -am     # ArchUnit architecture tests
 mvn clean verify -Psecurity          # With OWASP Dependency-Check
 ```
 
-### Run (full stack)
+### Docker Compose Deployment
 
-**Option 1 — Local dev (app on host):**
+#### Option 1 — Local dev (app on host)
 
 ```bash
 mvn package -pl bootstrap -am -DskipTests
 java -jar bootstrap/target/bootstrap-*.jar --spring.profiles.active=docker-compose
 ```
 
-**Option 2 — Fully containerized (Docker Compose):**
+#### Option 2 — Fully containerized (Docker Compose)
 
 ```bash
 docker compose --profile app up --build
 ```
 
-### Deployment Architecture
+#### Architecture
 
 ![Architecture Diagram](docs/images/product-sorter-architecture.svg)
 
@@ -399,6 +399,10 @@ docker compose --profile app up --build
 | [RedisInsight](http://localhost:5540) | —                     |
 
 ![Telemetry example](docs/images/grafana-monitoring-example.gif)
+
+### AWS Deployment
+
+Production-ready ECS Fargate stack — CloudFormation (3 stacks), Cognito, Secrets Manager, ALB + ACM + Route53, VPC with NAT Gateway, FARGATE_SPOT. ~$70/month. See [deploy/aws/](deploy/aws/Readme.md).
 
 ### Generate test data
 
@@ -520,6 +524,7 @@ curl -s "http://localhost:8880/api/v1/products?cursor=...&size=10" \
 | E2E | Testcontainers + REST Assured | full HTTP stack: sort + paginate with cursor |
 | Contract | REST Assured + JSON Schema | API response matches OpenAPI spec |
 | Chaos | Testcontainers + Toxiproxy + MockWebServer | fault injection: fail-fast, degradation, recovery (`-Pchaos`, [chaos/](chaos/README.md)) |
+| Performance | k6 | Load scenarios (10k, 100k, 1M products), see [perf/](perf/) |
 
 ---
 
@@ -548,22 +553,6 @@ curl -s "http://localhost:8880/api/v1/products?cursor=...&size=10" \
 | `pages.yml` | Push to `develop` | Maven site + coverage reports to GitHub Pages |
 | `dependabot.yml` | Weekly | Maven, Docker, Compose, Actions updates |
 | `chaos.yml` | Weekly + manual | Chaos/resilience tests (`-Pchaos`) |
-
----
-
-## Observability
-
-| Service | Port | Credentials |
-|---------|------|-------------|
-| Grafana | 3000 | admin/admin |
-| Prometheus | 9090 | — |
-| Tempo | 3200 | — |
-| Loki | 3100 | — |
-| Keycloak | 8081 | admin/admin |
-
-### Performance Tests
-
-k6-based load tests across three data volumes (10k, 100k, 1M products). See [`perf/README.md`](perf/README.md) for details. Latest report: [`perf/report/report.md`](perf/report/report.md).
 
 ---
 

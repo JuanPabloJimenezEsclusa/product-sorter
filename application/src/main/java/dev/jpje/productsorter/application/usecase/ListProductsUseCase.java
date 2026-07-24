@@ -1,17 +1,17 @@
-package dev.jpje.productsorter.application.service;
+package dev.jpje.productsorter.application.usecase;
 
 import java.util.List;
 
-import dev.jpje.productsorter.application.port.ListProductsUseCase;
+import dev.jpje.productsorter.application.port.ListProducts;
 import dev.jpje.productsorter.domain.port.ProductRepository;
 import dev.jpje.productsorter.domain.port.ProductRepository.PagedResult;
 import dev.jpje.productsorter.domain.vo.CursorCodec;
 
-public class ListProductsUseCaseImpl implements ListProductsUseCase {
+public class ListProductsUseCase implements ListProducts {
 
   private final ProductRepository repository;
 
-  public ListProductsUseCaseImpl(final ProductRepository repository) {
+  public ListProductsUseCase(final ProductRepository repository) {
     this.repository = repository;
   }
 

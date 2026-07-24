@@ -2,16 +2,16 @@ package dev.jpje.productsorter.adapter.observability;
 
 import java.time.Duration;
 
+import dev.jpje.productsorter.application.port.SortProducts;
 import dev.jpje.productsorter.application.port.SortProductsRequest;
-import dev.jpje.productsorter.application.port.SortProductsUseCase;
 import dev.jpje.productsorter.domain.port.ProductRepository.PagedResult;
 
-public class MetricsSortProductsUseCase implements SortProductsUseCase {
+public class SortProductsMetricsDecorator implements SortProducts {
 
-  private final SortProductsUseCase delegate;
+  private final SortProducts delegate;
   private final SortingMetrics metrics;
 
-  public MetricsSortProductsUseCase(final SortProductsUseCase delegate, final SortingMetrics metrics) {
+  public SortProductsMetricsDecorator(final SortProducts delegate, final SortingMetrics metrics) {
     this.delegate = delegate;
     this.metrics = metrics;
   }

@@ -16,7 +16,7 @@ Name every module outside `domain` and `application` with the `adapter-*` prefix
 |--------|----------------|
 | `adapter-rest` | Driving (inbound) adapter — translates HTTP requests into use case calls |
 | `adapter-persistence` | Driven (outbound) adapter — implements `ProductRepository` port with MongoDB and caching |
-| `adapter-observability` | Driving adapter decorator — wraps `SortProductsUseCase` with Micrometer metrics and MDC tracing |
+| `adapter-observability` | Driving adapter decorator — wraps `SortProducts` with Micrometer metrics and MDC tracing |
 
 ### Sub-package organization within adapters
 

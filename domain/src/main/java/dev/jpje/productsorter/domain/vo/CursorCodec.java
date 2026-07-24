@@ -1,6 +1,7 @@
 package dev.jpje.productsorter.domain.vo;
 
 import java.util.Base64;
+import java.util.Objects;
 
 public final class CursorCodec {
   private static final Base64.Decoder DECODER = Base64.getDecoder();
@@ -25,5 +26,8 @@ public final class CursorCodec {
   }
 
   public record DecodedCursor(double score, String productId) {
+    public DecodedCursor {
+      Objects.requireNonNull(productId, "productId must not be null");
+    }
   }
 }

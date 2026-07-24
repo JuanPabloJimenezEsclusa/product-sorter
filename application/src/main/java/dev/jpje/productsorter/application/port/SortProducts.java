@@ -2,6 +2,6 @@ package dev.jpje.productsorter.application.port;
 
 import dev.jpje.productsorter.domain.port.ProductRepository.PagedResult;
 
-public interface ListProductsUseCase {
-  PagedResult execute(String cursor, Integer size);
+public interface SortProducts {
+  PagedResult execute(SortProductsRequest request, String cursor, Integer size);
 }

@@ -22,6 +22,7 @@ spring:
       enabled: true
 
 springdoc:
+  show-actuator: true
   api-docs:
     path: /v3/api-docs
   swagger-ui:
@@ -57,11 +58,21 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus,metrics,circuitbreakers,retries,bulkheads,ratelimiters
+        include: health,env,prometheus,metrics
+  endpoint:
+    health:
+      show-details: ALWAYS
+      show-components: ALWAYS
+      access: unrestricted
+    env:
+      show-values: ALWAYS
+      access: unrestricted
+    prometheus:
+      access: unrestricted
 
 server:
   application-display-name: application
-  port: ${PORT:8880}
+  port: ${SERVER_PORT:8880}
   tomcat:
     threads:
       max: 10000
@@ -137,3 +148,29 @@ logging:
 cache:
   redis:
     enabled: true
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: aws
+  mongodb:
+    uri: ${MONGODB_URI}
+    ssl:
+      enabled: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${JWT_JWK_SET_URI}
+
+management:
+  health:
+    mongodb:
+      enabled: false
+    redis:
+      enabled: false
+
+otel:
+  enabled: false

@@ -10,7 +10,7 @@ The application needs observability that cuts across architectural layers: metri
 
 ### Decorator pattern for metrics
 
-Use `MetricsSortProductsUseCase` as a decorator that wraps `SortProductsUseCase` transparently. The decorator lives in `adapter-observability` and records Micrometer metrics before/after delegating to the real implementation.
+Use `SortProductsMetricsDecorator` as a decorator that wraps `SortProducts` transparently. The decorator lives in `adapter-observability` and records Micrometer metrics before/after delegating to the real implementation.
 
 ### MDC correlation
 

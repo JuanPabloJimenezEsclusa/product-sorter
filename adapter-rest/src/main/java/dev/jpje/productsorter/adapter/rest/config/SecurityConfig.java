@@ -50,8 +50,10 @@ public class SecurityConfig {
           "/api/v1/v3/api-docs/**",
           "/favicon.ico",
           "/actuator/health",
-          "/actuator/info",
-          "/actuator/prometheus"
+          "/actuator/health/**",
+          "/actuator/prometheus",
+          "/actuator/metrics",
+          "/actuator/metrics/**"
         ).permitAll()
         .requestMatchers("/api/**").authenticated()
         .anyRequest().authenticated()
@@ -72,6 +74,11 @@ public class SecurityConfig {
         @SuppressWarnings("unchecked")
         final var roles = (List<String>) realmAccess.get("roles");
         roles.forEach(role -> authorities.add(new SimpleGrantedAuthority("ROLE_" + role)));
+      }
+
+      final var cognitoGroups = jwt.getClaimAsStringList("cognito:groups");
+      if (cognitoGroups != null) {
+        cognitoGroups.forEach(group -> authorities.add(new SimpleGrantedAuthority("ROLE_" + group)));
       }
 
       return new JwtAuthenticationToken(jwt, authorities);

@@ -11,8 +11,8 @@ import java.util.Map;
 import java.util.stream.IntStream;
 
 import dev.jpje.productsorter.api.v1.dto.SortRequest;
-import dev.jpje.productsorter.application.port.ListProductsUseCase;
-import dev.jpje.productsorter.application.port.SortProductsUseCase;
+import dev.jpje.productsorter.application.port.ListProducts;
+import dev.jpje.productsorter.application.port.SortProducts;
 import dev.jpje.productsorter.domain.model.Product;
 import dev.jpje.productsorter.domain.port.ProductRepository.PagedResult;
 import dev.jpje.productsorter.domain.vo.ProductId;
@@ -34,10 +34,10 @@ import org.springframework.http.HttpStatus;
 class ProductControllerTest {
 
   @Mock
-  private SortProductsUseCase sortUseCase;
+  private SortProducts sortUseCase;
 
   @Mock
-  private ListProductsUseCase listUseCase;
+  private ListProducts listUseCase;
 
   @InjectMocks
   private ProductController controller;

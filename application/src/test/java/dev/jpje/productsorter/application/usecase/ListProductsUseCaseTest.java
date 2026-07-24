@@ -1,4 +1,4 @@
-package dev.jpje.productsorter.application.service;
+package dev.jpje.productsorter.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Named.named;
@@ -23,15 +23,15 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-class ListProductsUseCaseImplTest {
+class ListProductsUseCaseTest {
 
-  private ListProductsUseCaseImpl useCase;
+  private ListProductsUseCase useCase;
   private TestProductRepository repository;
 
   @BeforeEach
   void setUp() {
     repository = new TestProductRepository();
-    useCase = new ListProductsUseCaseImpl(repository);
+    useCase = new ListProductsUseCase(repository);
   }
 
   @ParameterizedTest(name = "{0}")

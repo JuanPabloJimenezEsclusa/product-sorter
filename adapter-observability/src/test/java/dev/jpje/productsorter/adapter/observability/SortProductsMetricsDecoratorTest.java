@@ -14,8 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import dev.jpje.productsorter.application.port.SortProducts;
 import dev.jpje.productsorter.application.port.SortProductsRequest;
-import dev.jpje.productsorter.application.port.SortProductsUseCase;
 import dev.jpje.productsorter.domain.model.Metrics;
 import dev.jpje.productsorter.domain.model.Product;
 import dev.jpje.productsorter.domain.port.ProductRepository.PagedResult;
@@ -31,23 +31,23 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class MetricsSortProductsUseCaseTest {
+class SortProductsMetricsDecoratorTest {
 
   @Mock
-  private SortProductsUseCase delegate;
+  private SortProducts delegate;
 
   @Mock
   private SortingMetrics metrics;
 
   @InjectMocks
-  private MetricsSortProductsUseCase useCase;
+  private SortProductsMetricsDecorator decorator;
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("executeCases")
   void shouldDelegateAndRecordMetrics(final PagedResult delegateResult, final SortProductsRequest request) {
     when(delegate.execute(request, null, 20)).thenReturn(delegateResult);
 
-    final var result = useCase.execute(request, null, 20);
+    final var result = decorator.execute(request, null, 20);
 
     assertThat(result)
       .as("Should return delegate result")

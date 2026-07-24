@@ -13,9 +13,11 @@ import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.Tracer;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Component
+@ConditionalOnProperty(value = "otel.enabled", havingValue = "true", matchIfMissing = true)
 public class TracingFilter implements Filter {
 
   private final Tracer tracer;
