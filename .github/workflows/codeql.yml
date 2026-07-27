@@ -11,7 +11,7 @@ on:
 
 concurrency:
   group: codeql
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   MAVEN_CLI_OPTS: "-B -ntp -e"
@@ -24,17 +24,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v6
         with:
           distribution: zulu
           java-version: 25
           cache: maven
 
-      - uses: github/codeql-action/init@v4
+      - uses: github/codeql-action/init@v4.38.1
         with:
           languages: java
           queries: security-and-quality
 
       - run: mvn ${MAVEN_CLI_OPTS} clean compile -DskipTests
 
-      - uses: github/codeql-action/analyze@v4
+      - uses: github/codeql-action/analyze@v4.38.1

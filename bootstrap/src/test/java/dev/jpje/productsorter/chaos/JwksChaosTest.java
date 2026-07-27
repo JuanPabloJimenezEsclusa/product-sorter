@@ -68,7 +68,8 @@ class JwksChaosTest {
   private static final MockWebServer JWKS_SERVER = startJwksServer();
 
   @Container
-  static MongoDBContainer mongodb = new MongoDBContainer("mongodb/mongodb-community-server:8.3.4-ubi9");
+  static MongoDBContainer mongodb = new MongoDBContainer("mongo:8.3.7-noble")
+    .withEnv("GLIBC_TUNABLES", "glibc.pthread.rseq=1");
 
   @DynamicPropertySource
   static void configure(final DynamicPropertyRegistry registry) {

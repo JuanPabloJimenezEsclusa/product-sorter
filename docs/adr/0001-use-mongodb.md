@@ -39,7 +39,7 @@ The adapter accesses MongoDB through `MongoTemplate` (Spring Data MongoDB's low-
 ## Consequences
 
 - The `products` collection relies on the default `_id` index only; no additional indices are created at startup
-- The weighted score computation is coupled to MongoDB's aggregation pipeline (`ProductSorterHelper`); alternative database backends would require reimplementing the scoring in the query layer
+- The weighted score computation is coupled to MongoDB's aggregation pipeline (`MongoQueryHelper`); alternative database backends would require reimplementing the scoring in the query layer
 - `ProductId` is a plain `String` wrapper with no format validation — any string value is accepted as a valid identifier
 - No transactions are used; the application is read-only so multi-document consistency is not required
 - Spring Boot autoconfiguration manages the `MongoTemplate` bean via `application.yml`; no manual client setup
