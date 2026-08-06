@@ -309,6 +309,7 @@
                       <exclude>io.prometheus:prometheus-metrics-core</exclude>
                       <exclude>io.prometheus:prometheus-metrics-exposition-formats</exclude>
                       <exclude>io.prometheus:prometheus-metrics-tracer-common</exclude>
+                      <exclude>ch.qos.logback:logback-classic</exclude>
                     </excludes>
                   </requireUpperBoundDeps>
                   <requireMavenVersion>

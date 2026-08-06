@@ -362,7 +362,7 @@ cd product-sorter
 ```bash
 mvn clean verify                     # Full CI: test + coverage + checkstyle + enforcer
 mvn test -pl domain                  # Domain unit tests + PIT mutation testing
-mvn test -P pitest -pl domain        # PIT mutation testing (97% mutation coverage)
+mvn test -P pitest -pl domain        # PIT mutation testing
 mvn test -pl application -am         # Application tests
 mvn test -pl adapter-rest -am        # Adapter tests
 mvn test -pl adapter-persistence -am # Integration tests (MongoDB via Testcontainers)
@@ -382,7 +382,7 @@ java -jar bootstrap/target/bootstrap-*.jar --spring.profiles.active=docker-compo
 #### Option 2 — Fully containerized (Docker Compose)
 
 ```bash
-docker compose --profile app up --build
+docker compose --profile app up --detach --build
 ```
 
 #### Architecture
@@ -513,7 +513,7 @@ curl -s "http://localhost:8880/api/v1/products?cursor=...&size=10" \
 | Type | Tools | Cases |
 |------|-------|-------|
 | Unit | JUnit 5 + Instancio + AssertJ | domain model + value objects |
-| Unit (mutation) | PIT Mutation Testing | 97% mutation score on domain |
+| Unit (mutation) | PIT Mutation Testing | mutation score on domain |
 | Application | JUnit 5 + Instancio + Mockito | use cases with cursor pagination |
 | Integration | Testcontainers (MongoDB 8) | aggregation pipeline + pagination + mapper |
 | Cache | Mockito | MultiTierCache + CompositeCacheManager |
