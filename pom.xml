@@ -71,14 +71,14 @@
     <openapi-generator.version>7.24.0</openapi-generator.version>
     <springdoc.version>3.0.3</springdoc.version>
     <swagger-annotations.version>2.2.52</swagger-annotations.version>
-    <loki-logback-appender.version>2.0.3</loki-logback-appender.version>
+    <loki-logback-appender.version>2.1.0</loki-logback-appender.version>
     <jackson-databind-nullable.version>0.2.11</jackson-databind-nullable.version>
     <resilience4j.version>2.4.0</resilience4j.version>
 
     <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
     <checkstyle.version>13.9.0</checkstyle.version>
     <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
-    <rewrite-maven-plugin.version>6.44.0</rewrite-maven-plugin.version>
+    <rewrite-maven-plugin.version>6.45.0</rewrite-maven-plugin.version>
     <sonar-maven-plugin.version>5.7.0.6970</sonar-maven-plugin.version>
     <git-changelog-maven-plugin.version>2.2.11</git-changelog-maven-plugin.version>
     <maven-site-plugin.version>3.22.0</maven-site-plugin.version>
@@ -309,6 +309,7 @@
                       <exclude>io.prometheus:prometheus-metrics-core</exclude>
                       <exclude>io.prometheus:prometheus-metrics-exposition-formats</exclude>
                       <exclude>io.prometheus:prometheus-metrics-tracer-common</exclude>
+                      <exclude>ch.qos.logback:logback-classic</exclude>
                     </excludes>
                   </requireUpperBoundDeps>
                   <requireMavenVersion>

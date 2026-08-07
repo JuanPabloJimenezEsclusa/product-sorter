@@ -76,7 +76,8 @@ class DataStoreChaosTest {
   private static final Network NETWORK = Network.newNetwork();
 
   @Container
-  static MongoDBContainer mongodb = new MongoDBContainer("mongodb/mongodb-community-server:8.3.4-ubi9")
+  static MongoDBContainer mongodb = new MongoDBContainer("mongo:8.3.7-noble")
+    .withEnv("GLIBC_TUNABLES", "glibc.pthread.rseq=1")
     .withNetwork(NETWORK).withNetworkAliases("mongo").withExposedPorts(27017);
 
   @Container
