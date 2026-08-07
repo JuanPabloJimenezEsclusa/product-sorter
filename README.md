@@ -577,10 +577,10 @@ All significant design decisions are documented as ADRs in [`docs/adr/`](docs/ad
 ## Conventional Commits
 
 ```
-<type>(<scope>): <lowercase subject>
+<type>(<scope>): <lower-case subject>
 
 Types: feat | fix | docs | style | refactor | perf | test | build | ci | chore | revert
-Scopes: api-spec | domain | application | adapter | bootstrap | testdata | coverage | docker | ci | config
+Scopes: api-spec | domain | application | adapter | bootstrap | testdata | coverage | docker | ci | config | deps
 
 Examples:
   feat(domain): add stockRatio binary availability criterion

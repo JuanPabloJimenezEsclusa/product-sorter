@@ -30,11 +30,11 @@ jobs:
           java-version: 25
           cache: maven
 
-      - uses: github/codeql-action/init@v4
+      - uses: github/codeql-action/init@v4.37.4
         with:
           languages: java
           queries: security-and-quality
 
       - run: mvn ${MAVEN_CLI_OPTS} clean compile -DskipTests
 
-      - uses: github/codeql-action/analyze@v4
+      - uses: github/codeql-action/analyze@v4.37.4
