@@ -7,7 +7,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>4.1.0</version>
+    <version>4.1.1</version>
     <relativePath/>
   </parent>
 
@@ -68,29 +68,29 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-    <openapi-generator.version>7.24.0</openapi-generator.version>
-    <springdoc.version>3.0.3</springdoc.version>
-    <swagger-annotations.version>2.2.52</swagger-annotations.version>
+    <openapi-generator.version>7.25.0</openapi-generator.version>
+    <springdoc.version>3.1.0</springdoc.version>
+    <swagger-annotations.version>2.2.54</swagger-annotations.version>
     <loki-logback-appender.version>2.1.0</loki-logback-appender.version>
     <jackson-databind-nullable.version>0.2.11</jackson-databind-nullable.version>
     <resilience4j.version>2.4.0</resilience4j.version>
 
     <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
-    <checkstyle.version>13.9.0</checkstyle.version>
+    <checkstyle.version>14.0.0</checkstyle.version>
     <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
-    <rewrite-maven-plugin.version>6.45.0</rewrite-maven-plugin.version>
+    <rewrite-maven-plugin.version>6.46.1</rewrite-maven-plugin.version>
     <sonar-maven-plugin.version>5.7.0.6970</sonar-maven-plugin.version>
     <git-changelog-maven-plugin.version>2.2.11</git-changelog-maven-plugin.version>
     <maven-site-plugin.version>3.22.0</maven-site-plugin.version>
     <maven-jxr-plugin.version>3.6.0</maven-jxr-plugin.version>
     <maven-surefire-report-plugin.version>3.5.6</maven-surefire-report-plugin.version>
-    <dependency-check-maven.version>12.2.2</dependency-check-maven.version>
+    <dependency-check-maven.version>13.0.0</dependency-check-maven.version>
 
     <instancio.version>5.6.0</instancio.version>
-    <archunit.version>1.4.2</archunit.version>
+    <archunit.version>1.5.0</archunit.version>
     <rest-assured.version>6.0.1</rest-assured.version>
-    <pitest-maven.version>1.25.8</pitest-maven.version>
-    <mockwebserver.version>5.4.0</mockwebserver.version>
+    <pitest-maven.version>1.30.0</pitest-maven.version>
+    <mockwebserver.version>5.5.0</mockwebserver.version>
     <surefire.excludedGroups>chaos</surefire.excludedGroups>
 
     <sonar.organization>juanpablojimenezesclusa</sonar.organization>
