@@ -310,6 +310,8 @@
                       <exclude>io.prometheus:prometheus-metrics-exposition-formats</exclude>
                       <exclude>io.prometheus:prometheus-metrics-tracer-common</exclude>
                       <exclude>ch.qos.logback:logback-classic</exclude>
+                      <exclude>com.fasterxml.jackson.datatype:jackson-datatype-jsr310</exclude>
+                      <exclude>com.fasterxml.jackson.dataformat:jackson-dataformat-yaml</exclude>
                     </excludes>
                   </requireUpperBoundDeps>
                   <requireMavenVersion>
