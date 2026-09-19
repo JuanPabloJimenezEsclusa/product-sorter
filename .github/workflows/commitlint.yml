@@ -6,8 +6,8 @@ on:
     types: [opened, synchronize, reopened]
 
 concurrency:
-  group: cc-${{ github.ref }}
-  cancel-in-progress: true
+  group: commitlint
+  cancel-in-progress: false
 
 jobs:
   commitlint:

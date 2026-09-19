@@ -51,7 +51,7 @@ sequenceDiagram
     participant UC as SortProductsUseCase
     participant RES as ResilientProductRepository
     participant ADPT as MongoProductRepositoryAdapter
-    participant Cache as Caffeine L1 + Redis L2
+    participant Cache as Caffeine L1 + Redis L2 (if enabled)
     participant Mongo as MongoDB
 
     Client->>API: POST /api/v1/products/sort {weights}
@@ -66,7 +66,7 @@ sequenceDiagram
     else miss
         ADPT->>Mongo: aggregation (weighted score + sort)
         Mongo-->>ADPT: ranked products
-        ADPT->>Cache: put(page key)
+        ADPT->>Cache: populate L1 + L2 (on read miss)
     end
     ADPT-->>RES: PagedResult
     RES-->>UC: PagedResult
@@ -128,11 +128,30 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    adapter-rest --> api-spec & application & domain
-    application --> domain
-    adapter-persistence --> domain
-    adapter-observability --> application & domain
-    bootstrap --> adapter-rest & application & adapter-persistence & adapter-observability
+  subgraph boot [Boot]
+    bootstrap
+  end
+  
+  subgraph contracts [Contracts]
+    api-spec
+  end
+
+  subgraph core [Core]
+    domain
+    application
+  end
+
+  subgraph adapters [Adapters]
+    adapter-rest
+    adapter-observability
+    adapter-persistence
+  end
+
+  application --> domain
+  adapter-rest --> api-spec & application & domain
+  adapter-persistence --> domain
+  adapter-observability --> application & domain
+  bootstrap --> adapter-rest & application & adapter-persistence & adapter-observability
 ```
 
 ### Layer Constraints
@@ -143,6 +162,8 @@ flowchart LR
 - `adapter-observability` depends on `domain` and `application` (metrics decorator wrapping application input ports).
 - `adapter-rest` depends on `api-spec`, `application`, and `domain` (inbound adapter).
 - `bootstrap` is the composition root.
+
+Enforced by ArchUnit in `coverage-jacoco/src/test/java/.../HexagonalArchitectureTest.java`: `domain` purity and isolation, `application` independence from adapters, and whitelist-based dependency rules for `adapter-rest`, `adapter-persistence`, `adapter-observability`, and `api-spec`. The `bootstrap` composition-root rule has no ArchUnit test (convention only), and the `adapter-persistence` whitelist permits framework libraries (Spring Data, MongoDB, Redis, Caffeine), so "depends only on `domain`" means no additional inner-layer dependency, not zero third-party dependencies.
 
 ### Domain Model
 
@@ -166,7 +187,7 @@ Scoring is delegated to a MongoDB aggregation pipeline for `O(sort)` scalability
 | Responsibility | Layer |
 |---------------|-------|
 | Metric definitions + weight validation | `domain` (Metrics, AppliedWeights) |
-| Raw value computation (sales, stock ratio) | `domain` (Stock.stockRatio, SalesUnits.value) |
+| Raw value at query time (sales ratio; stored `stockRatio`) | `adapter-persistence` (`MongoQueryHelper`) consumes stored `stockRatio` and `salesUnits`; ratio defined by `domain` (`Stock.stockRatio`) |
 | Weighted score formula & aggregation | `adapter-persistence` (MongoQueryHelper) |
 | Cursor-based pagination | `application` (PagedResult, size+1 detection) |
 
@@ -201,8 +222,8 @@ For cursor-based pagination (second page), a `$match` stage is inserted between 
 ```javascript
 { $match: {
   $or: [
-    { weightedScore: { $lt: 70.2 } },
-    { weightedScore: 70.2, _id: { $lt: "1" } }
+    { weightedScore: { $lt: 0.75 } },
+    { weightedScore: 0.75, _id: { $lt: "550e8400-e29b-41d4-a716-446655440000" } }
   ]
 }}
 ```
@@ -213,50 +234,55 @@ MongoDB top-K optimization: `$sort` + `$limit` uses an in-memory heap of size K 
 
 ```mermaid
 flowchart LR
-    subgraph Inbound
-        POST["POST /api/v1/products/sort"]
-        GET["GET /api/v1/products"]
-    end
-    subgraph adapter-rest
-        C[ProductController]
-        M[ProductControllerMapper]
-    end
-    subgraph Application
-        SUC[SortProductsUseCase]
-        LUC[ListProductsUseCase]
-    end
-    subgraph Domain
-        REPO[(ProductRepository<br/>PagedResult)]
-    end
-    subgraph adapter-persistence
-        HLP[ProductSorterHelper<br/>aggregation pipeline]
-        ADPT[MongoProductRepositoryAdapter]
-        CACHE[("Redis L2 + Caffeine L1")]
-    end
-    subgraph adapter-observability
-        MM[SortProductsMetrics ★ Decorator]
-        SM[SortingMetrics]
-    end
+  subgraph Inbound
+    POST["POST /api/v1/products/sort"]
+    GET["GET /api/v1/products"]
+  end
+  
+  subgraph adapter-rest
+    C[ProductController]
+    M[ProductControllerMapper]
+  end
 
-    POST & GET --> C --> M
-    C -.->|SortProducts| MM
-    C -.->|ListProducts| LUC
-    MM -.->|delegates to| SUC --> REPO
-    LUC --> REPO
-    REPO --> ADPT --> HLP
-    ADPT -.->|cache-aside| CACHE
-    MM -.->|records| SM
+  subgraph Application
+    SUC[SortProductsUseCase]
+    LUC[ListProductsUseCase]
+  end
+    
+  subgraph Domain
+    REPO[(ProductRepository<br/>PagedResult)]
+  end
+    
+  subgraph adapter-persistence
+    HLP[MongoQueryHelper<br/>aggregation pipeline]
+    ADPT[MongoProductRepositoryAdapter]
+    CACHE[("Caffeine L1 + Redis L2 (if enabled)")]
+  end
+    
+  subgraph adapter-observability
+    MM[SortProductsMetrics * Decorator]
+    SM[SortingMetrics]
+  end
+
+  POST & GET --> C --> M
+  C -.->|SortProducts| MM
+  C -.->|ListProducts| LUC
+  MM -.->|delegates to| SUC --> REPO
+  LUC --> REPO
+  REPO --> ADPT --> HLP
+  ADPT -.->|cache-aside| CACHE
+  MM -.->|records| SM
 ```
 
 ### Caching (L1 + L2)
 
 ```
-get(k) → Caffeine (30s TTL, max 100) → miss → Redis (300s TTL) → miss → MongoDB
+get(k) → Caffeine (30s TTL, max 100) → miss → Redis L2 (300s TTL, if enabled) → miss → MongoDB
 ```
 
-`MultiTierCache` wraps Caffeine (L1) and Redis (L2). On read: checks L1 first, then L2, populates L1 on L2 hit. On write: writes to both tiers.
+`MultiTierCache` wraps Caffeine (L1) and Redis (L2); the Redis tier is only wired when `cache.redis.enabled=true` (set by the `docker-compose` profile and the chaos tests, off by default and under the `aws` profile). On read: checks L1 first, then L2, populates L1 on L2 hit; on a miss the loaded value populates both tiers. The catalog repository port is read-only, so there is no application-level save/evict path — entries are only ever populated cache-aside by reads.
 
-Cache namespace: `productCache`. First-page requests (cursor=null) are cached by limit size. Subsequent pages with unique cursors bypass the cache.
+Cache namespace: `productCache`. First-page requests (cursor=null) are cached: the list key is `page-<limit>`, while the sort key also encodes the weights as `<salesUnitsWeight>-<stockWeight>-<limit>`. Subsequent pages with unique cursors bypass the cache.
 
 ### Pagination
 
@@ -361,7 +387,7 @@ cd product-sorter
 
 ```bash
 mvn clean verify                     # Full CI: test + coverage + checkstyle + enforcer
-mvn test -pl domain                  # Domain unit tests + PIT mutation testing
+mvn test -pl domain                  # Domain unit tests (PIT only with -Ppitest)
 mvn test -P pitest -pl domain        # PIT mutation testing
 mvn test -pl application -am         # Application tests
 mvn test -pl adapter-rest -am        # Adapter tests
@@ -464,11 +490,11 @@ curl -s -X POST "http://localhost:8880/api/v1/products/sort?cursor=...&size=20" 
         { "size": "M", "quantity": 1 },
         { "size": "L", "quantity": 0 }
       ],
-      "score": 455.1
+      "score": 0.75
     }
   ],
   "size": 20,
-  "nextCursor": "NDU1LjE6NQ=="
+  "nextCursor": "MC43NTo1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDA="
 }
 ```
 
@@ -497,14 +523,15 @@ curl -s "http://localhost:8880/api/v1/products?cursor=...&size=10" \
         { "size": "S", "quantity": 4 },
         { "size": "M", "quantity": 9 },
         { "size": "L", "quantity": 0 }
-      ],
-      "score": null
+      ]
     }
   ],
   "size": 10,
   "nextCursor": "MC4wOjY="
 }
 ```
+
+Fields whose value is `null` (such as `score`, populated only by the sort endpoint) are omitted from the JSON because `spring.jackson.default-property-inclusion: non_null` is set.
 
 ---
 
@@ -535,11 +562,11 @@ curl -s "http://localhost:8880/api/v1/products?cursor=...&size=10" \
 | JaCoCo | verify | Yes (>85% instruction, >80% branch) |
 | ArchUnit | test | Yes |
 | Checkstyle | validate | No (reports only) |
-| OpenRewrite | process-sources | No (dry-run) |
+| OpenRewrite | Manual (`mvn rewrite:dryRun`) | No (`failOnDryRunResults=false`) |
 | Enforcer | validate | Yes (Java 25, Maven 3.9+, no duplicates) |
 | Commitlint | PR | Yes (Conventional Commits) |
-| OWASP Dep-Check | verify (with `-Psecurity`) | Yes (CVSS >= 7) |
-| PIT Mutation | test (with `-Ppitest`) | Yes (>= 70% mutation score) |
+| OWASP Dep-Check | Manual (`mvn verify -Psecurity`) | Yes (CVSS >= 7) |
+| PIT Mutation | test-compile (with `-Ppitest`) | Yes (>= 70% mutation score) |
 
 ---
 
@@ -547,10 +574,10 @@ curl -s "http://localhost:8880/api/v1/products?cursor=...&size=10" \
 
 | Workflow | Trigger | Description |
 |----------|---------|-------------|
-| `ci.yml` | PR to `develop` | `mvn verify` + SonarCloud + dependency review |
+| `ci.yml` | Push + PR to `develop` | `mvn verify` + SonarCloud + dependency review |
 | `codeql.yml` | PR + push to `develop` + weekly | GitHub CodeQL security analysis |
 | `commitlint.yml` | PR to `develop` | Conventional Commits validation |
-| `pages.yml` | Push to `develop` | Maven site + coverage reports to GitHub Pages |
+| `pages.yml` | Push + non-draft PR to `develop` | Maven site + coverage reports to GitHub Pages |
 | `dependabot.yml` | Weekly | Maven, Docker, Compose, Actions updates |
 | `chaos.yml` | Weekly + manual | Chaos/resilience tests (`-Pchaos`) |
 
@@ -562,15 +589,15 @@ All significant design decisions are documented as ADRs in [`docs/adr/`](docs/ad
 
 | ADR | Title |
 |-----|-------|
-| [ADR-0001](docs/adr/0001-use-mongodb.md) | MongoDB as primary database + UUID as `_id` |
-| [ADR-0002](docs/adr/0002-use-multi-tier-cache.md) | Caffeine L1 + Redis L2 multi-tier cache |
-| [ADR-0003](docs/adr/0003-use-oauth2-oidc.md) | OAuth 2.0 / OIDC for API authentication |
-| [ADR-0004](docs/adr/0004-use-virtual-threads.md) | Virtual threads (Project Loom) |
-| [ADR-0005](docs/adr/0005-api-design-post-vs-get-and-pagination.md) | POST for sorting + cursor-based pagination |
-| [ADR-0006](docs/adr/0006-scored-product-composition.md) | ScoredProduct composition over field duplication |
-| [ADR-0007](docs/adr/0007-observability-decorator-and-mdc.md) | Decorator pattern for metrics + MDC correlation |
-| [ADR-0008](docs/adr/0008-pure-hexagonal-adapter-naming.md) | Pure hexagonal adapter naming convention |
-| [ADR-0009](docs/adr/0009-resilience-and-timeout-strategy.md) | Resilience4j decorators + timeout strategy |
+| [ADR-0001](docs/adr/0001-use-mongodb.md) | Use MongoDB as Primary Database |
+| [ADR-0002](docs/adr/0002-use-multi-tier-cache.md) | Use Multi-Tier Cache (Caffeine L1 + Redis L2) |
+| [ADR-0003](docs/adr/0003-use-oauth2-oidc.md) | Use OAuth 2.0 / OIDC for API Authentication |
+| [ADR-0004](docs/adr/0004-use-virtual-threads.md) | Use Virtual Threads (Project Loom) |
+| [ADR-0005](docs/adr/0005-api-design-post-vs-get-and-pagination.md) | API Design — POST for Sorting and Cursor-Based Pagination |
+| [ADR-0006](docs/adr/0006-scored-product-composition.md) | Score as Nullable Field on ProductResponse |
+| [ADR-0007](docs/adr/0007-observability-decorator-and-mdc.md) | Observability — Decorator Pattern and MDC Correlation |
+| [ADR-0008](docs/adr/0008-pure-hexagonal-adapter-naming.md) | Hexagonal Adapter Naming Convention |
+| [ADR-0009](docs/adr/0009-resilience-and-timeout-strategy.md) | Resilience — Resilience4j Decorators and Timeout Strategy |
 
 ---
 
@@ -586,5 +613,5 @@ Examples:
   feat(domain): add stockRatio binary availability criterion
   refactor(adapter): replace in-memory sorting with aggregation pipeline
   test(domain): parametrize stock ratio with Instancio
-  ci(workflows): add commitlint validation
+  ci(config): add commitlint validation
 ```

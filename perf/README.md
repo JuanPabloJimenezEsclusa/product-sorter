@@ -20,15 +20,17 @@ k6-based load tests for the product-sorter API across three data volumes and thr
 ./perf/scripts/cleanup.sh
 ```
 
+Both `run-session.sh` and `quick-test.sh` invoke k6 with `--no-thresholds`, so the thresholds declared in the k6 scripts are recorded in the summaries but never fail or abort a run.
+
 **Live dashboard:** `http://localhost:3000/d/perf-test` (admin / admin)
 
 ## Test matrix
 
-| Products | Users (ramp) | Full (steady) | Quick (steady) | Warmup |
-|----------|-------------|------|----------------|--------|
-| 10,000   | 5 → 10 → 50 → 100 | 180s | 90s | 15-30s |
-| 100,000  | 5 → 10 → 50 → 100 | 180s | 90s | 15-30s |
-| 1,000,000 | 5 → 10 → 50 → 100 | 180s | 90s | 30-60s |
+| Products  | Users (ramp)      | Full (steady) | Quick (steady) | Warmup |
+|-----------|-------------------|---------------|----------------|--------|
+| 10,000    | 5 → 10 → 50 → 100 | 180s          | 90s            | 15-30s |
+| 100,000   | 5 → 10 → 50 → 100 | 180s          | 90s            | 15-30s |
+| 1,000,000 | 5 → 10 → 50 → 100 | 180s          | 90s            | 30-60s |
 
 Quick mode trades statistical stability for speed — p99 may be noisier but p95 is reliable enough for trend detection.
 
@@ -53,8 +55,8 @@ perf/
 │   ├── generate-data.sh         # ProductDataGenerator → JSONL
 │   ├── import-data.sh           # mongoimport --drop
 │   ├── start.sh                 # Start app stack, wait for health
-│   ├── quick-test.sh            # Smoke suite: all 3 volumes, 6 min each
-│   ├── run-session.sh           # Full session orchestrator (6 steps)
+│   ├── quick-test.sh            # Smoke suite: all 3 volumes, ~7 min each
+│   ├── run-session.sh           # Full session orchestrator (5 steps)
 │   ├── cleanup.sh               # Stop services, remove volumes, delete app image
 │   └── report.sh                # Markdown report from k6 summaries
 └── report/
