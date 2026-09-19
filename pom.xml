@@ -75,6 +75,11 @@
     <jackson-databind-nullable.version>0.2.11</jackson-databind-nullable.version>
     <resilience4j.version>2.4.0</resilience4j.version>
 
+    <!-- Spring Boot manages the Jackson 2.x BOM at 2.21.5; swagger-core-jakarta 2.2.55
+         requires 2.22.1/2.22, which trips the RequireUpperBoundDeps enforcer rule.
+         Align the whole Jackson 2.x line with the version swagger actually needs. -->
+    <jackson-2-bom.version>2.22.1</jackson-2-bom.version>
+
     <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
     <checkstyle.version>14.1.0</checkstyle.version>
     <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
