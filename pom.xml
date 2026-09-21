@@ -85,7 +85,7 @@
     <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
     <rewrite-maven-plugin.version>6.46.1</rewrite-maven-plugin.version>
     <sonar-maven-plugin.version>5.8.0.7211</sonar-maven-plugin.version>
-    <git-changelog-maven-plugin.version>2.2.11</git-changelog-maven-plugin.version>
+    <git-changelog-maven-plugin.version>2.4.0</git-changelog-maven-plugin.version>
     <maven-site-plugin.version>3.22.0</maven-site-plugin.version>
     <maven-jxr-plugin.version>3.6.0</maven-jxr-plugin.version>
     <maven-surefire-report-plugin.version>3.6.0</maven-surefire-report-plugin.version>
