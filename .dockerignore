@@ -3,12 +3,16 @@
 .editorconfig
 .github/
 .idea/
+.atl/
 .vscode/
+.opencode/
 chaos/
 deploy/
 docker/
 docs/
 perf/
+openspec/
+odd/
 
 **/.env
 **/*.iml

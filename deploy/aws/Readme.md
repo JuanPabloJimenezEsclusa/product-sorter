@@ -24,8 +24,8 @@
 
 | Stack | Template | Resources |
 |-------|----------|-----------|
-| `product-sorter-cognito` | `01-cognito.yml` | UserPool, UserPoolClient → JwksUri |
-| `product-sorter-secrets` | `02-secrets.yml` | Secrets Manager: MongoDB URI, Cognito client secret |
+| `product-sorter-cognito` | `01-cognito.yml` | UserPool, UserPoolClient (generated client secret), resource server, domain, user, groups → JwksUri |
+| `product-sorter-secrets` | `02-secrets.yml` | Secrets Manager: MongoDB URI (single secret) |
 | `product-sorter-app` | `03-app.yml` | VPC (public/private subnets, IGW, NAT), ECS Fargate, ALB, ACM, Route53, CloudWatch |
 
 ---
