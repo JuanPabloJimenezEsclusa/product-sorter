@@ -2,12 +2,8 @@ package dev.jpje.productsorter.adapter.persistence.resilience;
 
 import java.time.Duration;
 
-import dev.jpje.productsorter.adapter.persistence.mongo.MongoProductRepositoryAdapter;
-import dev.jpje.productsorter.domain.port.ProductRepository;
-import io.github.resilience4j.bulkhead.Bulkhead;
 import io.github.resilience4j.bulkhead.BulkheadConfig;
 import io.github.resilience4j.bulkhead.BulkheadRegistry;
-import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig.SlidingWindowType;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
@@ -15,19 +11,15 @@ import io.github.resilience4j.core.IntervalFunction;
 import io.github.resilience4j.micrometer.tagged.TaggedBulkheadMetrics;
 import io.github.resilience4j.micrometer.tagged.TaggedCircuitBreakerMetrics;
 import io.github.resilience4j.micrometer.tagged.TaggedRetryMetrics;
-import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import io.github.resilience4j.retry.RetryRegistry;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 
 @Configuration
 public class PersistenceResilienceConfig {
-
-  private static final String RESILIENCE_LABEL = "mongo";
 
   @Bean
   public CircuitBreakerRegistry circuitBreakerRegistry(
@@ -83,16 +75,4 @@ public class PersistenceResilienceConfig {
     return registry;
   }
 
-  @Bean
-  @Primary
-  public ProductRepository resilientProductRepository(
-      final MongoProductRepositoryAdapter delegate,
-      final CircuitBreakerRegistry circuitBreakerRegistry,
-      final RetryRegistry retryRegistry,
-      final BulkheadRegistry bulkheadRegistry) {
-    final CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker(RESILIENCE_LABEL);
-    final Retry retry = retryRegistry.retry(RESILIENCE_LABEL);
-    final Bulkhead bulkhead = bulkheadRegistry.bulkhead(RESILIENCE_LABEL);
-    return new ResilientProductRepository(delegate, circuitBreaker, retry, bulkhead);
-  }
 }

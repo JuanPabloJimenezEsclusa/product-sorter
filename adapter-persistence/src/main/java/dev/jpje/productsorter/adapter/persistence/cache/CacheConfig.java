@@ -81,9 +81,9 @@ public class CacheConfig {
     final var config = RedisCacheConfiguration.defaultCacheConfig()
       .entryTtl(Duration.ofSeconds(ttlSeconds))
       .disableCachingNullValues()
-      .serializeValuesWith(
-        RedisSerializationContext.SerializationPair.fromSerializer(
-          RedisSerializer.java()));
+      .serializeValuesWith(RedisSerializationContext
+        .SerializationPair
+        .fromSerializer(RedisSerializer.json()));
     return RedisCacheManager.builder(connectionFactory)
       .withCacheConfiguration("productCache", config)
       .enableStatistics()

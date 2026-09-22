@@ -1,8 +1,6 @@
 package dev.jpje.productsorter.domain.vo;
 
-import java.io.Serializable;
-
-public record StockBySize(Size size, int quantity) implements Serializable {
+public record StockBySize(Size size, int quantity) {
   public StockBySize {
     if (quantity < 0) {
       throw new IllegalArgumentException("Stock quantity must not be negative");
