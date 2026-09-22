@@ -16,13 +16,7 @@ class HexagonalArchitectureTest {
   private static final String ADAPTER_REST = "dev.jpje.productsorter.adapter.rest..";
   private static final String ADAPTER_PERSISTENCE = "dev.jpje.productsorter.adapter.persistence..";
   private static final String ADAPTER_OBSERVABILITY = "dev.jpje.productsorter.adapter.observability..";
-
-  private static final String[] COMMON = {
-    "java.io..",
-    "java.lang..",
-    "java.time..",
-    "java.util.."
-  };
+  private static final String[] COMMON = { "java.(io|lang|time|util).." };
 
   @ArchTest
   static final ArchRule domainMustNotDependOnSpring = noClasses()
@@ -59,7 +53,6 @@ class HexagonalArchitectureTest {
   static final ArchRule persistenceAdapterMustNotDependOnApplication = noClasses()
     .that().resideInAPackage(ADAPTER_PERSISTENCE)
     .should().dependOnClassesThat().resideInAnyPackage("..application..")
-    .allowEmptyShould(true)
     .as("Persistence adapter must not depend on application")
     .because("outbound adapters implement domain ports, not application ports");
 
@@ -69,6 +62,23 @@ class HexagonalArchitectureTest {
     .should().dependOnClassesThat().resideInAnyPackage("..adapter.persistence..")
     .as("REST adapter must not depend on persistence adapter")
     .because("inbound adapters don't need outbound adapter details");
+
+  @ArchTest
+  static final ArchRule persistenceEntitiesMustNotLeaveAdapter = noClasses()
+    .that().resideInAPackage(ADAPTER_REST)
+    .should().dependOnClassesThat().resideInAnyPackage(
+      "..adapter.persistence.mongo.entity..")
+    .as("REST adapter must not depend on persistence entities")
+    .because("persistence entities are internal to the persistence adapter");
+
+  @ArchTest
+  static final ArchRule bootstrapMustNotDependOnDomainModel = noClasses()
+    .that().resideInAPackage("dev.jpje.productsorter.config..")
+    .should().dependOnClassesThat().resideInAnyPackage(
+      "..domain.model..", "..domain.vo..")
+    .allowEmptyShould(true)
+    .as("Bootstrap config must not depend on domain model or value objects")
+    .because("bootstrap is the composition root, not a business layer");
 
   @ArchTest
   static final ArchRule domainDependencies = classes()
@@ -89,21 +99,14 @@ class HexagonalArchitectureTest {
     .that().resideInAPackage(ADAPTER_REST)
     .should().onlyDependOnClassesThat().resideInAnyPackage(concat(
       DOMAIN, APPLICATION, API_SPEC, ADAPTER_REST,
-      "org.springframework.beans..",
-      "org.springframework.context..",
-      "org.springframework.core.convert..",
-      "org.springframework.http..",
-      "org.springframework.security..",
-      "org.springframework.stereotype..",
-      "org.springframework.web..",
+      "org.springframework.(beans|context|core.convert|http|security|stereotype|web)..",
+      "com.fasterxml.jackson.(databind|datatype)..",
+      "jakarta.servlet..",
       "org.springdoc..",
       "io.swagger..",
       "io.micrometer..",
       "io.github.resilience4j..",
-      "jakarta.servlet..",
-      "org.slf4j..",
-      "com.fasterxml.jackson.databind..",
-      "com.fasterxml.jackson.datatype.."))
+      "org.slf4j.."))
     .as("REST adapter dependencies must be whitelisted")
     .because("REST adapter translates HTTP to use case calls via Spring MVC and OAuth2");
 
@@ -112,14 +115,9 @@ class HexagonalArchitectureTest {
     .that().resideInAPackage(API_SPEC)
     .should().onlyDependOnClassesThat().resideInAnyPackage(concat(
       API_SPEC,
-      "org.springframework.http..",
-      "org.springframework.web..",
-      "org.springframework.format..",
-      "org.springframework.lang..",
-      "org.springframework.validation..",
+      "org.springframework.(http|web|format|lang|validation)..",
+      "jakarta.(annotation|validation)..",
       "io.swagger..",
-      "jakarta.annotation..",
-      "jakarta.validation..",
       "com.fasterxml.jackson..",
       "org.openapitools.."))
     .as("API Spec dependencies must be whitelisted")
@@ -130,16 +128,11 @@ class HexagonalArchitectureTest {
     .that().resideInAPackage(ADAPTER_OBSERVABILITY)
     .should().onlyDependOnClassesThat().resideInAnyPackage(concat(
       DOMAIN, APPLICATION, ADAPTER_OBSERVABILITY,
-      "org.springframework.beans..",
-      "org.springframework.boot..",
-      "org.springframework.context..",
-      "org.springframework.core..",
-      "org.springframework.stereotype..",
-      "org.springframework.web..",
+      "org.springframework.(beans|boot|context|core|stereotype|web)..",
+      "jakarta.servlet..",
       "org.slf4j..",
       "io.micrometer..",
       "io.opentelemetry..",
-      "jakarta.servlet..",
       "jdk.jfr.consumer.."))
     .as("Observability adapter dependencies must be whitelisted")
     .because("observability adapter configures Micrometer, OpenTelemetry, and MDC logging");
@@ -149,13 +142,7 @@ class HexagonalArchitectureTest {
     .that().resideInAPackage(ADAPTER_PERSISTENCE)
     .should().onlyDependOnClassesThat().resideInAnyPackage(concat(
       DOMAIN, ADAPTER_PERSISTENCE,
-      "org.springframework.boot..",
-      "org.springframework.cache..",
-      "org.springframework.context..",
-      "org.springframework.dao..",
-      "org.springframework.data..",
-      "org.springframework.stereotype..",
-      "org.springframework.beans..",
+      "org.springframework.(boot|cache|context|dao|data|stereotype|beans)..",
       "com.github.benmanes.caffeine..",
       "com.mongodb..",
       "org.bson..",
