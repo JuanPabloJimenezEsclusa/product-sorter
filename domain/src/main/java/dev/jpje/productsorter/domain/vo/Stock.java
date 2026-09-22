@@ -1,11 +1,10 @@
 package dev.jpje.productsorter.domain.vo;
 
-import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public record Stock(List<StockBySize> entries) implements Serializable {
+public record Stock(List<StockBySize> entries) {
   public Stock {
     Objects.requireNonNull(entries, "Stock entries must not be null");
   }

@@ -71,6 +71,14 @@ class HexagonalArchitectureTest {
     .because("inbound adapters don't need outbound adapter details");
 
   @ArchTest
+  static final ArchRule persistenceEntitiesMustNotLeaveAdapter = noClasses()
+    .that().resideInAPackage(ADAPTER_REST)
+    .should().dependOnClassesThat().resideInAnyPackage(
+      "..adapter.persistence.mongo.entity..")
+    .as("REST adapter must not depend on persistence entities")
+    .because("persistence entities are internal to the persistence adapter");
+
+  @ArchTest
   static final ArchRule domainDependencies = classes()
     .that().resideInAPackage(DOMAIN)
     .should().onlyDependOnClassesThat().resideInAnyPackage(concat(DOMAIN))

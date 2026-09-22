@@ -26,12 +26,12 @@ public class SortingMetrics {
 
     this.duration = Timer.builder("sorting.duration")
       .description("Time taken to sort products")
-      .publishPercentiles(0.5, 0.95, 0.99)
+      .publishPercentileHistogram()
       .register(registry);
 
     this.productsSummary = DistributionSummary.builder("sorting.products")
       .description("Number of products sorted per request")
-      .publishPercentiles(0.5, 0.95, 0.99)
+      .publishPercentileHistogram()
       .register(registry);
 
     this.salesWeight = DistributionSummary.builder("sorting.weights")

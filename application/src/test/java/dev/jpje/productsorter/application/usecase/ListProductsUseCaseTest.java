@@ -85,6 +85,26 @@ class ListProductsUseCaseTest {
       arguments(named("5 products page 3", 5), 3, 3, 2));
   }
 
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("nullWeightedScoreScenarios")
+  void shouldHandleProductsWithNullWeightedScore(final int totalProducts, final int size,
+                                                  final int expectedCount) {
+    repository.products = products(totalProducts);
+
+    final var result = useCase.execute(null, size);
+    assertThat(result.products()).as("Should have %d products", expectedCount).hasSize(expectedCount);
+    assertThat(result.products()).allMatch(p -> p.weightedScore() == null,
+      "All products should have null weightedScore (list endpoint does not score)");
+    if (expectedCount == size) {
+      assertThat(result.nextCursor()).as("Should have nextCursor when more pages exist").isNotNull();
+    }
+  }
+
+  private static Stream<Arguments> nullWeightedScoreScenarios() {
+    return Stream.of(
+      arguments(named("3 products null-score page 2", 3), 2, 2));
+  }
+
   private static class TestProductRepository implements ProductRepository {
     List<Product> products = List.of();
 
