@@ -1,8 +1,6 @@
 package dev.jpje.productsorter.domain.vo;
 
-import java.io.Serializable;
-
-public record Size(String name) implements Serializable {
+public record Size(String name) {
   public Size {
     if (name == null || name.isBlank()) {
       throw new IllegalArgumentException("Size must not be blank");

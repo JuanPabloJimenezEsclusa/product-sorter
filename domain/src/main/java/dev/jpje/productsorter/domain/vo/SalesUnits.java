@@ -1,8 +1,6 @@
 package dev.jpje.productsorter.domain.vo;
 
-import java.io.Serializable;
-
-public record SalesUnits(int value) implements Serializable {
+public record SalesUnits(int value) {
   public SalesUnits {
     if (value < 0) {
       throw new IllegalArgumentException("SalesUnits must not be negative");

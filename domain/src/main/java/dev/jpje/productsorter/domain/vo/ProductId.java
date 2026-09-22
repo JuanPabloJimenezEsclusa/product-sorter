@@ -1,9 +1,8 @@
 package dev.jpje.productsorter.domain.vo;
 
-import java.io.Serializable;
 import java.util.Objects;
 
-public record ProductId(String value) implements Serializable {
+public record ProductId(String value) {
   public ProductId {
     Objects.requireNonNull(value, "ProductId must not be null");
   }

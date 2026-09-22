@@ -84,7 +84,7 @@ class MongoProductRepositoryTest {
     assertThat(result.products().getFirst().productId().value())
       .as("Product 5 has highest sales")
       .isEqualTo("5");
-    assertThat(result.nextCursor()).isNotNull();
+    assertThat(result.nextCursor()).as("adapter computes cursor from last product").isNotNull();
   }
 
   @Test
