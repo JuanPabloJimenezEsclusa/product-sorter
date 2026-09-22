@@ -42,7 +42,7 @@ public class MongoProductRepositoryAdapter implements ProductRepository {
   @Override
   @Cacheable(
     cacheNames = "productCache",
-    key = "#weights.salesUnitsWeight() + '-' + #weights.stockWeight() + '-' + #limit",
+    key = "#weights.toString() + '-' + #limit",
     condition = "#encodedCursor == null")
   public PagedResult sortByWeights(final AppliedWeights weights, final String encodedCursor, final int limit) {
     final var aggregation = MongoQueryHelper.buildSortAggregation(weights, encodedCursor, limit, midpoint);

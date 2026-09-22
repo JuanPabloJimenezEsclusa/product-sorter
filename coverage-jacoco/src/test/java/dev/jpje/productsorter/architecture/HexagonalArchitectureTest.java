@@ -79,6 +79,14 @@ class HexagonalArchitectureTest {
     .because("persistence entities are internal to the persistence adapter");
 
   @ArchTest
+  static final ArchRule bootstrapMustNotDependOnDomainModel = noClasses()
+    .that().resideInAPackage("dev.jpje.productsorter.config..")
+    .should().dependOnClassesThat().resideInAnyPackage(
+      "..domain.model..", "..domain.vo..")
+    .as("Bootstrap config must not depend on domain model or value objects")
+    .because("bootstrap is the composition root, not a business layer");
+
+  @ArchTest
   static final ArchRule domainDependencies = classes()
     .that().resideInAPackage(DOMAIN)
     .should().onlyDependOnClassesThat().resideInAnyPackage(concat(DOMAIN))
