@@ -598,20 +598,3 @@ All significant design decisions are documented as ADRs in [`docs/adr/`](docs/ad
 | [ADR-0007](docs/adr/0007-observability-decorator-and-mdc.md) | Observability — Decorator Pattern and MDC Correlation |
 | [ADR-0008](docs/adr/0008-pure-hexagonal-adapter-naming.md) | Hexagonal Adapter Naming Convention |
 | [ADR-0009](docs/adr/0009-resilience-and-timeout-strategy.md) | Resilience — Resilience4j Decorators and Timeout Strategy |
-
----
-
-## Conventional Commits
-
-```
-<type>(<scope>): <lower-case subject>
-
-Types: feat | fix | docs | style | refactor | perf | test | build | ci | chore | revert
-Scopes: api-spec | domain | application | adapter | bootstrap | testdata | coverage | docker | ci | config | deps
-
-Examples:
-  feat(domain): add stockRatio binary availability criterion
-  refactor(adapter): replace in-memory sorting with aggregation pipeline
-  test(domain): parametrize stock ratio with Instancio
-  ci(config): add commitlint validation
-```
