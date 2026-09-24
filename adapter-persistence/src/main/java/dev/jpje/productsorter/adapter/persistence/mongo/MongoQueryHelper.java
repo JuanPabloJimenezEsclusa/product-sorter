@@ -12,6 +12,9 @@ import org.springframework.data.mongodb.core.aggregation.AggregationExpression;
 import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
 import org.springframework.data.mongodb.core.aggregation.AggregationOptions;
 import org.springframework.data.mongodb.core.aggregation.ArithmeticOperators;
+import org.springframework.data.mongodb.core.aggregation.ArrayOperators;
+import org.springframework.data.mongodb.core.aggregation.ComparisonOperators;
+import org.springframework.data.mongodb.core.aggregation.ConditionalOperators;
 import org.springframework.data.mongodb.core.aggregation.MatchOperation;
 import org.springframework.data.mongodb.core.aggregation.SortOperation;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -21,7 +24,8 @@ final class MongoQueryHelper {
 
   private static final String WEIGHTED_SCORE = "weightedScore";
   private static final String SALES_UNITS = "$salesUnits";
-  private static final String STOCK_RATIO = "$stockRatio";
+  private static final String STOCK = "$stock";
+  private static final String STOCK_ENTRY = "stockEntry";
   private static final String ID = "_id";
 
   private MongoQueryHelper() {
@@ -58,27 +62,35 @@ final class MongoQueryHelper {
   }
 
   private static AddFieldsOperation buildWeightedScoreField(final AppliedWeights appliedWeights, final double midpoint) {
-    final var expressions = new ArrayList<AggregationExpression>();
-
-    if (appliedWeights.salesUnitsWeight() > 0) {
-      final var salesRatio = ArithmeticOperators.Divide.valueOf(SALES_UNITS)
-        .divideBy(ArithmeticOperators.Add.valueOf(SALES_UNITS).add(midpoint));
-      expressions.add(ArithmeticOperators.Multiply.valueOf(salesRatio)
-        .multiplyBy(appliedWeights.salesUnitsWeight()));
-    }
-
-    if (appliedWeights.stockWeight() > 0) {
-      expressions.add(ArithmeticOperators.Multiply.valueOf(STOCK_RATIO)
-        .multiplyBy(appliedWeights.stockWeight()));
-    }
-
-    final var weightedScore = expressions.stream()
-      .reduce((a, b) -> ArithmeticOperators.Add.valueOf(a).add(b))
-      .orElse(ArithmeticOperators.Multiply.valueOf(SALES_UNITS).multiplyBy(1.0));
+    final var salesRatio = ArithmeticOperators.Divide.valueOf(SALES_UNITS)
+      .divideBy(ArithmeticOperators.Add.valueOf(SALES_UNITS).add(midpoint));
+    final var salesTerm = ArithmeticOperators.Multiply.valueOf(salesRatio)
+      .multiplyBy(appliedWeights.salesUnitsWeight());
+    final var stockTerm = ArithmeticOperators.Multiply.valueOf(buildStockRatioExpression())
+      .multiplyBy(appliedWeights.stockWeight());
 
     return Aggregation.addFields()
-      .addFieldWithValue(WEIGHTED_SCORE, weightedScore)
+      .addFieldWithValue(WEIGHTED_SCORE, ArithmeticOperators.Add.valueOf(salesTerm).add(stockTerm))
       .build();
+  }
+
+  /**
+   * Derives the stock ratio from the document's embedded stock entries: the fraction of entries with
+   * quantity greater than zero, or {@code 0.0} when there are none. The denormalized stored
+   * {@code stockRatio} field is never read, so the ranked read and the domain rule share one source of
+   * truth for the stock contribution.
+   */
+  private static AggregationExpression buildStockRatioExpression() {
+    final var totalEntries = ArrayOperators.Size.lengthOfArray(STOCK);
+    final var entriesWithStock = ArrayOperators.Size.lengthOfArray(
+      ArrayOperators.Filter.filter(STOCK)
+        .as(STOCK_ENTRY)
+        .by(ComparisonOperators.Gt.valueOf("$$" + STOCK_ENTRY + ".quantity").greaterThanValue(0)));
+
+    return ConditionalOperators.Cond
+      .when(ComparisonOperators.Eq.valueOf(totalEntries).equalToValue(0))
+      .then(0.0)
+      .otherwiseValueOf(ArithmeticOperators.Divide.valueOf(entriesWithStock).divideBy(totalEntries));
   }
 
   private static SortOperation buildSortOperation() {

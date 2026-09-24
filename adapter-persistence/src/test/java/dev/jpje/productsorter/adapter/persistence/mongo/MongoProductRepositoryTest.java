@@ -136,6 +136,47 @@ class MongoProductRepositoryTest {
   }
 
   @Test
+  void shouldScoreZeroForAllZeroWeights() {
+    final var weights = new AppliedWeights(0.0, 0.0);
+    final var result = repository.sortByWeights(weights, null, 20);
+
+    assertThat(result.products())
+      .as("Should return all 6 products")
+      .hasSize(6);
+    assertThat(result.products())
+      .as("An all-zero weight map scores every product zero, matching the domain rule")
+      .allSatisfy(product -> assertThat(product.weightedScore())
+        .as("score for product %s", product.productId().value())
+        .isEqualTo(0.0)
+        .isCloseTo(weights.computeScore(product.salesUnits(), product.stock(), MIDPOINT), within(1e-9)));
+    assertThat(result.products())
+      .extracting(product -> product.productId().value())
+      .as("The resulting ties are ordered by identifier descending")
+      .isSortedAccordingTo(Comparator.reverseOrder());
+  }
+
+  @Test
+  void shouldComputeStockRatioFromEmbeddedEntriesNotTheStoredField() {
+    mongoTemplate.save(new ProductDocument("7", "EMBEDDED STOCK WINS", 10,
+      List.of(new StockEntry("S", 5), new StockEntry("M", 0), new StockEntry("L", 7)), null, 0.0));
+
+    final var weights = new AppliedWeights(0.0, 1.0);
+    final var result = repository.sortByWeights(weights, null, 20);
+    final var product = result.products().stream()
+      .filter(candidate -> candidate.productId().value().equals("7"))
+      .findFirst()
+      .orElseThrow();
+
+    assertThat(product.stock().stockRatio())
+      .as("Stock ratio derived from the embedded entries")
+      .isCloseTo(2.0 / 3.0, within(1e-9));
+    assertThat(product.weightedScore())
+      .as("The pipeline reads the embedded entries, not the stored 0.0 field")
+      .isCloseTo(weights.computeScore(product.salesUnits(), product.stock(), MIDPOINT), within(1e-9))
+      .isNotEqualTo(0.0);
+  }
+
+  @Test
   void shouldReturnEmptyForCursorPastEnd() {
     final var weights = new AppliedWeights(1.0, 0.0);
     final var empty = repository.sortByWeights(weights, CursorCodec.encode(-1, "z"), 20);

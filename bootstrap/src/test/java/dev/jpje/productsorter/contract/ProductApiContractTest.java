@@ -141,6 +141,29 @@ class ProductApiContractTest {
   }
 
   @Test
+  void allZeroWeightsShouldScoreZero() {
+    final var response = given()
+      .port(port).auth().oauth2(jwt).contentType("application/json")
+      .body(Map.of("weights", Map.of("salesUnits", 0.0, "stockRatio", 0.0)))
+    .when()
+      .post("/api/v1/products/sort?size=20")
+    .then()
+      .statusCode(200)
+      .body(matchesJsonSchemaInClasspath("schema/product-page.json"))
+      .body("data", not(empty()))
+      .extract();
+
+    final var scores = response
+      .jsonPath(JsonPathConfig.jsonPathConfig().numberReturnType(NumberReturnType.DOUBLE))
+      .getList("data.score", Double.class);
+
+    assertThat(scores)
+      .as("An all-zero weight map publishes a 0.0 score for every product")
+      .isNotEmpty()
+      .allSatisfy(score -> assertThat(score).isEqualTo(0.0));
+  }
+
+  @Test
   void listResponseShouldMatchOpenApiSpec() {
     given()
       .port(port).auth().oauth2(jwt).contentType("application/json")
