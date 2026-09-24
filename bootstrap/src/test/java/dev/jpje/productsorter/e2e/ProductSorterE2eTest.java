@@ -1,6 +1,8 @@
 package dev.jpje.productsorter.e2e;
 
 import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Named.named;
@@ -25,6 +27,13 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import dev.jpje.productsorter.adapter.persistence.mongo.entity.ProductDocument;
 import dev.jpje.productsorter.adapter.persistence.mongo.entity.StockEntry;
+import dev.jpje.productsorter.domain.model.AppliedWeights;
+import dev.jpje.productsorter.domain.vo.SalesUnits;
+import dev.jpje.productsorter.domain.vo.Size;
+import dev.jpje.productsorter.domain.vo.Stock;
+import dev.jpje.productsorter.domain.vo.StockBySize;
+import io.restassured.path.json.config.JsonPathConfig;
+import io.restassured.path.json.config.JsonPathConfig.NumberReturnType;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,6 +57,8 @@ import org.testcontainers.mongodb.MongoDBContainer;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
 class ProductSorterE2eTest {
+
+  private static final double MIDPOINT = 50.0;
 
   private static final KeyPair RSA_KEY = generateRsaKey();
 
@@ -160,6 +171,38 @@ class ProductSorterE2eTest {
       .then()
       .statusCode(200)
       .body("data", hasSize(2));
+  }
+
+  @Test
+  void shouldPublishDomainComputedScore() {
+    final var weights = new AppliedWeights(1.0, 0.0);
+    final var expectedScore = weights.computeScore(
+      SalesUnits.of(650),
+      Stock.of(List.of(
+        StockBySize.of(Size.of("S"), 0),
+        StockBySize.of(Size.of("M"), 1),
+        StockBySize.of(Size.of("L"), 0))),
+      MIDPOINT);
+
+    final var response = given()
+      .port(port).auth().oauth2(jwt).contentType("application/json")
+      .body(Map.of("weights", Map.of("salesUnits", 1.0, "stockRatio", 0.0)))
+      .queryParam("size", 20)
+      .when()
+      .post("/api/v1/products/sort")
+      .then()
+      .statusCode(200)
+      .body("data[0].id", equalTo("5"))
+      .body("data[0].score", Matchers.notNullValue())
+      .extract();
+
+    final var score = response
+      .jsonPath(JsonPathConfig.jsonPathConfig().numberReturnType(NumberReturnType.DOUBLE))
+      .getDouble("data[0].score");
+
+    assertThat(score)
+      .as("published score equals the canonical domain rule")
+      .isCloseTo(expectedScore, within(1e-9));
   }
 
   private void seedProducts() {
