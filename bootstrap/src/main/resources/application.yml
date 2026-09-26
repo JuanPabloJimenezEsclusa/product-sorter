@@ -73,9 +73,6 @@ management:
 server:
   application-display-name: application
   port: ${SERVER_PORT:8880}
-  tomcat:
-    threads:
-      max: 10000
 
 logging:
   level:
