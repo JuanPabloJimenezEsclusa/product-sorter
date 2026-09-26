@@ -6,16 +6,24 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.util.stream.Stream;
 
+import io.opentelemetry.api.trace.Span;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.slf4j.MDC;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.core.annotation.Order;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 class MdcFilterTest {
+
+  private static final String INBOUND_TRACE_ID = "0af7651916cd43dd8448eb211c80319c";
 
   private final MdcFilter filter = new MdcFilter();
 
@@ -59,6 +67,39 @@ class MdcFilterTest {
     } finally {
       span.end();
     }
+  }
+
+  @Test
+  void shouldCorrelateMdcWithTheActiveSpanAcrossBothFilters() throws Exception {
+    assertThat(orderOf(TracingFilter.class))
+      .as("TracingFilter must run before MdcFilter so a span is current when MDC is populated")
+      .isLessThan(orderOf(MdcFilter.class));
+
+    final var openTelemetry = TracingFilterTest.openTelemetry(new TracingFilterTest.RecordingSpanExporter());
+    final var tracingFilter = new TracingFilter("test", openTelemetry);
+    final var request = new MockHttpServletRequest("GET", "/api/v1/products");
+    request.addHeader("traceparent", "00-" + INBOUND_TRACE_ID + "-b7ad6b7169203331-01");
+
+    tracingFilter.doFilter(request, new MockHttpServletResponse(), (servletRequest, servletResponse) ->
+      filter.doFilterInternal((HttpServletRequest) servletRequest, (HttpServletResponse) servletResponse,
+        (_, _) -> {
+          assertThat(Span.current().getSpanContext().getTraceId()).isEqualTo(INBOUND_TRACE_ID);
+          assertThat(MDC.get("traceId"))
+            .as("MDC traceId must equal the active span trace id")
+            .isEqualTo(Span.current().getSpanContext().getTraceId());
+        }));
+  }
+
+  @Test
+  void shouldFallBackToAShortRandomTraceIdWithoutASpan() throws Exception {
+    filter.doFilterInternal(new MockHttpServletRequest("GET", "/api/v1/products"),
+      new MockHttpServletResponse(), (_, _) ->
+        assertThat(MDC.get("traceId")).as("fallback traceId is a short random id").hasSize(6));
+  }
+
+  private static int orderOf(final Class<?> filterType) {
+    final var order = AnnotationUtils.findAnnotation(filterType, Order.class);
+    return order != null ? order.value() : Ordered.LOWEST_PRECEDENCE;
   }
 
   @ParameterizedTest(name = "{0}")
