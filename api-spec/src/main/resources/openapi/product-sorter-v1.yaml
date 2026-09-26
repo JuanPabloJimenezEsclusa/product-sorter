@@ -32,6 +32,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProductPageResponse'
+        '400':
+          description: Invalid page size (outside the declared 1 to 100 range)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Unauthorized
           content:
@@ -90,7 +96,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProductPageResponse'
         '400':
-          description: Invalid weights
+          description: Invalid weights or page size (page size outside the declared 1 to 100 range)
           content:
             application/json:
               schema:

@@ -35,6 +35,8 @@ import io.restassured.path.json.config.JsonPathConfig;
 import io.restassured.path.json.config.JsonPathConfig.NumberReturnType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -197,6 +199,35 @@ class ProductApiContractTest {
       .statusCode(200)
       .body(matchesJsonSchemaInClasspath("schema/product-page.json"))
       .body("data", empty());
+  }
+
+  @ParameterizedTest(name = "list size={0} -> 400")
+  @ValueSource(ints = {0, 101})
+  void outOfRangeSizeShouldReturn400MatchingSchemaOnList(final int size) {
+    given()
+      .port(port).auth().oauth2(jwt).contentType("application/json")
+      .queryParam("size", size)
+    .when()
+      .get("/api/v1/products")
+    .then()
+      .statusCode(400)
+      .body(matchesJsonSchemaInClasspath("schema/error-response.json"))
+      .body("code", equalTo("BAD_REQUEST"));
+  }
+
+  @ParameterizedTest(name = "sort size={0} -> 400")
+  @ValueSource(ints = {0, 101})
+  void outOfRangeSizeShouldReturn400MatchingSchemaOnSort(final int size) {
+    given()
+      .port(port).auth().oauth2(jwt).contentType("application/json")
+      .body(Map.of("weights", Map.of("salesUnits", 0.7, "stockRatio", 0.3)))
+      .queryParam("size", size)
+    .when()
+      .post("/api/v1/products/sort")
+    .then()
+      .statusCode(400)
+      .body(matchesJsonSchemaInClasspath("schema/error-response.json"))
+      .body("code", equalTo("BAD_REQUEST"));
   }
 
   private void seedProducts() {
