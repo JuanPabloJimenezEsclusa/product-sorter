@@ -1,24 +1,10 @@
 package dev.jpje.productsorter.domain.port;
 
-import java.util.List;
-
 import dev.jpje.productsorter.domain.model.AppliedWeights;
-import dev.jpje.productsorter.domain.model.Product;
 
 public interface ProductRepository {
 
-  PagedResult findPage(String cursor, int limit);
+  ProductPage findPage(String cursor, int limit);
 
-  PagedResult sortByWeights(AppliedWeights weights, String cursor, int limit);
-
-  record PagedResult(List<Product> products, String nextCursor) {
-    public PagedResult {
-      products = List.copyOf(products);
-    }
-
-    public boolean hasMore() {
-      return nextCursor != null;
-    }
-  }
+  ProductPage sortByWeights(AppliedWeights weights, String cursor, int limit);
 }
-

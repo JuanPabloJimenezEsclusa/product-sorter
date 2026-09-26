@@ -3,8 +3,8 @@ package dev.jpje.productsorter.adapter.rest.v1;
 import dev.jpje.productsorter.api.v1.dto.ProductPageResponse;
 import dev.jpje.productsorter.api.v1.dto.ProductResponse;
 import dev.jpje.productsorter.api.v1.dto.StockDto;
+import dev.jpje.productsorter.application.port.ProductPageResult;
 import dev.jpje.productsorter.domain.model.Product;
-import dev.jpje.productsorter.domain.port.ProductRepository.PagedResult;
 
 final class ProductControllerMapper {
 
@@ -14,12 +14,12 @@ final class ProductControllerMapper {
   private ProductControllerMapper() {
   }
 
-  static ProductPageResponse toProductPage(final PagedResult result, final int size) {
+  static ProductPageResponse toProductPage(final ProductPageResult result) {
     final var productPage = new ProductPageResponse();
     productPage.setData(result.products().stream()
       .map(ProductControllerMapper::toProductResponse)
       .toList());
-    productPage.setSize(size);
+    productPage.setSize(result.size());
     productPage.setNextCursor(result.nextCursor());
     return productPage;
   }

@@ -12,9 +12,9 @@ import java.util.stream.IntStream;
 
 import dev.jpje.productsorter.api.v1.dto.SortRequest;
 import dev.jpje.productsorter.application.port.ListProducts;
+import dev.jpje.productsorter.application.port.ProductPageResult;
 import dev.jpje.productsorter.application.port.SortProducts;
 import dev.jpje.productsorter.domain.model.Product;
-import dev.jpje.productsorter.domain.port.ProductRepository.PagedResult;
 import dev.jpje.productsorter.domain.vo.ProductId;
 import dev.jpje.productsorter.domain.vo.ProductName;
 import dev.jpje.productsorter.domain.vo.SalesUnits;
@@ -50,7 +50,7 @@ class ProductControllerTest {
   })
   void shouldReturn200ForValidWeights(final Double wSales, final Double wStock) {
     when(sortUseCase.execute(any(), isNull(), any()))
-      .thenReturn(new PagedResult(List.of(), null));
+      .thenReturn(new ProductPageResult(List.of(), null, 20));
 
     final var dto = new SortRequest();
     dto.setWeights(Map.of("salesUnits", wSales, "stockRatio", wStock));
@@ -71,7 +71,7 @@ class ProductControllerTest {
           StockBySize.of(Size.of("L"), 1))),
         (3 - i) * 0.1))
       .toList();
-    when(sortUseCase.execute(any(), isNull(), any())).thenReturn(new PagedResult(scoredProducts, null));
+    when(sortUseCase.execute(any(), isNull(), any())).thenReturn(new ProductPageResult(scoredProducts, null, 20));
 
     final var dto = new SortRequest();
     dto.setWeights(Map.of("salesUnits", 0.7, "stockRatio", 0.3));
@@ -95,7 +95,7 @@ class ProductControllerTest {
           StockBySize.of(Size.of("S"), 0),
           StockBySize.of(Size.of("M"), 0),
           StockBySize.of(Size.of("L"), 0)))));
-    when(listUseCase.execute(isNull(), eq(10))).thenReturn(new PagedResult(products, null));
+    when(listUseCase.execute(isNull(), eq(10))).thenReturn(new ProductPageResult(products, null, 10));
 
     final var response = controller.getProducts(null, 10);
     assertThat(response.getStatusCode().value()).as("list returns OK").isEqualTo(HttpStatus.OK.value());
@@ -106,7 +106,7 @@ class ProductControllerTest {
 
   @Test
   void shouldReturnEmptyPageWhenNoProducts() {
-    when(listUseCase.execute(isNull(), eq(20))).thenReturn(new PagedResult(List.of(), null));
+    when(listUseCase.execute(isNull(), eq(20))).thenReturn(new ProductPageResult(List.of(), null, 20));
 
     final var response = controller.getProducts(null, null);
     assertThat(response.getStatusCode().value()).as("empty list returns OK").isEqualTo(HttpStatus.OK.value());
