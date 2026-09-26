@@ -9,8 +9,8 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 
 import dev.jpje.productsorter.domain.exception.RepositoryUnavailableException;
+import dev.jpje.productsorter.domain.port.ProductPage;
 import dev.jpje.productsorter.domain.port.ProductRepository;
-import dev.jpje.productsorter.domain.port.ProductRepository.PagedResult;
 import io.github.resilience4j.bulkhead.Bulkhead;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.retry.Retry;
@@ -26,7 +26,7 @@ class ResilientProductRepositoryTest {
 
   private static final int LIMIT = 10;
   private static final int MAX_ATTEMPTS = 3;
-  private static final PagedResult PAGE = new PagedResult(List.of(), null);
+  private static final ProductPage PAGE = new ProductPage(List.of());
 
   @Mock
   private ProductRepository delegate;

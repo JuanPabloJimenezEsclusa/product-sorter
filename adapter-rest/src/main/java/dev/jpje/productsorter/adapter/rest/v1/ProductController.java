@@ -36,7 +36,7 @@ public class ProductController implements ProductsApi {
     final var result = sortProducts.execute(request, cursor, resolvedSize);
 
     log.debug("sort resp: count={}, hasMore={}", result.products().size(), result.hasMore());
-    return ResponseEntity.ok(ProductControllerMapper.toProductPage(result, resolvedSize));
+    return ResponseEntity.ok(ProductControllerMapper.toProductPage(result));
   }
 
   @Override
@@ -46,6 +46,6 @@ public class ProductController implements ProductsApi {
     final var result = listProducts.execute(cursor, resolvedSize);
 
     log.debug("get resp: count={}, hasMore={}", result.products().size(), result.hasMore());
-    return ResponseEntity.ok(ProductControllerMapper.toProductPage(result, resolvedSize));
+    return ResponseEntity.ok(ProductControllerMapper.toProductPage(result));
   }
 }

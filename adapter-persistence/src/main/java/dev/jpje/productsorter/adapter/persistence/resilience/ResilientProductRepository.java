@@ -4,6 +4,7 @@ import java.util.function.Supplier;
 
 import dev.jpje.productsorter.domain.exception.RepositoryUnavailableException;
 import dev.jpje.productsorter.domain.model.AppliedWeights;
+import dev.jpje.productsorter.domain.port.ProductPage;
 import dev.jpje.productsorter.domain.port.ProductRepository;
 import io.github.resilience4j.bulkhead.Bulkhead;
 import io.github.resilience4j.bulkhead.BulkheadFullException;
@@ -29,12 +30,12 @@ public class ResilientProductRepository implements ProductRepository {
   }
 
   @Override
-  public PagedResult findPage(final String cursor, final int limit) {
+  public ProductPage findPage(final String cursor, final int limit) {
     return call(() -> delegate.findPage(cursor, limit));
   }
 
   @Override
-  public PagedResult sortByWeights(final AppliedWeights weights, final String cursor, final int limit) {
+  public ProductPage sortByWeights(final AppliedWeights weights, final String cursor, final int limit) {
     return call(() -> delegate.sortByWeights(weights, cursor, limit));
   }
 

@@ -15,6 +15,7 @@ import dev.jpje.productsorter.application.port.SortProductsRequest;
 import dev.jpje.productsorter.domain.model.AppliedWeights;
 import dev.jpje.productsorter.domain.model.Metrics;
 import dev.jpje.productsorter.domain.model.Product;
+import dev.jpje.productsorter.domain.port.ProductPage;
 import dev.jpje.productsorter.domain.port.ProductRepository;
 import dev.jpje.productsorter.domain.vo.CursorCodec;
 import dev.jpje.productsorter.domain.vo.ProductId;
@@ -24,6 +25,7 @@ import dev.jpje.productsorter.domain.vo.Size;
 import dev.jpje.productsorter.domain.vo.Stock;
 import dev.jpje.productsorter.domain.vo.StockBySize;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -75,17 +77,27 @@ class SortProductsUseCaseTest {
       .isInstanceOf(IllegalArgumentException.class);
   }
 
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("emptyScenarios")
-  void shouldReturnEmptyForInvalidPagination(final Integer size) {
-    repository.products = List.of(new Product(
-      ProductId.of("1"), ProductName.of("Test"),
-      SalesUnits.of(100), Stock.of(List.of())));
-
+  @Test
+  void shouldDefaultSizeWhenAbsent() {
+    repository.products = singleProduct();
     final var request = new SortProductsRequest(Map.of(
       Metrics.SALES_UNITS.key(), 0.7, Metrics.STOCK.key(), 0.3));
-    final var result = useCase.execute(request, null, size);
-    assertThat(result.products()).isEmpty();
+
+    final var result = useCase.execute(request, null, null);
+
+    assertThat(result.products()).as("products returned with the default size").hasSize(1);
+    assertThat(result.size()).as("absent size resolves to the default").isEqualTo(20);
+  }
+
+  @Test
+  void shouldRejectOutOfRangeSize() {
+    repository.products = singleProduct();
+    final var request = new SortProductsRequest(Map.of(
+      Metrics.SALES_UNITS.key(), 0.7, Metrics.STOCK.key(), 0.3));
+
+    assertThatThrownBy(() -> useCase.execute(request, null, 0))
+      .as("a size below the minimum is rejected, not clamped")
+      .isInstanceOf(IllegalArgumentException.class);
   }
 
   @ParameterizedTest(name = "{0}")
@@ -112,6 +124,11 @@ class SortProductsUseCaseTest {
     assertThat(secondPage.products()).as("second page size").hasSize(expectedSecondPage);
   }
 
+  private static List<Product> singleProduct() {
+    return List.of(new Product(
+      ProductId.of("1"), ProductName.of("Test"), SalesUnits.of(100), Stock.of(List.of())));
+  }
+
   private static Stream<Arguments> sortScenarios() {
     return Stream.of(
       arguments(named("sales only", new SortProductsRequest(Map.of(
@@ -129,12 +146,6 @@ class SortProductsUseCaseTest {
       arguments(named("invalid weight", Map.of(Metrics.SALES_UNITS.key(), 1.5))));
   }
 
-  private static Stream<Arguments> emptyScenarios() {
-    return Stream.of(
-      arguments(named("null size", (Integer) null)),
-      arguments(named("zero size", 0)));
-  }
-
   private static Stream<Arguments> cursorScenarios() {
     return Stream.of(
       arguments(named("6 products page 2", 6), 2, 2, 2),
@@ -146,7 +157,7 @@ class SortProductsUseCaseTest {
     List<Product> products = List.of();
 
     @Override
-    public PagedResult findPage(final String cursor, final int limit) {
+    public ProductPage findPage(final String cursor, final int limit) {
       var start = 0;
       if (cursor != null) {
         final var decoded = CursorCodec.decode(cursor);
@@ -157,21 +168,15 @@ class SortProductsUseCaseTest {
           }
         }
       }
-      final var page = products.stream().skip(start).limit(limit).toList();
-      final var nextCursor = page.size() == limit && !page.isEmpty()
-        ? page.getLast().productId().value()
-        : null;
-      return new PagedResult(page, nextCursor);
+      return new ProductPage(products.stream().skip(start).limit(limit).toList());
     }
 
     @Override
-    public PagedResult sortByWeights(final AppliedWeights weights, final String cursor, final int limit) {
+    public ProductPage sortByWeights(final AppliedWeights weights, final String cursor, final int limit) {
       final var sorted = products.stream()
         .map(p -> new Product(p.productId(), p.productName(), p.salesUnits(), p.stock(),
           weights.computeScore(p.salesUnits(), p.stock(), MIDPOINT)))
-        .sorted((a, b) -> Double.compare(
-          b.weightedScore() != null ? b.weightedScore() : 0,
-          a.weightedScore() != null ? a.weightedScore() : 0))
+        .sorted((a, b) -> Double.compare(score(b), score(a)))
         .toList();
 
       var start = 0;
@@ -185,14 +190,11 @@ class SortProductsUseCaseTest {
         }
       }
 
-      final var page = sorted.stream().skip(start).limit(limit).toList();
-      final var pageSize = limit - 1;
-      final var hasMore = page.size() > pageSize;
-      final var nextCursor = hasMore
-        ? page.get(pageSize - 1).productId().value()
-        : null;
+      return new ProductPage(sorted.stream().skip(start).limit(limit).toList());
+    }
 
-      return new PagedResult(page, nextCursor);
+    private static double score(final Product product) {
+      return product.weightedScore() != null ? product.weightedScore() : 0;
     }
   }
 }
