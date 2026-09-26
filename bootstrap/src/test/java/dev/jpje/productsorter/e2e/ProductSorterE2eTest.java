@@ -40,6 +40,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -143,6 +144,44 @@ class ProductSorterE2eTest {
       .post("/api/v1/products/sort")
       .then()
       .statusCode(401);
+  }
+
+  @ParameterizedTest(name = "list size={0} -> 400")
+  @ValueSource(ints = {0, 101})
+  void shouldReturn400ForOutOfRangeSizeOnList(final int size) {
+    given()
+      .port(port).auth().oauth2(jwt)
+      .queryParam("size", size)
+    .when()
+      .get("/api/v1/products")
+    .then()
+      .statusCode(400)
+      .body("code", equalTo("BAD_REQUEST"));
+  }
+
+  @ParameterizedTest(name = "sort size={0} -> 400")
+  @ValueSource(ints = {0, 101})
+  void shouldReturn400ForOutOfRangeSizeOnSort(final int size) {
+    given()
+      .port(port).auth().oauth2(jwt).contentType("application/json")
+      .body(Map.of("weights", Map.of("salesUnits", 0.7, "stockRatio", 0.3)))
+      .queryParam("size", size)
+    .when()
+      .post("/api/v1/products/sort")
+    .then()
+      .statusCode(400)
+      .body("code", equalTo("BAD_REQUEST"));
+  }
+
+  @Test
+  void shouldDefaultSizeWhenAbsent() {
+    given()
+      .port(port).auth().oauth2(jwt)
+    .when()
+      .get("/api/v1/products")
+    .then()
+      .statusCode(200)
+      .body("size", equalTo(20));
   }
 
   @Test

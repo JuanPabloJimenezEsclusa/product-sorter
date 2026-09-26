@@ -1,9 +1,11 @@
 package dev.jpje.productsorter.adapter.rest.v1;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -106,11 +108,30 @@ class ProductControllerTest {
 
   @Test
   void shouldReturnEmptyPageWhenNoProducts() {
-    when(listUseCase.execute(isNull(), eq(20))).thenReturn(new ProductPageResult(List.of(), null, 20));
+    when(listUseCase.execute(isNull(), isNull())).thenReturn(new ProductPageResult(List.of(), null, 20));
 
     final var response = controller.getProducts(null, null);
     assertThat(response.getStatusCode().value()).as("empty list returns OK").isEqualTo(HttpStatus.OK.value());
     assertThat(response.getBody()).as("empty body present").isNotNull();
     assertThat(response.getBody().getData()).as("no products returned").isEmpty();
+  }
+
+  @Test
+  void shouldPassRawSizeThroughWithoutClamping() {
+    when(listUseCase.execute(isNull(), eq(0))).thenReturn(new ProductPageResult(List.of(), null, 20));
+
+    controller.getProducts(null, 0);
+
+    verify(listUseCase).execute(isNull(), eq(0));
+  }
+
+  @Test
+  void shouldPropagateOutOfRangeSizeRejection() {
+    when(listUseCase.execute(isNull(), eq(101)))
+      .thenThrow(new IllegalArgumentException("Invalid page size"));
+
+    assertThatThrownBy(() -> controller.getProducts(null, 101))
+      .as("The controller no longer clamps; the single size owner rejects the value")
+      .isInstanceOf(IllegalArgumentException.class);
   }
 }

@@ -32,8 +32,7 @@ public class ProductController implements ProductsApi {
                                                           final String cursor,
                                                           final Integer size) {
     final var request = new SortProductsRequest(sortRequest.getWeights());
-    final var resolvedSize = ProductControllerMapper.sizeOrDefault(size);
-    final var result = sortProducts.execute(request, cursor, resolvedSize);
+    final var result = sortProducts.execute(request, cursor, size);
 
     log.debug("sort resp: count={}, hasMore={}", result.products().size(), result.hasMore());
     return ResponseEntity.ok(ProductControllerMapper.toProductPage(result));
@@ -42,8 +41,7 @@ public class ProductController implements ProductsApi {
   @Override
   @PreAuthorize("hasAnyRole('admin', 'operator')")
   public ResponseEntity<ProductPageResponse> getProducts(final String cursor, final Integer size) {
-    final var resolvedSize = ProductControllerMapper.sizeOrDefault(size);
-    final var result = listProducts.execute(cursor, resolvedSize);
+    final var result = listProducts.execute(cursor, size);
 
     log.debug("get resp: count={}, hasMore={}", result.products().size(), result.hasMore());
     return ResponseEntity.ok(ProductControllerMapper.toProductPage(result));

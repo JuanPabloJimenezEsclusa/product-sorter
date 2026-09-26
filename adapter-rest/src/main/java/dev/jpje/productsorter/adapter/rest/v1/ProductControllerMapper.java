@@ -8,9 +8,6 @@ import dev.jpje.productsorter.domain.model.Product;
 
 final class ProductControllerMapper {
 
-  private static final int DEFAULT_SIZE = 20;
-  private static final int MAX_SIZE = 100;
-
   private ProductControllerMapper() {
   }
 
@@ -22,13 +19,6 @@ final class ProductControllerMapper {
     productPage.setSize(result.size());
     productPage.setNextCursor(result.nextCursor());
     return productPage;
-  }
-
-  static int sizeOrDefault(final Integer size) {
-    if (size == null || size < 1) {
-      return DEFAULT_SIZE;
-    }
-    return Math.min(size, MAX_SIZE);
   }
 
   private static ProductResponse toProductResponse(final Product product) {
