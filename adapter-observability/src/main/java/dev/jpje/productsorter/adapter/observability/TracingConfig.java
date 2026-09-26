@@ -2,6 +2,8 @@ package dev.jpje.productsorter.adapter.observability;
 
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
+import io.opentelemetry.context.propagation.ContextPropagators;
 import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.resources.Resource;
@@ -27,6 +29,9 @@ public class TracingConfig {
       .setResource(resource)
       .addSpanProcessor(SimpleSpanProcessor.create(spanExporter))
       .build();
-    return OpenTelemetrySdk.builder().setTracerProvider(tracerProvider).build();
+    return OpenTelemetrySdk.builder()
+      .setTracerProvider(tracerProvider)
+      .setPropagators(ContextPropagators.create(W3CTraceContextPropagator.getInstance()))
+      .build();
   }
 }
