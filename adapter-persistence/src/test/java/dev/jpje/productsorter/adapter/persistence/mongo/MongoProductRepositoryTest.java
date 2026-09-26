@@ -15,6 +15,9 @@ import dev.jpje.productsorter.adapter.persistence.mongo.entity.StockEntry;
 import dev.jpje.productsorter.domain.model.AppliedWeights;
 import dev.jpje.productsorter.domain.model.Product;
 import dev.jpje.productsorter.domain.vo.CursorCodec;
+import dev.jpje.productsorter.domain.vo.Size;
+import dev.jpje.productsorter.domain.vo.Stock;
+import dev.jpje.productsorter.domain.vo.StockBySize;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -27,6 +30,8 @@ import org.testcontainers.mongodb.MongoDBContainer;
 
 @Testcontainers
 class MongoProductRepositoryTest {
+
+  private static final double MIDPOINT = 50.0;
 
   @Container
   static MongoDBContainer mongodb = new MongoDBContainer("mongo:8.3.7-noble")
@@ -115,6 +120,62 @@ class MongoProductRepositoryTest {
       .as("second page does not repeat top product").isNotEqualTo("5");
   }
 
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("parityWeightCases")
+  void shouldMatchDomainComputedScore(final AppliedWeights weights) {
+    final var result = repository.sortByWeights(weights, null, 20);
+
+    assertThat(result.products())
+      .as("Should return all 6 products")
+      .hasSize(6);
+    assertThat(result.products())
+      .as("Each aggregated score must equal the canonical domain rule")
+      .allSatisfy(product -> assertThat(product.weightedScore())
+        .as("score for product %s", product.productId().value())
+        .isCloseTo(weights.computeScore(product.salesUnits(), product.stock(), MIDPOINT), within(1e-9)));
+  }
+
+  @Test
+  void shouldScoreZeroForAllZeroWeights() {
+    final var weights = new AppliedWeights(0.0, 0.0);
+    final var result = repository.sortByWeights(weights, null, 20);
+
+    assertThat(result.products())
+      .as("Should return all 6 products")
+      .hasSize(6);
+    assertThat(result.products())
+      .as("An all-zero weight map scores every product zero, matching the domain rule")
+      .allSatisfy(product -> assertThat(product.weightedScore())
+        .as("score for product %s", product.productId().value())
+        .isEqualTo(0.0)
+        .isCloseTo(weights.computeScore(product.salesUnits(), product.stock(), MIDPOINT), within(1e-9)));
+    assertThat(result.products())
+      .extracting(product -> product.productId().value())
+      .as("The resulting ties are ordered by identifier descending")
+      .isSortedAccordingTo(Comparator.reverseOrder());
+  }
+
+  @Test
+  void shouldComputeStockRatioFromEmbeddedEntriesNotTheStoredField() {
+    mongoTemplate.save(new ProductDocument("7", "EMBEDDED STOCK WINS", 10,
+      List.of(new StockEntry("S", 5), new StockEntry("M", 0), new StockEntry("L", 7)), null, 0.0));
+
+    final var weights = new AppliedWeights(0.0, 1.0);
+    final var result = repository.sortByWeights(weights, null, 20);
+    final var product = result.products().stream()
+      .filter(candidate -> candidate.productId().value().equals("7"))
+      .findFirst()
+      .orElseThrow();
+
+    assertThat(product.stock().stockRatio())
+      .as("Stock ratio derived from the embedded entries")
+      .isCloseTo(2.0 / 3.0, within(1e-9));
+    assertThat(product.weightedScore())
+      .as("The pipeline reads the embedded entries, not the stored 0.0 field")
+      .isCloseTo(weights.computeScore(product.salesUnits(), product.stock(), MIDPOINT), within(1e-9))
+      .isNotEqualTo(0.0);
+  }
+
   @Test
   void shouldReturnEmptyForCursorPastEnd() {
     final var weights = new AppliedWeights(1.0, 0.0);
@@ -168,9 +229,14 @@ class MongoProductRepositoryTest {
 
   private static ProductDocument product(final String id, final String name, final int salesUnits,
                                           final List<StockEntry> stock) {
-    final long withStock = stock.stream().filter(e -> e.quantity() > 0).count();
-    final double stockRatio = stock.isEmpty() ? 0.0 : (double) withStock / stock.size();
-    return new ProductDocument(id, name, salesUnits, stock, null, stockRatio);
+    return new ProductDocument(id, name, salesUnits, stock, null, stockRatioOf(stock));
+  }
+
+  private static double stockRatioOf(final List<StockEntry> stock) {
+    return Stock.of(stock.stream()
+      .map(entry -> StockBySize.of(Size.of(entry.size()), entry.quantity()))
+      .toList())
+      .stockRatio();
   }
 
   private static Stream<Arguments> paginationCases() {
@@ -183,5 +249,12 @@ class MongoProductRepositoryTest {
     return Stream.of(
       arguments(named("product 1", "1"), "ALPHA SHIRT", 100),
       arguments(named("product 5", "5"), "LACE SHIRT", 650));
+  }
+
+  private static Stream<Arguments> parityWeightCases() {
+    return Stream.of(
+      arguments(named("sales only", new AppliedWeights(1.0, 0.0))),
+      arguments(named("stock only", new AppliedWeights(0.0, 1.0))),
+      arguments(named("balanced", new AppliedWeights(0.7, 0.3))));
   }
 }

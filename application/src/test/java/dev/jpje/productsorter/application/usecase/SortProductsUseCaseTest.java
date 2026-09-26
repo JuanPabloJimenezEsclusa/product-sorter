@@ -30,6 +30,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class SortProductsUseCaseTest {
 
+  private static final double MIDPOINT = 50.0;
+
   private SortProductsUseCase useCase;
   private TestProductRepository repository;
 
@@ -165,12 +167,8 @@ class SortProductsUseCaseTest {
     @Override
     public PagedResult sortByWeights(final AppliedWeights weights, final String cursor, final int limit) {
       final var sorted = products.stream()
-        .map(p -> {
-          final var salesScore = weights.salesUnitsWeight() * p.salesUnits().value() / (p.salesUnits().value() + 50);
-          final var stockScore = weights.stockWeight() * p.stock().stockRatio();
-          final var weightedScore = salesScore + stockScore;
-          return new Product(p.productId(), p.productName(), p.salesUnits(), p.stock(), weightedScore);
-        })
+        .map(p -> new Product(p.productId(), p.productName(), p.salesUnits(), p.stock(),
+          weights.computeScore(p.salesUnits(), p.stock(), MIDPOINT)))
         .sorted((a, b) -> Double.compare(
           b.weightedScore() != null ? b.weightedScore() : 0,
           a.weightedScore() != null ? a.weightedScore() : 0))

@@ -2,7 +2,10 @@ package dev.jpje.productsorter.contract;
 
 import static io.restassured.RestAssured.given;
 import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 
 import java.security.KeyPair;
@@ -22,7 +25,14 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import dev.jpje.productsorter.adapter.persistence.mongo.entity.ProductDocument;
 import dev.jpje.productsorter.adapter.persistence.mongo.entity.StockEntry;
+import dev.jpje.productsorter.domain.model.AppliedWeights;
 import dev.jpje.productsorter.domain.vo.CursorCodec;
+import dev.jpje.productsorter.domain.vo.SalesUnits;
+import dev.jpje.productsorter.domain.vo.Size;
+import dev.jpje.productsorter.domain.vo.Stock;
+import dev.jpje.productsorter.domain.vo.StockBySize;
+import io.restassured.path.json.config.JsonPathConfig;
+import io.restassured.path.json.config.JsonPathConfig.NumberReturnType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -42,6 +52,8 @@ import org.testcontainers.mongodb.MongoDBContainer;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
 class ProductApiContractTest {
+
+  private static final double MIDPOINT = 50.0;
 
   private static final KeyPair RSA_KEY = generateRsaKey();
 
@@ -95,6 +107,60 @@ class ProductApiContractTest {
       .statusCode(200)
       .body(matchesJsonSchemaInClasspath("schema/product-page.json"))
       .body("data", not(empty()));
+  }
+
+  @Test
+  void sortResponseShouldPublishDomainComputedScore() {
+    final var weights = new AppliedWeights(0.0, 1.0);
+    final var expectedScore = weights.computeScore(
+      SalesUnits.of(100),
+      Stock.of(List.of(
+        StockBySize.of(Size.of("S"), 4),
+        StockBySize.of(Size.of("M"), 9),
+        StockBySize.of(Size.of("L"), 0))),
+      MIDPOINT);
+
+    final var response = given()
+      .port(port).auth().oauth2(jwt).contentType("application/json")
+      .body(Map.of("weights", Map.of("salesUnits", 0.0, "stockRatio", 1.0)))
+    .when()
+      .post("/api/v1/products/sort?size=20")
+    .then()
+      .statusCode(200)
+      .body(matchesJsonSchemaInClasspath("schema/product-page.json"))
+      .body("data[0].id", equalTo("1"))
+      .extract();
+
+    final var score = response
+      .jsonPath(JsonPathConfig.jsonPathConfig().numberReturnType(NumberReturnType.DOUBLE))
+      .getDouble("data[0].score");
+
+    assertThat(score)
+      .as("published score equals the canonical domain rule")
+      .isCloseTo(expectedScore, within(1e-9));
+  }
+
+  @Test
+  void allZeroWeightsShouldScoreZero() {
+    final var response = given()
+      .port(port).auth().oauth2(jwt).contentType("application/json")
+      .body(Map.of("weights", Map.of("salesUnits", 0.0, "stockRatio", 0.0)))
+    .when()
+      .post("/api/v1/products/sort?size=20")
+    .then()
+      .statusCode(200)
+      .body(matchesJsonSchemaInClasspath("schema/product-page.json"))
+      .body("data", not(empty()))
+      .extract();
+
+    final var scores = response
+      .jsonPath(JsonPathConfig.jsonPathConfig().numberReturnType(NumberReturnType.DOUBLE))
+      .getList("data.score", Double.class);
+
+    assertThat(scores)
+      .as("An all-zero weight map publishes a 0.0 score for every product")
+      .isNotEmpty()
+      .allSatisfy(score -> assertThat(score).isEqualTo(0.0));
   }
 
   @Test
