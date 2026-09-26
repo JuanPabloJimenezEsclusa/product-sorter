@@ -22,6 +22,8 @@ import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import io.opentelemetry.sdk.trace.export.SpanExporter;
 import io.opentelemetry.semconv.ServiceAttributes;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.Bean;
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
@@ -42,6 +44,15 @@ class TracingFilterTest {
     assertThat(exporter.spans().getFirst().getKind())
       .as("the manual request span must be a SERVER span")
       .isEqualTo(SpanKind.SERVER);
+  }
+
+  @Test
+  void shouldFlushBufferedSpansOnShutdown() throws Exception {
+    final var method = TracingConfig.class.getMethod("openTelemetry", String.class, String.class);
+
+    assertThat(AnnotationUtils.findAnnotation(method, Bean.class).destroyMethod())
+      .as("graceful shutdown must flush batched spans")
+      .isEqualTo("close");
   }
 
   @Test
