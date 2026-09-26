@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.common.Attributes;
@@ -21,6 +22,7 @@ import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import io.opentelemetry.sdk.trace.export.SpanExporter;
 import io.opentelemetry.semconv.ServiceAttributes;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -50,15 +52,14 @@ class TracingFilterTest {
   void shouldFlushBufferedSpansOnShutdown() throws Exception {
     final var method = TracingConfig.class.getMethod("openTelemetry", String.class, String.class);
 
-    assertThat(AnnotationUtils.findAnnotation(method, Bean.class).destroyMethod())
+    assertThat(Objects.requireNonNull(AnnotationUtils.findAnnotation(method, Bean.class)).destroyMethod())
       .as("graceful shutdown must flush batched spans")
       .isEqualTo("close");
   }
 
   @Test
   void shouldConfigureW3cTracePropagation() {
-    final var openTelemetry = new TracingConfig().openTelemetry("test", "http://localhost:4318/v1/traces");
-    try {
+    try (var openTelemetry = new TracingConfig().openTelemetry("test", "http://localhost:4318/v1/traces")) {
       final var inboundTraceId = "0af7651916cd43dd8448eb211c80319c";
       final var request = new MockHttpServletRequest();
       request.addHeader("traceparent", "00-" + inboundTraceId + "-b7ad6b7169203331-01");
@@ -69,8 +70,6 @@ class TracingFilterTest {
       assertThat(Span.fromContext(extracted).getSpanContext().getTraceId())
         .as("TracingConfig must configure W3C propagation, else inbound trace context is never extracted")
         .isEqualTo(inboundTraceId);
-    } finally {
-      ((OpenTelemetrySdk) openTelemetry).close();
     }
   }
 
@@ -92,7 +91,7 @@ class TracingFilterTest {
   }
 
   @Test
-  void shouldStartANewTraceWhenNoInboundContext() throws Exception {
+  void shouldStartNewTraceWhenNoInboundContext() throws Exception {
     filter.doFilter(new MockHttpServletRequest("GET", "/api/v1/products"),
       new MockHttpServletResponse(), (_, _) -> {
       });
@@ -102,10 +101,6 @@ class TracingFilterTest {
       .isNotEqualTo("00000000000000000000000000000000");
   }
 
-  /**
-   * Builds an SDK whose span processor records into the supplied exporter and whose
-   * propagator is the W3C text-map propagator, mirroring {@code TracingConfig}.
-   */
   static OpenTelemetry openTelemetry(final SpanExporter exporter) {
     final var provider = SdkTracerProvider.builder()
       .setResource(Resource.create(Attributes.of(ServiceAttributes.SERVICE_NAME, "test")))
@@ -122,7 +117,7 @@ class TracingFilterTest {
     private final List<SpanData> exported = new ArrayList<>();
 
     @Override
-    public CompletableResultCode export(final Collection<SpanData> spans) {
+    public CompletableResultCode export(final @NonNull Collection<SpanData> spans) {
       exported.addAll(spans);
       return CompletableResultCode.ofSuccess();
     }

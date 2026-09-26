@@ -19,6 +19,7 @@ import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import io.opentelemetry.sdk.trace.export.SpanExporter;
 import io.opentelemetry.semconv.ServiceAttributes;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -26,15 +27,6 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 
-/**
- * T6.1 precondition: one request must produce exactly one {@link SpanKind#SERVER} span.
- *
- * <p>The manual {@code TracingFilter} is the only span source in this application. The competing
- * Spring Boot tracing auto-configuration is not on the classpath: Spring Boot 4 moved it into the
- * {@code spring-boot-micrometer-tracing} module, which this project does not declare. This test
- * records every exported span for one real request through a recording exporter so that a
- * re-introduced competing source (for example by adding that module) fails the build.
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
   properties = {
     "spring.security.oauth2.resourceserver.jwt.jwk-set-uri=http://localhost:1/jwks",
@@ -82,7 +74,7 @@ class TracingSpanCountTest {
     private final List<SpanData> exported = new CopyOnWriteArrayList<>();
 
     @Override
-    public CompletableResultCode export(final Collection<SpanData> spans) {
+    public CompletableResultCode export(final @NonNull Collection<SpanData> spans) {
       exported.addAll(spans);
       return CompletableResultCode.ofSuccess();
     }

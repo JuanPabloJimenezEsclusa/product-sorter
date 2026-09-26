@@ -4,11 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Named.named;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.stream.Stream;
 
 import io.opentelemetry.api.trace.Span;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -91,7 +91,7 @@ class MdcFilterTest {
   }
 
   @Test
-  void shouldFallBackToAShortRandomTraceIdWithoutASpan() throws Exception {
+  void shouldFallBackToShortRandomTraceIdWithoutSpan() throws Exception {
     filter.doFilterInternal(new MockHttpServletRequest("GET", "/api/v1/products"),
       new MockHttpServletResponse(), (_, _) ->
         assertThat(MDC.get("traceId")).as("fallback traceId is a short random id").hasSize(6));

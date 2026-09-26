@@ -43,8 +43,8 @@ class ProductPageTest {
   @Test
   void shouldExposeUnmodifiableProducts() {
     final var page = new ProductPage(List.of(SAMPLE));
-
-    assertThatThrownBy(() -> page.products().add(SAMPLE))
+    final var products = page.products();
+    assertThatThrownBy(() -> products.add(SAMPLE))
       .as("returned products list is unmodifiable")
       .isInstanceOf(UnsupportedOperationException.class);
   }

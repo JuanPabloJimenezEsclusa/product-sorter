@@ -20,7 +20,7 @@ final class PageAssembler {
   static ProductPageResult assemble(final List<Product> fetched, final int size,
                                     final ToDoubleFunction<Product> cursorScore) {
     final var hasMore = fetched.size() > size;
-    final var trimmed = hasMore ? List.copyOf(fetched.subList(0, size)) : List.copyOf(fetched);
+    final var trimmed = List.copyOf(hasMore ? fetched.subList(0, size) : fetched);
     final var nextCursor = hasMore && !trimmed.isEmpty()
       ? CursorCodec.encode(cursorScore.applyAsDouble(trimmed.getLast()),
           trimmed.getLast().productId().value())

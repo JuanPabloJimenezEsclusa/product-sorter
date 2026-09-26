@@ -354,6 +354,9 @@ Resources:
       Subnets:
         - !Ref PublicSubnetA
         - !Ref PublicSubnetB
+      LoadBalancerAttributes:
+        - Key: access_logs.s3.enabled
+          Value: 'false'
 
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
@@ -375,6 +378,7 @@ Resources:
       LoadBalancerArn: !Ref LoadBalancer
       Port: 443
       Protocol: HTTPS
+      SslPolicy: ELBSecurityPolicy-TLS13-1-2-Res-PQ-2025-09
       Certificates:
         - CertificateArn: !Ref Certificate
       DefaultActions:

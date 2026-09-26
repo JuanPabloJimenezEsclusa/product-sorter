@@ -16,6 +16,7 @@ import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.context.propagation.TextMapPropagator;
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.Ordered;
@@ -79,7 +80,7 @@ public class TracingFilter implements Filter {
     }
 
     @Override
-    public String get(final HttpServletRequest carrier, final String key) {
+    public String get(final HttpServletRequest carrier, final @NonNull String key) {
       return carrier == null ? null : carrier.getHeader(key);
     }
   }
