@@ -54,6 +54,12 @@ class MultiTierCacheTest {
     assertThat(multiTierCache.getNativeCache()).as("native cache is the composite itself").isSameAs(multiTierCache);
   }
 
+  @Test
+  void shouldExposeTiersForIdentityPinning() {
+    assertThat(multiTierCache.l1()).as("wrapped L1 tier").isSameAs(l1);
+    assertThat(multiTierCache.l2()).as("wrapped L2 tier").isSameAs(l2);
+  }
+
   @ParameterizedTest(name = "{0}")
   @MethodSource("reads")
   void shouldReadFromL1(final ReadOp op) {
