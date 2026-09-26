@@ -7,6 +7,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -42,6 +43,22 @@ class MdcFilterTest {
           .isEqualTo("req-123");
       }
     });
+  }
+
+  @Test
+  void shouldPreferActiveSpanTraceIdOverFallback() throws Exception {
+    final var openTelemetry = TracingFilterTest.openTelemetry(new TracingFilterTest.RecordingSpanExporter());
+    final var span = openTelemetry.getTracer("test").spanBuilder("operation").startSpan();
+
+    try (final var _ = span.makeCurrent()) {
+      filter.doFilterInternal(new MockHttpServletRequest("GET", "/api/v1/products"),
+        new MockHttpServletResponse(), (_, _) ->
+          assertThat(MDC.get("traceId"))
+            .as("MDC traceId must equal the active span trace id")
+            .isEqualTo(span.getSpanContext().getTraceId()));
+    } finally {
+      span.end();
+    }
   }
 
   @ParameterizedTest(name = "{0}")
