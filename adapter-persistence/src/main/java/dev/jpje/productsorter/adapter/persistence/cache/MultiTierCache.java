@@ -28,6 +28,14 @@ public class MultiTierCache implements Cache {
     return this;
   }
 
+  Cache l1() {
+    return l1;
+  }
+
+  Cache l2() {
+    return l2;
+  }
+
   @Override
   public @Nullable ValueWrapper get(final @NonNull Object key) {
     var wrapper = l1.get(key);
