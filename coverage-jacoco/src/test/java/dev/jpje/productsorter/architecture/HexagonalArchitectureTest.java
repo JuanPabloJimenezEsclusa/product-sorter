@@ -16,7 +16,7 @@ class HexagonalArchitectureTest {
   private static final String ADAPTER_REST = "dev.jpje.productsorter.adapter.rest..";
   private static final String ADAPTER_PERSISTENCE = "dev.jpje.productsorter.adapter.persistence..";
   private static final String ADAPTER_OBSERVABILITY = "dev.jpje.productsorter.adapter.observability..";
-  private static final String[] COMMON = { "java.(io|lang|time|util).." };
+  private static final String[] COMMON = { "java.(io|lang|nio|time|util).." };
 
   @ArchTest
   static final ArchRule domainMustNotDependOnSpring = noClasses()
