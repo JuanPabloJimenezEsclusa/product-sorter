@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 import dev.jpje.productsorter.domain.vo.SalesUnits;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -29,6 +30,18 @@ class AppliedWeightsTest {
   void shouldRejectNegativeWeights(final double sales, final double stock) {
     assertThatThrownBy(() -> new AppliedWeights(sales, stock))
       .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void shouldRejectWeightsGreaterThanOne() {
+    assertThatThrownBy(() -> new AppliedWeights(5.0, 0.5))
+      .as("sales weight above 1 must be rejected")
+      .isInstanceOf(IllegalArgumentException.class)
+      .hasMessage("Weights must be between 0 and 1");
+    assertThatThrownBy(() -> new AppliedWeights(0.5, 5.0))
+      .as("stock weight above 1 must be rejected")
+      .isInstanceOf(IllegalArgumentException.class)
+      .hasMessage("Weights must be between 0 and 1");
   }
 
   @ParameterizedTest(name = "{0}")
@@ -58,7 +71,8 @@ class AppliedWeightsTest {
   private static Stream<Arguments> validWeightsScenarios() {
     return Stream.of(
       arguments(named("both", 0.7), 0.3),
-      arguments(named("zero", 0.0), 0.0));
+      arguments(named("zero", 0.0), 0.0),
+      arguments(named("upper boundary", 1.0), 1.0));
   }
 
   private static Stream<Arguments> invalidWeightsScenarios() {

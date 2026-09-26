@@ -69,7 +69,9 @@ class MetricsTest {
     return Stream.of(
       arguments(named("both", Map.of("salesUnits", 0.7, "stockRatio", 0.3))),
       arguments(named("sales only", Map.of("salesUnits", 1.0))),
-      arguments(named("stock only", Map.of("stockRatio", 0.5))));
+      arguments(named("stock only", Map.of("stockRatio", 0.5))),
+      arguments(named("all zero", Map.of("salesUnits", 0.0, "stockRatio", 0.0))),
+      arguments(named("lower boundary", Map.of("salesUnits", 0.0))));
   }
 
   private static Stream<Arguments> invalidWeightsScenarios() {

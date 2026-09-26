@@ -490,17 +490,8 @@
               <targetTests>
                 <param>dev.jpje.productsorter.domain.*</param>
               </targetTests>
-              <mutators>
-                <mutator>MATH</mutator>
-                <mutator>NEGATE_CONDITIONALS</mutator>
-                <mutator>INVERT_NEGS</mutator>
-                <mutator>TRUE_RETURNS</mutator>
-                <mutator>FALSE_RETURNS</mutator>
-                <mutator>NULL_RETURNS</mutator>
-                <mutator>PRIMITIVE_RETURNS</mutator>
-                <mutator>EMPTY_RETURNS</mutator>
-                <mutator>VOID_METHOD_CALLS</mutator>
-              </mutators>
+              <!-- No <mutators> list: inherit PIT DEFAULTS, which includes CONDITIONALS_BOUNDARY and
+                   INCREMENTS. A curated list drifts when PIT changes its defaults. -->
               <threads>4</threads>
               <features>
                 <feature>+CLASSLIMIT(limit[50])</feature>
