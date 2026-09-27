@@ -260,7 +260,7 @@ class ProductSorterE2eTest {
     private MongoProductRepositoryAdapter delegate;
 
     @Test
-    void shouldReturn503WhenADataAccessFailureIsTranslated() {
+    void shouldReturn503WhenDataAccessFailureIsTranslated() {
       when(delegate.sortByWeights(any(), any(), anyInt()))
         .thenThrow(new DataAccessResourceFailureException("mongo down"));
 
