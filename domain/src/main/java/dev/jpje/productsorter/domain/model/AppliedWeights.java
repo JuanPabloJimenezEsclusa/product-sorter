@@ -10,6 +10,9 @@ public record AppliedWeights(double salesUnitsWeight, double stockWeight) {
     if (salesUnitsWeight < 0 || stockWeight < 0) {
       throw new IllegalArgumentException("Weights must be non-negative");
     }
+    if (salesUnitsWeight > 1 || stockWeight > 1) {
+      throw new IllegalArgumentException("Weights must be between 0 and 1");
+    }
   }
 
   public static AppliedWeights fromMap(final Map<String, Double> weights) {

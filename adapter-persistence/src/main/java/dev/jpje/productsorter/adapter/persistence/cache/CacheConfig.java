@@ -1,7 +1,6 @@
 package dev.jpje.productsorter.adapter.persistence.cache;
 
 import java.time.Duration;
-import java.util.List;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
@@ -9,6 +8,8 @@ import io.lettuce.core.metrics.MicrometerCommandLatencyRecorder;
 import io.lettuce.core.metrics.MicrometerOptions;
 import io.lettuce.core.resource.ClientResources;
 import io.micrometer.core.instrument.MeterRegistry;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.CacheManager;
@@ -32,9 +33,13 @@ public class CacheConfig {
 
   @Bean
   @Primary
-  public CacheManager multiTierCacheManager(final List<CacheManager> cacheManagers,
-                                            final CircuitBreakerRegistry circuitBreakerRegistry) {
-    return new CompositeCacheManager(cacheManagers, circuitBreakerRegistry.circuitBreaker("redis"));
+  public CacheManager multiTierCacheManager(
+      @Qualifier("caffeineCacheManager") final CacheManager l1,
+      @Qualifier("redisCacheManager") final ObjectProvider<CacheManager> l2,
+      final CircuitBreakerRegistry circuitBreakerRegistry) {
+    final var redis = l2.getIfAvailable();
+    return new CompositeCacheManager(l1, redis,
+      redis == null ? null : circuitBreakerRegistry.circuitBreaker("redis"));
   }
 
   @Bean

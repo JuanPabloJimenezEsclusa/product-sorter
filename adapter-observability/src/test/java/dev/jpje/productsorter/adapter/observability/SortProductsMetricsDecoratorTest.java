@@ -14,11 +14,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import dev.jpje.productsorter.application.port.ProductPageResult;
 import dev.jpje.productsorter.application.port.SortProducts;
 import dev.jpje.productsorter.application.port.SortProductsRequest;
 import dev.jpje.productsorter.domain.model.Metrics;
 import dev.jpje.productsorter.domain.model.Product;
-import dev.jpje.productsorter.domain.port.ProductRepository.PagedResult;
 import dev.jpje.productsorter.domain.vo.SalesUnits;
 import dev.jpje.productsorter.domain.vo.Stock;
 import org.instancio.Instancio;
@@ -44,7 +44,7 @@ class SortProductsMetricsDecoratorTest {
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("executeCases")
-  void shouldDelegateAndRecordMetrics(final PagedResult delegateResult, final SortProductsRequest request) {
+  void shouldDelegateAndRecordMetrics(final ProductPageResult delegateResult, final SortProductsRequest request) {
     when(delegate.execute(request, null, 20)).thenReturn(delegateResult);
 
     final var result = decorator.execute(request, null, 20);
@@ -57,12 +57,12 @@ class SortProductsMetricsDecoratorTest {
 
   private static Stream<Arguments> executeCases() {
     return Stream.of(
-      arguments(named("empty result", new PagedResult(List.of(), null)),
+      arguments(named("empty result", new ProductPageResult(List.of(), null, 20)),
         new SortProductsRequest(Map.of(Metrics.SALES_UNITS.key(), 0.7, Metrics.STOCK.key(), 0.3))),
       arguments(named("with products",
-        new PagedResult(List.of(
+        new ProductPageResult(List.of(
           instancioProduct(100, 0.9),
-          instancioProduct(50, 0.5)), null)),
+          instancioProduct(50, 0.5)), null, 20)),
         new SortProductsRequest(Map.of(Metrics.SALES_UNITS.key(), 0.7, Metrics.STOCK.key(), 0.3))));
   }
 

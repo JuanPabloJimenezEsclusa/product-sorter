@@ -10,6 +10,7 @@ import java.util.stream.Stream;
 
 import dev.jpje.productsorter.domain.model.AppliedWeights;
 import dev.jpje.productsorter.domain.model.Product;
+import dev.jpje.productsorter.domain.port.ProductPage;
 import dev.jpje.productsorter.domain.port.ProductRepository;
 import dev.jpje.productsorter.domain.vo.CursorCodec;
 import dev.jpje.productsorter.domain.vo.ProductId;
@@ -43,6 +44,7 @@ class ListProductsUseCaseTest {
     final var result = useCase.execute(null, size);
     assertThat(result.products()).as("Should have %d products", expectedCount).hasSize(expectedCount);
     assertThat(result.nextCursor()).as("Should have nextCursor").isNotNull();
+    assertThat(result.size()).as("Effective size is the resolved request size").isEqualTo(size);
   }
 
   @ParameterizedTest(name = "{0}")
@@ -109,7 +111,7 @@ class ListProductsUseCaseTest {
     List<Product> products = List.of();
 
     @Override
-    public PagedResult findPage(final String cursor, final int limit) {
+    public ProductPage findPage(final String cursor, final int limit) {
       var start = 0;
       if (cursor != null) {
         final var decoded = CursorCodec.decode(cursor);
@@ -120,16 +122,12 @@ class ListProductsUseCaseTest {
           }
         }
       }
-      final var page = products.stream().skip(start).limit(limit).toList();
-      final var nextCursor = page.size() == limit && !page.isEmpty()
-        ? page.getLast().productId().value()
-        : null;
-      return new PagedResult(page, nextCursor);
+      return new ProductPage(products.stream().skip(start).limit(limit).toList());
     }
 
     @Override
-    public PagedResult sortByWeights(final AppliedWeights weights, final String cursor, final int limit) {
-      return new PagedResult(List.of(), null);
+    public ProductPage sortByWeights(final AppliedWeights weights, final String cursor, final int limit) {
+      return new ProductPage(List.of());
     }
   }
 }

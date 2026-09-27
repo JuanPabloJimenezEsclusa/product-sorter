@@ -2,8 +2,14 @@ package dev.jpje.productsorter.contract;
 
 import static io.restassured.RestAssured.given;
 import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.when;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -20,21 +26,35 @@ import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.RSASSASigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import dev.jpje.productsorter.adapter.persistence.mongo.MongoProductRepositoryAdapter;
 import dev.jpje.productsorter.adapter.persistence.mongo.entity.ProductDocument;
 import dev.jpje.productsorter.adapter.persistence.mongo.entity.StockEntry;
+import dev.jpje.productsorter.domain.model.AppliedWeights;
 import dev.jpje.productsorter.domain.vo.CursorCodec;
+import dev.jpje.productsorter.domain.vo.SalesUnits;
+import dev.jpje.productsorter.domain.vo.Size;
+import dev.jpje.productsorter.domain.vo.Stock;
+import dev.jpje.productsorter.domain.vo.StockBySize;
+import io.restassured.path.json.config.JsonPathConfig;
+import io.restassured.path.json.config.JsonPathConfig.NumberReturnType;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mongodb.MongoDBContainer;
@@ -42,6 +62,8 @@ import org.testcontainers.mongodb.MongoDBContainer;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
 class ProductApiContractTest {
+
+  private static final double MIDPOINT = 50.0;
 
   private static final KeyPair RSA_KEY = generateRsaKey();
 
@@ -98,6 +120,60 @@ class ProductApiContractTest {
   }
 
   @Test
+  void sortResponseShouldPublishDomainComputedScore() {
+    final var weights = new AppliedWeights(0.0, 1.0);
+    final var expectedScore = weights.computeScore(
+      SalesUnits.of(100),
+      Stock.of(List.of(
+        StockBySize.of(Size.of("S"), 4),
+        StockBySize.of(Size.of("M"), 9),
+        StockBySize.of(Size.of("L"), 0))),
+      MIDPOINT);
+
+    final var response = given()
+      .port(port).auth().oauth2(jwt).contentType("application/json")
+      .body(Map.of("weights", Map.of("salesUnits", 0.0, "stockRatio", 1.0)))
+      .when()
+      .post("/api/v1/products/sort?size=20")
+      .then()
+      .statusCode(200)
+      .body(matchesJsonSchemaInClasspath("schema/product-page.json"))
+      .body("data[0].id", equalTo("1"))
+      .extract();
+
+    final var score = response
+      .jsonPath(JsonPathConfig.jsonPathConfig().numberReturnType(NumberReturnType.DOUBLE))
+      .getDouble("data[0].score");
+
+    assertThat(score)
+      .as("published score equals the canonical domain rule")
+      .isCloseTo(expectedScore, within(1e-9));
+  }
+
+  @Test
+  void allZeroWeightsShouldScoreZero() {
+    final var response = given()
+      .port(port).auth().oauth2(jwt).contentType("application/json")
+      .body(Map.of("weights", Map.of("salesUnits", 0.0, "stockRatio", 0.0)))
+      .when()
+      .post("/api/v1/products/sort?size=20")
+      .then()
+      .statusCode(200)
+      .body(matchesJsonSchemaInClasspath("schema/product-page.json"))
+      .body("data", not(empty()))
+      .extract();
+
+    final var scores = response
+      .jsonPath(JsonPathConfig.jsonPathConfig().numberReturnType(NumberReturnType.DOUBLE))
+      .getList("data.score", Double.class);
+
+    assertThat(scores)
+      .as("An all-zero weight map publishes a 0.0 score for every product")
+      .isNotEmpty()
+      .allSatisfy(score -> assertThat(score).isEqualTo(0.0));
+  }
+
+  @Test
   void listResponseShouldMatchOpenApiSpec() {
     given()
       .port(port).auth().oauth2(jwt).contentType("application/json")
@@ -131,6 +207,60 @@ class ProductApiContractTest {
       .statusCode(200)
       .body(matchesJsonSchemaInClasspath("schema/product-page.json"))
       .body("data", empty());
+  }
+
+  @ParameterizedTest(name = "list size={0} -> 400")
+  @ValueSource(ints = {0, 101})
+  void outOfRangeSizeShouldReturn400MatchingSchemaOnList(final int size) {
+    given()
+      .port(port).auth().oauth2(jwt).contentType("application/json")
+      .queryParam("size", size)
+    .when()
+      .get("/api/v1/products")
+    .then()
+      .statusCode(400)
+      .body(matchesJsonSchemaInClasspath("schema/error-response.json"))
+      .body("code", equalTo("BAD_REQUEST"));
+  }
+
+  @ParameterizedTest(name = "sort size={0} -> 400")
+  @ValueSource(ints = {0, 101})
+  void outOfRangeSizeShouldReturn400MatchingSchemaOnSort(final int size) {
+    given()
+      .port(port).auth().oauth2(jwt).contentType("application/json")
+      .body(Map.of("weights", Map.of("salesUnits", 0.7, "stockRatio", 0.3)))
+      .queryParam("size", size)
+    .when()
+      .post("/api/v1/products/sort")
+    .then()
+      .statusCode(400)
+      .body(matchesJsonSchemaInClasspath("schema/error-response.json"))
+      .body("code", equalTo("BAD_REQUEST"));
+  }
+
+  @Nested
+  @Import(ContractTestJwtConfig.class)
+  class DataAccessFailure {
+
+    @MockitoBean
+    private MongoProductRepositoryAdapter delegate;
+
+    @Test
+    void dataAccessFailureShouldReturn503MatchingSchema() {
+      when(delegate.findPage(any(), anyInt()))
+        .thenThrow(new DataAccessResourceFailureException("mongo down"));
+
+      given()
+        .port(port).auth().oauth2(jwt).contentType("application/json")
+        .queryParam("size", 20)
+      .when()
+        .get("/api/v1/products")
+      .then()
+        .statusCode(503)
+        .body(matchesJsonSchemaInClasspath("schema/error-response.json"))
+        .body("status", equalTo(503))
+        .body("code", equalTo("SERVICE_UNAVAILABLE"));
+    }
   }
 
   private void seedProducts() {
