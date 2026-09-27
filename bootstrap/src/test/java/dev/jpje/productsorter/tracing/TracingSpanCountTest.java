@@ -26,6 +26,7 @@ import io.opentelemetry.semconv.ServiceAttributes;
 import org.awaitility.core.ConditionTimeoutException;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -53,20 +54,33 @@ class TracingSpanCountTest {
     .addSpanProcessor(SimpleSpanProcessor.create(EXPORTER))
     .build();
 
+  static final OpenTelemetrySdk RECORDING_OPENTELEMETRY = OpenTelemetrySdk.builder()
+    .setTracerProvider(TRACER_PROVIDER)
+    .build();
+
   @TestConfiguration
   static class RecordingTracingConfig {
     @Bean
     @Primary
     OpenTelemetry recordingOpenTelemetry() {
-      return OpenTelemetrySdk.builder().setTracerProvider(TRACER_PROVIDER).build();
+      return RECORDING_OPENTELEMETRY;
     }
   }
 
   @LocalServerPort
   private int port;
 
+  @Autowired
+  private OpenTelemetry openTelemetry;
+
   @Test
   void shouldEmitExactlyOneServerSpanPerRequest() {
+    // Guard: if the production TracingConfig bean won, spans would never reach this exporter and the
+    // count below would read zero for a reason unrelated to the invariant it asserts.
+    assertThat(openTelemetry)
+      .as("the injected OpenTelemetry must be this test's own recording provider")
+      .isSameAs(RECORDING_OPENTELEMETRY);
+
     EXPORTER.spans().clear();
 
     given().port(port).when().get("/actuator/prometheus").then().statusCode(200);
