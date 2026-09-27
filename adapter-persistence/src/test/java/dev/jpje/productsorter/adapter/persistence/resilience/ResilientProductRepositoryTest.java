@@ -59,7 +59,7 @@ class ResilientProductRepositoryTest {
     when(delegate.findPage(null, LIMIT)).thenReturn(PAGE);
 
     assertThat(repository.findPage(null, LIMIT)).as("delegate result passes through").isSameAs(PAGE);
-    verify(delegate, times(1)).findPage(null, LIMIT);
+    verify(delegate).findPage(null, LIMIT);
   }
 
   @Test
@@ -122,7 +122,7 @@ class ResilientProductRepositoryTest {
       .as("a non-retried data-access fault is translated to unavailability")
       .isInstanceOf(RepositoryUnavailableException.class)
       .hasCause(fault);
-    verify(delegate, times(1)).findPage(null, LIMIT);
+    verify(delegate).findPage(null, LIMIT);
   }
 
   @Test
@@ -149,9 +149,9 @@ class ResilientProductRepositoryTest {
       composed.findPage(null, LIMIT);
       composed.findPage(null, LIMIT);
 
-      retryStatic.verify(() -> Retry.decorateSupplier(eq(retry), any()), times(1));
-      breakerStatic.verify(() -> CircuitBreaker.decorateSupplier(eq(circuitBreaker), any()), times(1));
-      bulkheadStatic.verify(() -> Bulkhead.decorateSupplier(eq(bulkhead), any()), times(1));
+      retryStatic.verify(() -> Retry.decorateSupplier(eq(retry), any()));
+      breakerStatic.verify(() -> CircuitBreaker.decorateSupplier(eq(circuitBreaker), any()));
+      bulkheadStatic.verify(() -> Bulkhead.decorateSupplier(eq(bulkhead), any()));
     }
   }
 

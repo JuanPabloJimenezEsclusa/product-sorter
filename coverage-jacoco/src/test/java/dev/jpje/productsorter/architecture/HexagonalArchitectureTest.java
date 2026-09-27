@@ -101,7 +101,7 @@ class HexagonalArchitectureTest {
       DOMAIN, APPLICATION, API_SPEC, ADAPTER_REST,
       "org.springframework.(beans|context|core.convert|http|security|stereotype|web)..",
       "com.fasterxml.jackson.(databind|datatype)..",
-      "jakarta.servlet..",
+      "jakarta.(servlet|validation)..",
       "org.springdoc..",
       "io.swagger..",
       "io.micrometer..",

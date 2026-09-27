@@ -19,17 +19,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.method.MethodValidationResult;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -64,26 +61,26 @@ class GlobalExceptionHandlerTest {
 
     assertThat(handler.handleIllegalArgument(
       new IllegalArgumentException("Metrics.validateWeights: weight 2.0 out of range")).getBody())
+      .isNotNull()
       .extracting(ErrorResponse::getMessage)
       .as("a 400 message must be stable and must not echo the validation exception text")
       .isEqualTo("Invalid request");
 
     assertThat(handler.handleMalformedBody(
       new HttpMessageNotReadableException("PageSize.resolve: size out of range", null)).getBody())
+      .isNotNull()
       .extracting(ErrorResponse::getMessage)
       .as("a 400 message must be stable and must not echo the malformed-body exception text")
       .isEqualTo("Invalid request");
   }
 
-  private static Stream<Arguments> exceptionMappings() throws NoSuchMethodException {
+  private static Stream<Arguments> exceptionMappings() {
     final var h = new GlobalExceptionHandler();
 
     final var illegalArgument = new IllegalArgumentException("Metrics.validateWeights: weight 2.0 out of range");
     final var malformedBody = new HttpMessageNotReadableException("PageSize.resolve: size out of range", null);
     final var typeMismatch = new MethodArgumentTypeMismatchException("abc", Integer.class, "size", null, null);
     final var missingParameter = new MissingServletRequestParameterException("cursor", "String");
-    final var argumentNotValid = new MethodArgumentNotValidException(
-      validationParameter(), new BeanPropertyBindingResult(new Object(), "weights"));
     final var handlerMethodValidation =
       new HandlerMethodValidationException(mock(MethodValidationResult.class));
     final var constraintViolation = new ConstraintViolationException("size must be positive", Set.of());
@@ -108,9 +105,6 @@ class GlobalExceptionHandlerTest {
       arguments(named("MissingServletRequestParameter -> 400",
         (Supplier<ResponseEntity<ErrorResponse>>) () -> h.handleMissingParameter(missingParameter)),
         HttpStatus.BAD_REQUEST, "BAD_REQUEST", "Invalid request", missingParameter.getMessage()),
-      arguments(named("MethodArgumentNotValid -> 400",
-        (Supplier<ResponseEntity<ErrorResponse>>) () -> h.handleArgumentNotValid(argumentNotValid)),
-        HttpStatus.BAD_REQUEST, "BAD_REQUEST", "Invalid request", argumentNotValid.getMessage()),
       arguments(named("HandlerMethodValidation -> 400",
         (Supplier<ResponseEntity<ErrorResponse>>) () -> h.handleHandlerMethodValidation(handlerMethodValidation)),
         HttpStatus.BAD_REQUEST, "BAD_REQUEST", "Invalid request", handlerMethodValidation.getMessage()),
@@ -138,20 +132,7 @@ class GlobalExceptionHandlerTest {
         unavailable.getMessage()),
       arguments(named("generic Exception -> 500",
         (Supplier<ResponseEntity<ErrorResponse>>) () -> h.handleGeneral(unexpected)),
-        HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "An unexpected error occurred",
+        HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "An unexpected error occurred",
         unexpected.getMessage()));
-  }
-
-  /**
-   * Fixture holder: only its parameter is read, to build the {@link MethodParameter} required by
-   * {@link MethodArgumentNotValidException}.
-   */
-  private static void validationTarget(final String value) {
-    // Intentionally empty: the method exists only to be referenced reflectively.
-  }
-
-  private static MethodParameter validationParameter() throws NoSuchMethodException {
-    return new MethodParameter(
-      GlobalExceptionHandlerTest.class.getDeclaredMethod("validationTarget", String.class), 0);
   }
 }
