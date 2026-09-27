@@ -2,6 +2,8 @@
 
 **Date:** 2026-06-24
 
+> **Superseded in part by [ADR 0011](0011-trace-correlation-and-batch-export.md).** The MDC correlation decision below wrote a random UUID `traceId` before any span existed, so it never matched the trace's identifier; ADR 0011 replaces it with the active span's trace id and adds batched export. The decorator-pattern decision stands.
+
 ## Context
 
 The application needs observability that cuts across architectural layers: metrics for the sorting use case, distributed tracing, and log correlation. These concerns should not leak into domain or application code.

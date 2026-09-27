@@ -2,6 +2,8 @@
 
 **Date:** 2026-06-24
 
+> **Superseded in part by [ADR 0012](0012-data-access-failure-translation.md).** The consequence below that Mongo operation timeouts surface as `500` is replaced: data-access failures escaping the decorator chain, including timeouts, now translate to `503 SERVICE_UNAVAILABLE`. The decorator strategy below stands.
+
 ## Context
 
 The service has three outbound integration points that can fail or slow down: MongoDB (primary store), Redis (L2 cache), and the OAuth2 JWKS endpoint. Without fault handling, a slow or unavailable dependency cascades into hung threads and failed requests. Resilience must not leak into domain or application code, and must not distort performance tests: load tests showed that an aggressive fault layer can *create* failures (bulkhead rejections, retry amplification, circuit-breaker flapping) rather than absorb them.
