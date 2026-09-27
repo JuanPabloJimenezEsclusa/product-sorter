@@ -11,6 +11,7 @@ import io.github.resilience4j.bulkhead.BulkheadFullException;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.retry.Retry;
+import org.springframework.dao.DataAccessException;
 
 public class ResilientProductRepository implements ProductRepository {
 
@@ -43,7 +44,7 @@ public class ResilientProductRepository implements ProductRepository {
     actionHolder.set((Supplier<Object>) action);
     try {
       return (T) resilienceChain.get();
-    } catch (final CallNotPermittedException | BulkheadFullException ex) {
+    } catch (final CallNotPermittedException | BulkheadFullException | DataAccessException ex) {
       throw new RepositoryUnavailableException("Product repository temporarily unavailable", ex);
     } finally {
       actionHolder.remove();
