@@ -8,24 +8,34 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Collections;
 
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.context.propagation.TextMapGetter;
+import io.opentelemetry.context.propagation.TextMapPropagator;
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 @Component
+@Order(Ordered.HIGHEST_PRECEDENCE)
 @ConditionalOnProperty(value = "otel.enabled", havingValue = "true", matchIfMissing = true)
 public class TracingFilter implements Filter {
 
   private final Tracer tracer;
+  private final TextMapPropagator propagator;
 
   public TracingFilter(
     @Value("${otel.service-name:product-sorter}") final String serviceName,
     final OpenTelemetry openTelemetry) {
     this.tracer = openTelemetry.getTracer(serviceName);
+    this.propagator = openTelemetry.getPropagators().getTextMapPropagator();
   }
 
   @Override
@@ -38,7 +48,9 @@ public class TracingFilter implements Filter {
 
     final var path = httpRequest.getRequestURI();
     final var method = httpRequest.getMethod();
+    final var parent = propagator.extract(Context.root(), httpRequest, HttpRequestHeaderGetter.INSTANCE);
     final var span = tracer.spanBuilder(method + " " + path)
+      .setParent(parent)
       .setSpanKind(SpanKind.SERVER)
       .setAttribute("http.method", method)
       .setAttribute("http.url", httpRequest.getRequestURL().toString())
@@ -56,6 +68,20 @@ public class TracingFilter implements Filter {
       throw e;
     } finally {
       span.end();
+    }
+  }
+
+  enum HttpRequestHeaderGetter implements TextMapGetter<HttpServletRequest> {
+    INSTANCE;
+
+    @Override
+    public Iterable<String> keys(final HttpServletRequest carrier) {
+      return Collections.list(carrier.getHeaderNames());
+    }
+
+    @Override
+    public String get(final HttpServletRequest carrier, final @NonNull String key) {
+      return carrier == null ? null : carrier.getHeader(key);
     }
   }
 }

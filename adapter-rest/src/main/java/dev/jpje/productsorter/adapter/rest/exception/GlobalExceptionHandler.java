@@ -18,15 +18,18 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
   private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+  private static final String INVALID_REQUEST_MESSAGE = "Invalid request";
 
   @ExceptionHandler(IllegalArgumentException.class)
   public ResponseEntity<ErrorResponse> handleIllegalArgument(final IllegalArgumentException ex) {
-    return ResponseEntity.badRequest().body(build(400, "BAD_REQUEST", ex.getMessage()));
+    log.debug("Rejected invalid request argument: {}", ex.getMessage(), ex);
+    return ResponseEntity.badRequest().body(build(400, "BAD_REQUEST", INVALID_REQUEST_MESSAGE));
   }
 
   @ExceptionHandler(HttpMessageNotReadableException.class)
   public ResponseEntity<ErrorResponse> handleMalformedBody(final HttpMessageNotReadableException ex) {
-    return ResponseEntity.badRequest().body(build(400, "BAD_REQUEST", ex.getMessage()));
+    log.debug("Rejected unreadable request body: {}", ex.getMessage(), ex);
+    return ResponseEntity.badRequest().body(build(400, "BAD_REQUEST", INVALID_REQUEST_MESSAGE));
   }
 
   @ExceptionHandler(RequestNotPermitted.class)

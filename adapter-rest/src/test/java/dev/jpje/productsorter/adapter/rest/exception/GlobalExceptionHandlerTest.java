@@ -11,11 +11,13 @@ import dev.jpje.productsorter.api.v1.dto.ErrorResponse;
 import dev.jpje.productsorter.domain.exception.RepositoryUnavailableException;
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 
 class GlobalExceptionHandlerTest {
 
@@ -31,6 +33,23 @@ class GlobalExceptionHandlerTest {
     assertThat(response.getBody()).isNotNull()
       .extracting(errorResponse -> errorResponse != null ? errorResponse.getCode() : null)
       .as("error code for %s", expectedStatus).isEqualTo(expectedCode);
+  }
+
+  @Test
+  void shouldNotEchoRawExceptionTextInBadRequestMessages() {
+    final var handler = new GlobalExceptionHandler();
+
+    assertThat(handler.handleIllegalArgument(
+      new IllegalArgumentException("Metrics.validateWeights: weight 2.0 out of range")).getBody())
+      .extracting(ErrorResponse::getMessage)
+      .as("a 400 message must be stable and must not echo the validation exception text")
+      .isEqualTo("Invalid request");
+
+    assertThat(handler.handleMalformedBody(
+      new HttpMessageNotReadableException("PageSize.resolve: size out of range", null)).getBody())
+      .extracting(ErrorResponse::getMessage)
+      .as("a 400 message must be stable and must not echo the malformed-body exception text")
+      .isEqualTo("Invalid request");
   }
 
   private static Stream<Arguments> exceptionMappings() {

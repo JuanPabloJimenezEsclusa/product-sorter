@@ -34,6 +34,7 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
   private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
+  private static final String UNAUTHORIZED_MESSAGE = "Unauthorized";
   private static final ObjectMapper MAPPER = new ObjectMapper()
     .registerModule(new JavaTimeModule())
     .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
@@ -87,17 +88,18 @@ public class SecurityConfig {
 
   private static AuthenticationEntryPoint jwtErrorEntryPoint() {
     return (_, response, authException) -> {
+      log.debug("Authentication entry point rejected request", authException);
       response.setContentType(MediaType.APPLICATION_JSON_VALUE);
       response.setStatus(HttpStatus.UNAUTHORIZED.value());
       try (final var writer = response.getWriter()) {
         MAPPER.writeValue(writer, new ErrorResponse()
           .status(HttpStatus.UNAUTHORIZED.value())
           .code(HttpStatus.UNAUTHORIZED.name())
-          .message(authException.getMessage())
+          .message(UNAUTHORIZED_MESSAGE)
           .timestamp(OffsetDateTime.now(ZoneId.systemDefault())));
       } catch (final IOException e) {
         log.error(e.getMessage(), e);
-        response.sendError(HttpStatus.UNAUTHORIZED.value(), authException.getMessage());
+        response.sendError(HttpStatus.UNAUTHORIZED.value(), UNAUTHORIZED_MESSAGE);
       }
     };
   }

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.offset;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import dev.jpje.productsorter.domain.vo.Size;
 import dev.jpje.productsorter.domain.vo.Stock;
@@ -57,11 +58,9 @@ class StockTest {
 
   @Test
   void shouldExposeUnmodifiableEntries() {
-    final var callerList = new ArrayList<StockBySize>();
-    callerList.add(StockBySize.of(Size.of("S"), 1));
-    final var stock = Stock.of(callerList);
+    final var entries = Stock.of(List.of(StockBySize.of(Size.of("S"), 1))).entries();
 
-    assertThatThrownBy(() -> stock.entries().clear())
+    assertThatThrownBy(entries::clear)
       .as("Entries must be unmodifiable")
       .isInstanceOf(UnsupportedOperationException.class);
   }

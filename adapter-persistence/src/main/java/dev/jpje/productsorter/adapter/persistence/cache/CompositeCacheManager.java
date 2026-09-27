@@ -12,14 +12,6 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 
-/**
- * Composes an explicit in-process L1 tier with an optional Redis L2 tier.
- *
- * <p>Tier roles are bound by named constructor parameters, never by the order in which cache
- * managers are declared or discovered, so the in-process tier is always L1 and the Redis tier is
- * always L2. Only the L2 tier is wrapped in the Redis circuit breaker, and {@link #getCache(String)}
- * is memorised per name so a cache operation does not allocate a new composite on every call.
- */
 public class CompositeCacheManager implements CacheManager {
 
   private final CacheManager l1;
@@ -60,9 +52,7 @@ public class CompositeCacheManager implements CacheManager {
       return l1Cache;
     }
     final var l2Cache = l2.getCache(name);
-    final var resilientL2 = l2Cache == null
-      ? null
-      : (l2CircuitBreaker == null ? l2Cache : new ResilientCache(l2Cache, l2CircuitBreaker));
+    final var resilientL2 = getResilientL2(l2Cache);
 
     if (l1Cache == null) {
       return resilientL2;
@@ -71,5 +61,12 @@ public class CompositeCacheManager implements CacheManager {
       return l1Cache;
     }
     return new MultiTierCache(name, l1Cache, resilientL2);
+  }
+
+  private @Nullable Cache getResilientL2(final Cache l2Cache) {
+    if (l2Cache == null) {
+      return null;
+    }
+    return l2CircuitBreaker == null ? l2Cache : new ResilientCache(l2Cache, l2CircuitBreaker);
   }
 }

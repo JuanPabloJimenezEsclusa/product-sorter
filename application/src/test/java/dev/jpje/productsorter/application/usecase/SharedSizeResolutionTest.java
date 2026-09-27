@@ -46,9 +46,12 @@ class SharedSizeResolutionTest {
 
   @Test
   void shouldRejectTheSameOutOfRangeSizeForListAndSort() {
-    assertThatThrownBy(() -> new ListProductsUseCase(repository).execute(null, 0))
+    final var listProductsUseCase = new ListProductsUseCase(repository);
+    final var sortProductsUseCase = new SortProductsUseCase(repository);
+
+    assertThatThrownBy(() -> listProductsUseCase.execute(null, 0))
       .as("list rejects a size below the minimum").isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> new SortProductsUseCase(repository).execute(REQUEST, null, 101))
+    assertThatThrownBy(() -> sortProductsUseCase.execute(REQUEST, null, 101))
       .as("sort rejects a size above the maximum").isInstanceOf(IllegalArgumentException.class);
   }
 
