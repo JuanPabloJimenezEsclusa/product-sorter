@@ -7,6 +7,9 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Named.named;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.when;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -25,6 +28,7 @@ import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.RSASSASigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import dev.jpje.productsorter.adapter.persistence.mongo.MongoProductRepositoryAdapter;
 import dev.jpje.productsorter.adapter.persistence.mongo.entity.ProductDocument;
 import dev.jpje.productsorter.adapter.persistence.mongo.entity.StockEntry;
 import dev.jpje.productsorter.domain.model.AppliedWeights;
@@ -36,6 +40,7 @@ import io.restassured.path.json.config.JsonPathConfig;
 import io.restassured.path.json.config.JsonPathConfig.NumberReturnType;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -45,12 +50,15 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mongodb.MongoDBContainer;
@@ -242,6 +250,30 @@ class ProductSorterE2eTest {
     assertThat(score)
       .as("published score equals the canonical domain rule")
       .isCloseTo(expectedScore, within(1e-9));
+  }
+
+  @Nested
+  @Import(E2eTestJwtConfig.class)
+  class DataAccessFailure {
+
+    @MockitoBean
+    private MongoProductRepositoryAdapter delegate;
+
+    @Test
+    void shouldReturn503WhenADataAccessFailureIsTranslated() {
+      when(delegate.sortByWeights(any(), any(), anyInt()))
+        .thenThrow(new DataAccessResourceFailureException("mongo down"));
+
+      given()
+        .port(port).auth().oauth2(jwt).contentType("application/json")
+        .body(Map.of("weights", Map.of("salesUnits", 0.7, "stockRatio", 0.3)))
+        .queryParam("size", 20)
+      .when()
+        .post("/api/v1/products/sort")
+      .then()
+        .statusCode(503)
+        .body("code", equalTo("SERVICE_UNAVAILABLE"));
+    }
   }
 
   private void seedProducts() {
