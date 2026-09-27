@@ -30,7 +30,7 @@ docker compose -f docker-compose.yml -f ./chaos/docker-compose.chaos.yml \
 
 | Script | Fault | Expected API behaviour |
 |--------|-------|------------------------|
-| `mongo-latency.sh` | MongoDB latency > `timeoutMS` | `sort` times out (`500`); breaker opens → fail fast (`503`) |
+| `mongo-latency.sh` | MongoDB latency > `timeoutMS` | `sort` times out → translated data-access failure (`503`); breaker opens → fail fast (`503`) |
 | `mongo-down.sh` | MongoDB unreachable | breaker opens → `503`; `reset.sh` → recovers to `200` |
 | `redis-down.sh` | Redis unreachable | L2 degrades to a miss; served from MongoDB (`200`) |
 | `redis-flap.sh` | Redis toggling | stays available (`200`) as the breaker opens/closes |
