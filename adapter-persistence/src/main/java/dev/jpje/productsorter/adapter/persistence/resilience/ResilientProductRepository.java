@@ -15,18 +15,17 @@ import io.github.resilience4j.retry.Retry;
 public class ResilientProductRepository implements ProductRepository {
 
   private final ProductRepository delegate;
-  private final CircuitBreaker circuitBreaker;
-  private final Retry retry;
-  private final Bulkhead bulkhead;
+  private final Supplier<Object> resilienceChain;
+  private final ThreadLocal<Supplier<Object>> actionHolder = new ThreadLocal<>();
 
   public ResilientProductRepository(final ProductRepository delegate,
                                     final CircuitBreaker circuitBreaker,
                                     final Retry retry,
                                     final Bulkhead bulkhead) {
     this.delegate = delegate;
-    this.circuitBreaker = circuitBreaker;
-    this.retry = retry;
-    this.bulkhead = bulkhead;
+    this.resilienceChain = Bulkhead.decorateSupplier(bulkhead,
+      CircuitBreaker.decorateSupplier(circuitBreaker,
+        Retry.decorateSupplier(retry, () -> actionHolder.get().get())));
   }
 
   @Override
@@ -39,14 +38,15 @@ public class ResilientProductRepository implements ProductRepository {
     return call(() -> delegate.sortByWeights(weights, cursor, limit));
   }
 
+  @SuppressWarnings("unchecked")
   private <T> T call(final Supplier<T> action) {
-    Supplier<T> decorated = Retry.decorateSupplier(retry, action);
-    decorated = CircuitBreaker.decorateSupplier(circuitBreaker, decorated);
-    decorated = Bulkhead.decorateSupplier(bulkhead, decorated);
+    actionHolder.set((Supplier<Object>) action);
     try {
-      return decorated.get();
+      return (T) resilienceChain.get();
     } catch (final CallNotPermittedException | BulkheadFullException ex) {
       throw new RepositoryUnavailableException("Product repository temporarily unavailable", ex);
+    } finally {
+      actionHolder.remove();
     }
   }
 }
