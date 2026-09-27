@@ -126,7 +126,7 @@ class ResilientProductRepositoryTest {
   }
 
   @Test
-  void shouldNotTranslateANonDataAccessFailure() {
+  void shouldNotTranslateNonDataAccessFailure() {
     when(delegate.findPage(null, LIMIT)).thenThrow(new IllegalStateException("boom"));
 
     assertThatThrownBy(() -> repository.findPage(null, LIMIT))
