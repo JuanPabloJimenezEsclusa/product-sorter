@@ -23,9 +23,9 @@ import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import io.opentelemetry.sdk.trace.export.SpanExporter;
 import io.opentelemetry.semconv.ServiceAttributes;
-import org.awaitility.core.ConditionTimeoutException;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -46,11 +46,15 @@ class TracingSpanCountTest {
 
   private static final Duration LATE_DUPLICATE_SETTLE = Duration.ofMillis(500);
 
-  static final RecordingSpanExporter EXPORTER = new RecordingSpanExporter();
+  private static final RecordingSpanExporter EXPORTER = new RecordingSpanExporter();
 
-  static final SdkTracerProvider TRACER_PROVIDER = SdkTracerProvider.builder()
+  private static final SdkTracerProvider TRACER_PROVIDER = SdkTracerProvider.builder()
     .setResource(Resource.create(Attributes.of(ServiceAttributes.SERVICE_NAME, "recording")))
     .addSpanProcessor(SimpleSpanProcessor.create(EXPORTER))
+    .build();
+
+  private static final OpenTelemetrySdk RECORDING_OPENTELEMETRY = OpenTelemetrySdk.builder()
+    .setTracerProvider(TRACER_PROVIDER)
     .build();
 
   @TestConfiguration
@@ -58,33 +62,35 @@ class TracingSpanCountTest {
     @Bean
     @Primary
     OpenTelemetry recordingOpenTelemetry() {
-      return OpenTelemetrySdk.builder().setTracerProvider(TRACER_PROVIDER).build();
+      return RECORDING_OPENTELEMETRY;
     }
   }
 
   @LocalServerPort
   private int port;
 
+  @Autowired
+  private OpenTelemetry openTelemetry;
+
   @Test
   void shouldEmitExactlyOneServerSpanPerRequest() {
+    assertThat(openTelemetry)
+      .as("the injected OpenTelemetry must be this test's own recording provider")
+      .isSameAs(RECORDING_OPENTELEMETRY);
+
     EXPORTER.spans().clear();
 
     given().port(port).when().get("/actuator/prometheus").then().statusCode(200);
+    await()
+      .atMost(SPAN_ARRIVAL_TIMEOUT)
+      .pollInterval(SPAN_POLL_INTERVAL)
+      .until(() -> !exportedServerSpans().isEmpty());
 
-    try {
-      await()
-        .atMost(SPAN_ARRIVAL_TIMEOUT)
-        .pollInterval(SPAN_POLL_INTERVAL)
-        .until(() -> !exportedServerSpans().isEmpty());
-    } catch (ConditionTimeoutException _) {
-      // Deliberately empty: the assertion below owns the failure.
-    }
 
     TRACER_PROVIDER.forceFlush().join(SPAN_ARRIVAL_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
     awaitStableServerSpanCount();
 
-    final var serverSpans = exportedServerSpans();
-    assertThat(serverSpans)
+    assertThat(exportedServerSpans())
       .as("one request must produce exactly one SERVER span, from the manual TracingFilter")
       .hasSize(1);
   }
@@ -112,7 +118,7 @@ class TracingSpanCountTest {
       });
   }
 
-  static final class RecordingSpanExporter implements SpanExporter {
+  private static final class RecordingSpanExporter implements SpanExporter {
 
     private final List<SpanData> exported = new CopyOnWriteArrayList<>();
 
