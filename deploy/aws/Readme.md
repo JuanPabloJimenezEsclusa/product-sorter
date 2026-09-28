@@ -1,7 +1,5 @@
 # Product Sorter — AWS
 
----
-
 ## Prerequisites
 
 - **AWS CLI** v2+ with configured credentials (`aws sts get-caller-identity` succeeds)
@@ -11,12 +9,6 @@
 - **Domain name** registered, pointing to Route53
 - **MongoDB Atlas** (or compatible) connection string with `authSource=admin`
 - AWS IAM permissions: CloudFormation, ECS, ECR, IAM, Route53, ACM, VPC, Secrets Manager, Cognito
-
-### First-time setup
-
-1. Create Route53 hosted zone for your domain
-2. `cp .env.example .env` and fill in real values
-3. Verify `aws sts get-caller-identity` returns your AWS account
 
 ---
 
@@ -34,7 +26,7 @@
 
 ### .env
 
-Create/Edit `deploy/aws/.env`:
+`cp .env.example .env`, then fill in `deploy/aws/.env`:
 
 ```bash
 PRODUCT_SORTER_USERNAME=""

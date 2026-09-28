@@ -1,6 +1,6 @@
 # Performance Tests
 
-k6-based load tests for the product-sorter API across three data volumes and three concurrency levels.
+k6-based load tests for the product-sorter API across three data volumes.
 
 ## Quick start
 
@@ -8,7 +8,7 @@ k6-based load tests for the product-sorter API across three data volumes and thr
 # Smoke test (3 sessions, ~20 min total) — use for CI or rapid feedback
 ./perf/scripts/quick-test.sh
 
-# Full suite (3 sessions, ~45 min total) — use for detailed reporting
+# Full suite (3 sessions, ~45 min total)
 ./perf/scripts/run-session.sh 10000  "10k-products"  30
 ./perf/scripts/run-session.sh 100000 "100k-products" 30
 ./perf/scripts/run-session.sh 1000000 "1M-products"  60
@@ -16,11 +16,10 @@ k6-based load tests for the product-sorter API across three data volumes and thr
 # Aggregate report (after any run)
 ./perf/scripts/report.sh
 
-# Cleanup
 ./perf/scripts/cleanup.sh
 ```
 
-Both `run-session.sh` and `quick-test.sh` invoke k6 with `--no-thresholds`, so the thresholds declared in the k6 scripts are recorded in the summaries but never fail or abort a run.
+Both `run-session.sh` and `quick-test.sh` pass `--no-thresholds`: thresholds are recorded in the summaries but never fail or abort a run.
 
 **Live dashboard:** `http://localhost:3000/d/perf-test` (admin / admin)
 
@@ -32,11 +31,10 @@ Both `run-session.sh` and `quick-test.sh` invoke k6 with `--no-thresholds`, so t
 | 100,000   | 5 → 10 → 50 → 100 | 180s          | 90s            | 15-30s |
 | 1,000,000 | 5 → 10 → 50 → 100 | 180s          | 90s            | 30-60s |
 
-Quick mode trades statistical stability for speed — p99 may be noisier but p95 is reliable enough for trend detection.
+Quick mode: p99 is noisier, p95 still reliable for trend detection.
 
-**Workload:** 40% list (`GET /products?size=100`) + 60% sort (`POST /products/sort?size=100`).
-
-Sort requests use random weights each iteration to bypass cache. Think time: 1s.
+**Workload:** 40% list (`GET /products?size=100`) + 60% sort (`POST /products/sort?size=100`),
+using random weights each iteration to bypass the cache. Think time: 1s.
 
 ## Structure
 
