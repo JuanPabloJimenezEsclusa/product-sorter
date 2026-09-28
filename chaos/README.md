@@ -1,14 +1,11 @@
 # Chaos / Resilience Testing
 
-Two complementary ways to validate the resilience layer:
-
 - **Automated** — `mvn -Pchaos -pl bootstrap test` runs `@Tag("chaos")` tests
-  (`DataStoreChaosTest`, `JwksChaosTest`) that spin up MongoDB, Redis and a
-  Toxiproxy (plus a MockWebServer JWKS) via Testcontainers and assert
-  fail-fast, graceful degradation and recovery. Excluded from the default
-  `mvn verify`.
+  (`DataStoreChaosTest`, `JwksChaosTest`) that spin up MongoDB, Redis, Toxiproxy
+  and a MockWebServer JWKS via Testcontainers, asserting fail-fast, graceful
+  degradation and recovery. Excluded from the default `mvn verify`.
 - **Manual** — inject faults against the running Docker stack through Toxiproxy
-  and watch the Grafana resilience panels.
+  (runbook below).
 
 ## Manual runbook
 
@@ -36,6 +33,6 @@ docker compose -f docker-compose.yml -f ./chaos/docker-compose.chaos.yml \
 | `redis-flap.sh` | Redis toggling | stays available (`200`) as the breaker opens/closes |
 | `jwks-down.sh` | JWKS endpoint down | cached keys keep auth working; cold fetch retries then `401` |
 
-Watch in Grafana (`product-sorter` dashboard): **Circuit Breaker State**,
-**Retry Calls**, **Rate Limiter Available Permissions**, **Bulkhead Available
-Concurrent Calls**. Override the Toxiproxy control URL with `TOXIPROXY_URL`.
+**Grafana** (`product-sorter` dashboard): **Circuit Breaker State**, **Retry Calls**,
+**Rate Limiter Available Permissions**, **Bulkhead Available Concurrent Calls**.
+Override the Toxiproxy control URL with `TOXIPROXY_URL`.
