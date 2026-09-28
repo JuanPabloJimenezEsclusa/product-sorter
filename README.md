@@ -598,3 +598,5 @@ All significant design decisions are documented as ADRs in [`docs/adr/`](docs/ad
 | [ADR-0007](docs/adr/0007-observability-decorator-and-mdc.md) | Observability — Decorator Pattern and MDC Correlation |
 | [ADR-0008](docs/adr/0008-pure-hexagonal-adapter-naming.md) | Hexagonal Adapter Naming Convention |
 | [ADR-0009](docs/adr/0009-resilience-and-timeout-strategy.md) | Resilience — Resilience4j Decorators and Timeout Strategy |
+| [ADR-0011](docs/adr/0011-trace-correlation-and-batch-export.md) | Trace Correlation Identity and Batched Span Export |
+| [ADR-0012](docs/adr/0012-data-access-failure-translation.md) | Translate Data-Access Failures to Service Unavailable |
