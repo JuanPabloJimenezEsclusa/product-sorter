@@ -68,7 +68,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-    <openapi-generator.version>7.25.0</openapi-generator.version>
+    <openapi-generator.version>7.26.0</openapi-generator.version>
     <springdoc.version>3.1.1</springdoc.version>
     <swagger-annotations.version>2.2.55</swagger-annotations.version>
     <loki-logback-appender.version>2.1.0</loki-logback-appender.version>
@@ -81,7 +81,7 @@
     <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
     <rewrite-maven-plugin.version>6.46.1</rewrite-maven-plugin.version>
     <sonar-maven-plugin.version>5.8.0.7211</sonar-maven-plugin.version>
-    <git-changelog-maven-plugin.version>2.5.0</git-changelog-maven-plugin.version>
+    <git-changelog-maven-plugin.version>2.5.4</git-changelog-maven-plugin.version>
     <maven-site-plugin.version>3.22.0</maven-site-plugin.version>
     <maven-jxr-plugin.version>3.6.0</maven-jxr-plugin.version>
     <maven-surefire-report-plugin.version>3.6.0</maven-surefire-report-plugin.version>
@@ -89,7 +89,7 @@
 
     <instancio.version>6.1.0</instancio.version>
     <archunit.version>1.5.1</archunit.version>
-    <rest-assured.version>6.0.1</rest-assured.version>
+    <rest-assured.version>6.1.0</rest-assured.version>
     <pitest-maven.version>1.30.0</pitest-maven.version>
     <mockwebserver.version>5.5.0</mockwebserver.version>
     <surefire.excludedGroups>chaos</surefire.excludedGroups>
