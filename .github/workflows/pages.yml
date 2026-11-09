@@ -3,13 +3,11 @@ name: Pages
 on:
   push:
     branches: [develop]
-  pull_request:
-    branches: [develop]
-    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
 
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   MAVEN_OPTS: "-Xmx2048m"
@@ -17,8 +15,7 @@ env:
 
 jobs:
   build:
-    if: github.event.pull_request.draft == false
-    permissions: { contents: read, pull-requests: write, id-token: write, pages: write }
+    permissions: { contents: read, id-token: write, pages: write }
     timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
@@ -31,14 +28,8 @@ jobs:
           java-version: 25
           cache: maven
 
-      - name: Cache Maven packages
-        uses: actions/cache@v6
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-
-      - run: mvn ${MAVEN_CLI_OPTS} -Ppitest clean verify site site:stage-deploy
+      - name: Build site (develop)
+        run: mvn ${MAVEN_CLI_OPTS} -Ppitest clean verify site site:stage-deploy
 
       - name: Configure Pages
         uses: actions/configure-pages@v6
