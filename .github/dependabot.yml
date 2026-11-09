@@ -1,32 +1,33 @@
 version: 2
 updates:
+  # Times are 3h apart so one weekly cycle does not open every PR at once.
   - package-ecosystem: maven
     directory: "/"
-    schedule: { interval: weekly, day: monday }
+    schedule: { interval: weekly, day: monday, time: "01:00" }
     open-pull-requests-limit: 10
     labels: [dependencies, automated]
     groups: { maven-deps: { patterns: ["*"] } }
 
   - package-ecosystem: docker
     directory: "/"
-    schedule: { interval: weekly }
+    schedule: { interval: weekly, day: monday, time: "04:00" }
     labels: [infrastructure, automated]
     groups: { docker-deps: { patterns: ["*"] } }
 
   - package-ecosystem: docker-compose
     directory: "/"
-    schedule: { interval: weekly }
+    schedule: { interval: weekly, day: monday, time: "07:00" }
     labels: [infrastructure, automated]
     groups: { compose-deps: { patterns: ["*"] } }
 
   - package-ecosystem: docker-compose
     directory: "/perf"
-    schedule: { interval: weekly }
+    schedule: { interval: weekly, day: monday, time: "10:00" }
     labels: [infrastructure, automated]
-    groups: { compose-deps: { patterns: ["*"] } }
+    groups: { perf-compose-deps: { patterns: ["*"] } }
 
   - package-ecosystem: github-actions
     directory: "/"
-    schedule: { interval: weekly }
+    schedule: { interval: weekly, day: monday, time: "13:00" }
     labels: [ci, automated]
     groups: { ci-deps: { patterns: ["*"] } }
