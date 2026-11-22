@@ -1,0 +1,14 @@
+#!/bin/sh
+# Re-sync README versions before committing, so a pom bump cannot land with
+# stale docs. Enable once with: git config core.hooksPath .githooks
+set -e
+
+changed=$(git diff --cached --name-only -- '*pom.xml' README.md)
+[ -n "$changed" ] || exit 0
+
+scripts/sync-readme-versions.sh
+
+if ! git diff --quiet -- README.md; then
+  git add README.md
+  echo "README.md synced and staged."
+fi

@@ -82,7 +82,7 @@ sequenceDiagram
 | Weighted-sum sorting, extensible criteria | Composition of weighted criteria (`AppliedWeights`, `Metrics`) | [Scoring Algorithm](#scoring-algorithm) |
 | Sales-units & stock-ratio criteria | Logistic sales ratio + size-availability ratio | [Scoring Algorithm](#scoring-algorithm) |
 | Weights received via REST | `POST /api/v1/products/sort` | [ADR-0005](docs/adr/0005-api-design-post-vs-get-and-pagination.md) |
-| Java 8+, Spring Boot | Java 25, Spring Boot 4.1 | `pom.xml` |
+| Java 25+, Spring Boot | Java 25+, Spring Boot 4.1+ | `pom.xml` |
 | Rich domain, no anemia (VOs, Aggregate, services) | Pure `domain` module | [Layer Constraints](#layer-constraints) |
 | Hexagonal + tactical DDD, layer separation | Multi-module + ArchUnit rules | [Modules](#modules), [ADR-0008](docs/adr/0008-pure-hexagonal-adapter-naming.md) |
 | Tests: unit / integration / E2E (rest-assured) | Three tiers, representative names | [Testing](#testing) |
